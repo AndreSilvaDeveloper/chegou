@@ -1,0 +1,68 @@
+# Render Blueprint — backend NestJS (Docker) + Postgres + Key Value (Redis)
+# Frontend (web/) é hospedado na Vercel, não aqui.
+databases:
+  - name: portaria-db
+    plan: free
+    databaseName: portaria
+    user: portaria
+
+services:
+  - type: keyvalue
+    name: portaria-redis
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+  - type: web
+    name: portaria-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    preDeployCommand: npm run db:migrate
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: portaria-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: portaria-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      - key: WHATSAPP_PROVIDER
+        value: twilio
+      - key: WHATSAPP_SANDBOX_MODE
+        value: "true"
+      - key: WHATSAPP_WEBHOOK_VERIFY
+        value: "false"
+      # Defina no dashboard da Render (Environment):
+      - key: WHATSAPP_FROM_NUMBER
+        sync: false
+      - key: WEBHOOK_BASE_URL
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      # Opcionais — só se for usar upload de foto (Cloudflare R2, etc.):
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: STORAGE_ENDPOINT
+        sync: false
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
+      - key: STORAGE_PUBLIC_URL
+        sync: false

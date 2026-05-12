@@ -31,9 +31,9 @@ export const envValidationSchema = Joi.object({
   ZAPI_TOKEN: Joi.string().allow('').optional(),
 
   STORAGE_ENDPOINT: Joi.string().allow('').optional(),
-  STORAGE_BUCKET: Joi.string().required(),
+  STORAGE_BUCKET: Joi.string().allow('').optional(),
   STORAGE_REGION: Joi.string().default('us-east-1'),
-  STORAGE_ACCESS_KEY: Joi.string().required(),
-  STORAGE_SECRET_KEY: Joi.string().required(),
+  STORAGE_ACCESS_KEY: Joi.string().allow('').optional(),
+  STORAGE_SECRET_KEY: Joi.string().allow('').optional(),
   STORAGE_PUBLIC_URL: Joi.string().allow('').optional(),
 });
