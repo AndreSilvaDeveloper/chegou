@@ -6,17 +6,52 @@ import { ScannerModal } from '../components/ScannerModal';
 
 const CORREIOS_RE = /^[A-Z]{2}\d{9}[A-Z]{2}$/i;
 
-/** Extrai um código de rastreio do conteúdo escaneado e tenta adivinhar a transportadora. */
-function parseScanned(raw: string): { codigo: string; transportadora?: string } {
+/** Tenta identificar a transportadora a partir do conteúdo escaneado (URL ou padrão de código). */
+function detectarTransportadora(raw: string): string | undefined {
+  const s = raw.trim();
+  if (/^https?:\/\//i.test(s)) {
+    const u = s.toLowerCase();
+    if (/correios|linkcorreios|rastreamento\.correios|melhorrastreio.*correios/.test(u)) return 'Correios';
+    if (/mercadoli(v|b)re|mercadoenvios|mercadolivre/.test(u)) return 'Mercado Livre';
+    if (/shopee|spx\.com|spx\.br/.test(u)) return 'Shopee';
+    if (/loggi/.test(u)) return 'Loggi';
+    if (/jadlog/.test(u)) return 'Jadlog';
+    if (/total\W*express/.test(u)) return 'Total Express';
+    if (/jt\W*express|jtexpress|jet\.com\.br/.test(u)) return 'J&T Express';
+    if (/\bamazon\b/.test(u)) return 'Amazon';
+    if (/\bdhl\b/.test(u)) return 'DHL';
+    if (/\bfedex\b/.test(u)) return 'FedEx';
+    if (/braspress/.test(u)) return 'Braspress';
+    if (/azul\W*cargo|azulcargo/.test(u)) return 'Azul Cargo';
+    return undefined;
+  }
+  const c = s.toUpperCase();
+  if (CORREIOS_RE.test(c)) return 'Correios';
+  if (/^TBA\d{6,}$/.test(c)) return 'Amazon';
+  if (/^SPX[A-Z0-9]/.test(c)) return 'Shopee';
+  if (/^J[TD]\d{8,}$/.test(c)) return 'J&T Express';
+  return undefined;
+}
+
+/** Extrai um código de rastreio "limpo" do conteúdo escaneado. */
+function extrairCodigo(raw: string): string {
   let code = raw.trim();
+  // se for JSON, tenta achar um campo de código conhecido
+  if (/^\s*[{[]/.test(code)) {
+    try {
+      const obj = JSON.parse(code);
+      const v = obj?.code ?? obj?.codigo ?? obj?.trackingNumber ?? obj?.tracking ?? obj?.codigoRastreio;
+      if (typeof v === 'string' && v.trim()) code = v.trim();
+    } catch {
+      /* não era JSON */
+    }
+  }
+  // se for URL, tenta extrair um trecho que pareça código de rastreio
   if (/^https?:\/\//i.test(code)) {
     const m = code.match(/[A-Z]{2}\d{9}[A-Z]{2}|[A-Z0-9]{10,40}/i);
     if (m) code = m[0];
   }
-  code = code.slice(0, 80);
-  let transportadora: string | undefined;
-  if (CORREIOS_RE.test(code)) transportadora = 'Correios';
-  return { codigo: code, transportadora };
+  return code.slice(0, 80);
 }
 
 export function NovaEncomenda() {
@@ -57,9 +92,12 @@ export function NovaEncomenda() {
 
   const handleScan = (text: string) => {
     setScanning(false);
-    const { codigo, transportadora: t } = parseScanned(text);
-    setCodigoRastreio(codigo);
-    if (t && !transportadora.trim()) setTransportadora(t);
+    setCodigoRastreio(extrairCodigo(text));
+    const t = detectarTransportadora(text);
+    if (t) {
+      if (!transportadora.trim()) setTransportadora(t);
+      if (!descricao.trim()) setDescricao(`Encomenda ${t}`);
+    }
   };
 
   const criarApto = async () => {
