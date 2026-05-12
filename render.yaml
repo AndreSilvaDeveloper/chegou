@@ -18,8 +18,7 @@ services:
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
-    # free tier não suporta preDeployCommand; rodamos a migration no start (idempotente)
-    dockerCommand: sh -c "npm run db:migrate && node dist/main.js"
+    # migration roda no CMD do Dockerfile (free tier não tem preDeployCommand)
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV

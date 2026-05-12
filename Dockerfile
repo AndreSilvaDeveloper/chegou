@@ -13,4 +13,5 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/db ./db
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+# roda migrations (idempotente) e sobe a API
+CMD ["sh", "-c", "npm run db:migrate && node dist/main.js"]
