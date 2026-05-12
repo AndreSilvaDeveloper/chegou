@@ -38,7 +38,7 @@ export class ApartamentosController {
   }
 
   @Post()
-  @Roles('admin', 'sindico')
+  @Roles('porteiro', 'admin', 'sindico')
   criar(@TenantId() tenantId: string, @Body() dto: CriarApartamentoDto) {
     return this.service.criar(tenantId, dto);
   }
