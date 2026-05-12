@@ -83,8 +83,24 @@ export class AdminService {
     const tenant = await this.tenantRepo.findOne({ where: { id } });
     if (!tenant) throw new NotFoundException('Condomínio não encontrado');
     if (dto.nome !== undefined) tenant.nome = dto.nome;
+    if (dto.slug !== undefined) tenant.slug = dto.slug;
+    if (dto.cnpj !== undefined) tenant.cnpj = dto.cnpj || null;
+    if (dto.cidade !== undefined) tenant.cidade = dto.cidade || null;
+    if (dto.estado !== undefined) tenant.estado = dto.estado || null;
     if (dto.plano !== undefined) tenant.plano = dto.plano;
     if (dto.ativo !== undefined) tenant.ativo = dto.ativo;
-    return this.tenantRepo.save(tenant);
+    try {
+      return await this.tenantRepo.save(tenant);
+    } catch (err) {
+      if (err instanceof QueryFailedError && (err as { code?: string }).code === PG_UNIQUE_VIOLATION) {
+        throw new ConflictException('Slug ou CNPJ já em uso por outro condomínio');
+      }
+      throw err;
+    }
+  }
+
+  async assertTenantExists(id: string): Promise<void> {
+    const exists = await this.tenantRepo.exists({ where: { id } });
+    if (!exists) throw new NotFoundException('Condomínio não encontrado');
   }
 }

@@ -8,5 +8,6 @@ import { MoradoresService } from './moradores.service';
   imports: [TypeOrmModule.forFeature([Morador, Apartamento])],
   controllers: [MoradoresController],
   providers: [MoradoresService],
+  exports: [MoradoresService],
 })
 export class MoradoresModule {}

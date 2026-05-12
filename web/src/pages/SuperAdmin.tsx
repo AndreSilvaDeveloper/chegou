@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 
 interface TenantRow {
@@ -145,7 +146,8 @@ export function SuperAdmin() {
                     {t.ativo ? 'Ativo' : 'Inativo'}
                   </span>
                 </td>
-                <td className="text-right">
+                <td className="text-right whitespace-nowrap">
+                  <Link to={`/admin/condominios/${t.id}`} className="text-xs text-brand-600 hover:text-brand-800 mr-3">Gerenciar</Link>
                   <button onClick={() => toggleAtivo(t.id, t.ativo)} className="text-xs text-slate-500 hover:text-slate-800">
                     {t.ativo ? 'Desativar' : 'Ativar'}
                   </button>

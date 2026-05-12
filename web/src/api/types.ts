@@ -65,3 +65,31 @@ export interface ListarEncomendasResponse {
   page: number;
   limit: number;
 }
+
+export type UserRole = 'superadmin' | 'sindico' | 'admin' | 'porteiro';
+
+export interface Usuario {
+  id: string;
+  tenantId: string | null;
+  nome: string;
+  email: string;
+  role: UserRole;
+  telefone: string | null;
+  ativo: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Tenant {
+  id: string;
+  nome: string;
+  slug: string;
+  cnpj: string | null;
+  cidade: string | null;
+  estado: string | null;
+  plano: string;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -4,10 +4,12 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Apartamentos } from './pages/Apartamentos';
 import { Dashboard } from './pages/Dashboard';
 import { DetalheEncomenda } from './pages/DetalheEncomenda';
+import { Equipe } from './pages/Equipe';
 import { Login } from './pages/Login';
 import { Moradores } from './pages/Moradores';
 import { NovaEncomenda } from './pages/NovaEncomenda';
 import { SuperAdmin } from './pages/SuperAdmin';
+import { SuperAdminTenant } from './pages/SuperAdminTenant';
 
 export default function App() {
   return (
@@ -19,7 +21,9 @@ export default function App() {
         <Route path="/encomendas/:id" element={<DetalheEncomenda />} />
         <Route path="/apartamentos" element={<Apartamentos />} />
         <Route path="/moradores" element={<Moradores />} />
+        <Route path="/equipe" element={<Equipe />} />
         <Route path="/admin" element={<SuperAdmin />} />
+        <Route path="/admin/condominios/:id" element={<SuperAdminTenant />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

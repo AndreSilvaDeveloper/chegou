@@ -12,6 +12,7 @@ import { EncomendasModule } from './modules/encomendas/encomendas.module';
 import { HealthModule } from './modules/health/health.module';
 import { MoradoresModule } from './modules/moradores/moradores.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 
 @Module({
@@ -29,6 +30,7 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
     WhatsappModule,
     ApartamentosModule,
     MoradoresModule,
+    UsuariosModule,
     EncomendasModule,
     StorageModule,
     AdminModule,

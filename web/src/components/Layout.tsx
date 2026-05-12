@@ -40,6 +40,10 @@ export function Layout() {
                       `px-3 py-1.5 rounded-md ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100'}`}>
                       Moradores
                     </NavLink>
+                    <NavLink to="/equipe" className={({ isActive }) =>
+                      `px-3 py-1.5 rounded-md ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100'}`}>
+                      Equipe
+                    </NavLink>
                   </>
                 )}
               </>
