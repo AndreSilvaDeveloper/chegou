@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api, getUser } from '../api/client';
 import { Encomenda } from '../api/types';
 import { NotifBadge } from '../components/NotifBadge';
@@ -13,7 +13,6 @@ const STATUS_BADGE: Record<string, string> = {
 
 export function DetalheEncomenda() {
   const { id } = useParams<{ id: string }>();
-  const nav = useNavigate();
   const user = getUser();
   const [enc, setEnc] = useState<Encomenda | null>(null);
   const [codigo, setCodigo] = useState('');
