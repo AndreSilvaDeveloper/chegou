@@ -35,8 +35,8 @@ export function Login() {
       <form onSubmit={submit} className="card w-full max-w-sm space-y-4">
         <div className="text-center">
           <div className="text-3xl mb-2">📦</div>
-          <h1 className="text-xl font-semibold text-slate-800">Portaria</h1>
-          <p className="text-sm text-slate-500">Gestão de encomendas</p>
+          <h1 className="text-2xl font-bold text-brand-700 tracking-tight">chegou</h1>
+          <p className="text-sm text-slate-500">Gestão de encomendas na portaria</p>
         </div>
         <div>
           <label className="label">E-mail</label>

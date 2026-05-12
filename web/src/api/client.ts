@@ -4,6 +4,7 @@ const USER_KEY = 'portaria.user';
 export interface AuthenticatedUser {
   id: string;
   tenantId: string | null;
+  tenantNome: string | null;
   role: 'superadmin' | 'sindico' | 'admin' | 'porteiro';
   nome: string;
   email: string;

@@ -24,6 +24,7 @@ export class AuthService {
     const user = await this.userRepo
       .createQueryBuilder('u')
       .addSelect('u.senhaHash')
+      .leftJoinAndSelect('u.tenant', 't')
       .where('u.email = :email', { email: dto.email })
       .andWhere('u.ativo = true')
       .getOne();
@@ -46,6 +47,7 @@ export class AuthService {
       user: {
         id: user.id,
         tenantId: user.tenantId,
+        tenantNome: user.tenant?.nome ?? null,
         role: user.role,
         nome: user.nome,
         email: user.email,
@@ -54,7 +56,7 @@ export class AuthService {
   }
 
   async findActiveUserById(id: string): Promise<User | null> {
-    return this.userRepo.findOne({ where: { id, ativo: true } });
+    return this.userRepo.findOne({ where: { id, ativo: true }, relations: { tenant: true } });
   }
 
   async hashPassword(plain: string): Promise<string> {
