@@ -28,3 +28,21 @@
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
 }
+
+/* Mantém o leitor de código (html5-qrcode) dentro do modal no celular */
+#scanner-region {
+  width: 100% !important;
+}
+#scanner-region * {
+  max-width: 100% !important;
+}
+#scanner-region video {
+  width: 100% !important;
+  height: auto !important;
+  display: block;
+  border-radius: 0.5rem;
+}
+#scanner-region img {
+  max-width: 100% !important;
+  height: auto !important;
+}

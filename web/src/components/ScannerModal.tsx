@@ -7,9 +7,13 @@ const FORMATS = [
   Html5QrcodeSupportedFormats.QR_CODE,
   Html5QrcodeSupportedFormats.CODE_128,
   Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.CODE_93,
   Html5QrcodeSupportedFormats.EAN_13,
   Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
   Html5QrcodeSupportedFormats.ITF,
+  Html5QrcodeSupportedFormats.CODABAR,
   Html5QrcodeSupportedFormats.DATA_MATRIX,
   Html5QrcodeSupportedFormats.PDF_417,
 ];
@@ -33,7 +37,15 @@ export function ScannerModal({
     scanner
       .start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 260, height: 170 } },
+        {
+          fps: 10,
+          aspectRatio: 1.3333,
+          qrbox: (vw: number, vh: number) => {
+            const w = Math.max(120, Math.min(vw - 24, 300));
+            const h = Math.max(80, Math.min(vh - 24, 200));
+            return { width: w, height: h };
+          },
+        },
         (text) => {
           if (done.current) return;
           done.current = true;
@@ -41,7 +53,7 @@ export function ScannerModal({
         },
         () => {},
       )
-      .catch(() => setError('Não foi possível acessar a câmera. Verifique a permissão do navegador.'));
+      .catch(() => setError('Não foi possível acessar a câmera. Verifique a permissão do navegador (e use HTTPS).'));
 
     return () => {
       const s = ref.current;
@@ -53,18 +65,22 @@ export function ScannerModal({
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl p-4 max-w-md w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-start sm:items-center justify-center p-3 overflow-y-auto" onClick={onClose}>
+      <div
+        className="bg-white rounded-xl p-4 w-full max-w-sm max-h-[92vh] overflow-y-auto space-y-3 my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Escanear código do pacote</h3>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
-        <div id={CONTAINER_ID} className="rounded-lg overflow-hidden bg-black min-h-[220px]" />
+        <div id={CONTAINER_ID} className="rounded-lg overflow-hidden bg-black w-full min-h-[200px]" />
         {error ? (
           <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{error}</div>
         ) : (
           <p className="text-xs text-slate-500">Aponte para o QR code ou o código de barras da etiqueta. O código é capturado automaticamente.</p>
         )}
+        <button type="button" onClick={onClose} className="btn-secondary w-full">Fechar / digitar manualmente</button>
       </div>
     </div>
   );
