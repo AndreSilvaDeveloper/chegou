@@ -1,122 +1,260 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, useMemo } from 'react';
 import { api } from '../api/client';
 import { Apartamento } from '../api/types';
+import { DataTable } from '@/components/ui/data-table';
+import { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Search, Plus, Building2, Pencil, Trash2, Loader2, ArrowUpDown, Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { ImportDialog } from './ImportDialog';
 
 export function ApartamentosManager({ basePath = '' }: { basePath?: string }) {
   const [list, setList] = useState<Apartamento[]>([]);
-  const [bloco, setBloco] = useState('');
-  const [numero, setNumero] = useState('');
-  const [obs, setObs] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  
+  // Dialog de Criação/Edição
+  const [openForm, setOpenForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ bloco: '', numero: '', observacoes: '' });
+  const [form, setForm] = useState({ bloco: '', numero: '', observacoes: '' });
+
+  // Dialog de Exclusão
+  const [openDelete, setOpenDelete] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const url = (p: string) => `${basePath}/apartamentos${p}`;
-  const load = () => api.get<Apartamento[]>(url('')).then(setList);
+  
+  const load = async () => {
+    setLoading(true);
+    try {
+      const data = await api.get<Apartamento[]>(url(''));
+      setList(data);
+    } catch (err) {
+      toast.error('Erro ao carregar apartamentos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => { load(); }, [basePath]);
 
-  const criar = async (e: FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    try {
-      await api.post(url(''), { bloco: bloco || undefined, numero, observacoes: obs || undefined });
-      setBloco(''); setNumero(''); setObs('');
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro');
-    } finally {
-      setSaving(false);
-    }
+  const openCreate = () => {
+    setEditId(null);
+    setForm({ bloco: '', numero: '', observacoes: '' });
+    setOpenForm(true);
   };
 
-  const startEdit = (a: Apartamento) => {
+  const openEdit = (a: Apartamento) => {
     setEditId(a.id);
-    setEditForm({ bloco: a.bloco ?? '', numero: a.numero, observacoes: a.observacoes ?? '' });
-    setError(null);
+    setForm({ bloco: a.bloco ?? '', numero: a.numero, observacoes: a.observacoes ?? '' });
+    setOpenForm(true);
   };
 
-  const salvarEdit = async (e: FormEvent) => {
+  const confirmarDelete = (id: string) => {
+    setDeletingId(id);
+    setOpenDelete(true);
+  };
+
+  const submitForm = async (e: FormEvent) => {
     e.preventDefault();
-    if (!editId) return;
+    if (!form.numero.trim()) {
+      toast.error('O número é obrigatório');
+      return;
+    }
+    
     setSaving(true);
-    setError(null);
     try {
-      await api.patch(url(`/${editId}`), {
-        bloco: editForm.bloco || null,
-        numero: editForm.numero,
-        observacoes: editForm.observacoes || null,
-      });
-      setEditId(null);
-      await load();
+      if (editId) {
+        await api.patch(url(`/${editId}`), {
+          bloco: form.bloco || null,
+          numero: form.numero,
+          observacoes: form.observacoes || null,
+        });
+        toast.success('Apartamento atualizado!');
+      } else {
+        await api.post(url(''), { 
+          bloco: form.bloco || undefined, 
+          numero: form.numero, 
+          observacoes: form.observacoes || undefined 
+        });
+        toast.success('Apartamento adicionado!');
+      }
+      setOpenForm(false);
+      load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro');
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar apartamento');
     } finally {
       setSaving(false);
     }
   };
 
-  const desativar = async (id: string) => {
-    if (!confirm('Desativar este apartamento?')) return;
-    await api.delete(url(`/${id}`));
-    await load();
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    try {
+      await api.delete(url(`/${deletingId}`));
+      toast.success('Apartamento desativado com sucesso');
+      setOpenDelete(false);
+      load();
+    } catch (err) {
+      toast.error('Erro ao desativar apartamento');
+    }
   };
+
+  // Import CSV
+  const [openImport, setOpenImport] = useState(false);
+
+  const filteredData = useMemo(() => {
+    if (!search.trim()) return list;
+    const q = search.toLowerCase();
+    return list.filter(a => 
+      a.identificador.toLowerCase().includes(q) || 
+      (a.observacoes && a.observacoes.toLowerCase().includes(q))
+    );
+  }, [list, search]);
+
+  const columns: ColumnDef<Apartamento>[] = [
+    {
+      accessorKey: "identificador",
+      header: ({ column }) => {
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="-ml-4">
+            Unidade
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const a = row.original;
+        return (
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span className="font-mono font-semibold text-base">{a.identificador}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "bloco",
+      header: "Bloco",
+      cell: ({ row }) => row.original.bloco ? <Badge variant="outline">{row.original.bloco}</Badge> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: "numero",
+      header: "Número",
+    },
+    {
+      accessorKey: "observacoes",
+      header: "Observações",
+      cell: ({ row }) => <span className="text-muted-foreground truncate max-w-[200px] block">{row.original.observacoes || '—'}</span>,
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const a = row.original;
+        return (
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="icon" onClick={() => openEdit(a)}>
+              <Pencil className="h-4 w-4 text-brand-600" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => confirmarDelete(a.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={criar} className="card space-y-3">
-        <h2 className="font-semibold text-slate-800">Novo apartamento</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="label">Bloco (opcional)</label>
-            <input className="input" value={bloco} onChange={(e) => setBloco(e.target.value)} placeholder="A" />
-          </div>
-          <div>
-            <label className="label">Número *</label>
-            <input className="input" value={numero} onChange={(e) => setNumero(e.target.value)} required placeholder="101" />
-          </div>
-          <div>
-            <label className="label">Observações</label>
-            <input className="input" value={obs} onChange={(e) => setObs(e.target.value)} />
-          </div>
+    <Card className="p-4 shadow-sm">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+        <div className="relative w-full md:max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar unidade..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            className="pl-9 h-10"
+          />
         </div>
-        {error && !editId && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{error}</div>}
-        <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Salvando…' : 'Adicionar'}</button>
-      </form>
-
-      <div className="card">
-        <div className="text-sm text-slate-500 mb-2">{list.length} ativos</div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-          {list.map((a) => (
-            <div key={a.id} className="border border-slate-200 rounded-lg p-2 text-sm">
-              {editId === a.id ? (
-                <form onSubmit={salvarEdit} className="space-y-1">
-                  <input className="input py-1 text-sm" value={editForm.bloco} onChange={(e) => setEditForm({ ...editForm, bloco: e.target.value })} placeholder="Bloco" />
-                  <input className="input py-1 text-sm" value={editForm.numero} onChange={(e) => setEditForm({ ...editForm, numero: e.target.value })} placeholder="Número" required />
-                  <input className="input py-1 text-sm" value={editForm.observacoes} onChange={(e) => setEditForm({ ...editForm, observacoes: e.target.value })} placeholder="Obs" />
-                  <div className="flex gap-1">
-                    <button type="submit" disabled={saving} className="btn-primary py-1 px-2 text-xs flex-1">Salvar</button>
-                    <button type="button" onClick={() => setEditId(null)} className="btn-secondary py-1 px-2 text-xs">×</button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <div className="font-mono font-semibold">{a.identificador}</div>
-                  {a.observacoes && <div className="text-xs text-slate-500 truncate">{a.observacoes}</div>}
-                  <div className="flex gap-2 mt-1">
-                    <button onClick={() => startEdit(a)} className="text-xs text-brand-600 hover:text-brand-800">Editar</button>
-                    <button onClick={() => desativar(a.id)} className="text-xs text-red-500 hover:text-red-700">Desativar</button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-          {list.length === 0 && <div className="text-slate-500 text-sm col-span-full">Nenhum apartamento.</div>}
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button variant="outline" onClick={() => setOpenImport(true)} className="w-full md:w-auto">
+            <Upload className="mr-2 h-4 w-4" />
+            Importar CSV
+          </Button>
+          <Button onClick={openCreate} className="w-full md:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Apartamento
+          </Button>
         </div>
-        {error && editId && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2 mt-2">{error}</div>}
       </div>
-    </div>
+
+      <DataTable 
+        columns={columns} 
+        data={filteredData} 
+        emptyStateTitle="Nenhum apartamento encontrado"
+        emptyStateDescription="Adicione apartamentos para que eles recebam encomendas."
+      />
+
+      <Dialog open={openForm} onOpenChange={setOpenForm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editId ? 'Editar Apartamento' : 'Novo Apartamento'}</DialogTitle>
+            <DialogDescription>
+              {editId ? 'Altere os dados da unidade.' : 'Cadastre uma nova unidade no condomínio.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={submitForm} className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bloco">Bloco (Opcional)</Label>
+                <Input id="bloco" placeholder="Ex: A" value={form.bloco} onChange={e => setForm({...form, bloco: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="numero">Número *</Label>
+                <Input id="numero" placeholder="Ex: 101" value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} autoFocus required />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="observacoes">Observações (Opcional)</Label>
+              <Input id="observacoes" placeholder="Informações adicionais" value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})} />
+            </div>
+            
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setOpenForm(false)}>Cancelar</Button>
+              <Button type="submit" disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {editId ? 'Salvar Alterações' : 'Cadastrar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={openDelete}
+        onOpenChange={setOpenDelete}
+        title="Desativar Apartamento"
+        description="Tem certeza? Os moradores associados a este apartamento ficarão sem apartamento ativo."
+        confirmLabel="Desativar"
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
+
+      <ImportDialog
+        open={openImport}
+        onOpenChange={setOpenImport}
+        type="apartamentos"
+        onSuccess={load}
+      />
+    </Card>
   );
 }

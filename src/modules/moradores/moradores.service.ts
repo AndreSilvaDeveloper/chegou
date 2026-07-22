@@ -104,4 +104,100 @@ export class MoradoresService {
     await this.repo.save(morador);
     return { ok: true };
   }
+
+  async importarCsv(tenantId: string, fileBuffer: Buffer) {
+    const papaparse = require('papaparse');
+    const csvData = fileBuffer.toString('utf-8');
+    
+    const results = papaparse.parse(csvData, {
+      header: true,
+      skipEmptyLines: true,
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    for (const [index, row] of results.data.entries()) {
+      try {
+        const line = index + 2;
+        const apartamentoIdentificador = row.apartamento_identificador?.trim();
+        const nome = row.nome?.trim();
+        const telefone = row.telefone?.trim() || null;
+        const documento = row.documento?.trim() || null;
+        const email = row.email?.trim() || null;
+        const principal = row.principal === 'true' || row.principal === '1';
+        const receberWhatsapp = row.receber_whatsapp !== 'false' && row.receber_whatsapp !== '0';
+
+        if (!apartamentoIdentificador || !nome) {
+          errors.push({ line, error: 'apartamento_identificador e nome são obrigatórios' });
+          errorCount++;
+          continue;
+        }
+
+        // Buscar apartamento pelo identificador (Ex: "A-101" ou "101")
+        const [bloco, numero] = apartamentoIdentificador.includes('-') 
+          ? apartamentoIdentificador.split('-') 
+          : [null, apartamentoIdentificador];
+
+        const qb = this.aptoRepo.createQueryBuilder('a')
+          .where('a.tenantId = :tenantId', { tenantId })
+          .andWhere('a.ativo = true');
+        
+        if (bloco) {
+          qb.andWhere('a.bloco = :bloco', { bloco });
+        } else {
+          qb.andWhere('a.bloco IS NULL');
+        }
+        qb.andWhere('a.numero = :numero', { numero });
+
+        const apto = await qb.getOne();
+
+        if (!apto) {
+          errors.push({ line, error: `Apartamento ${apartamentoIdentificador} não encontrado` });
+          errorCount++;
+          continue;
+        }
+
+        // Verifica se o morador já existe (nome + apartamento)
+        const existing = await this.repo.findOne({
+          where: { tenantId, apartamentoId: apto.id, nome }
+        });
+
+        if (existing) {
+          errors.push({ line, error: 'Morador já existe neste apartamento' });
+          errorCount++;
+          continue;
+        }
+
+        // Se for o principal, desmarca os outros
+        if (principal) {
+          await this.repo.update(
+            { tenantId, apartamentoId: apto.id, principal: true, ativo: true },
+            { principal: false },
+          );
+        }
+
+        await this.repo.save(
+          this.repo.create({
+            tenantId,
+            apartamentoId: apto.id,
+            nome,
+            telefoneE164: telefone,
+            documento,
+            email,
+            principal,
+            receberWhatsapp,
+            ativo: true,
+          })
+        );
+        successCount++;
+      } catch (err: any) {
+        errors.push({ line: index + 2, error: err.message });
+        errorCount++;
+      }
+    }
+
+    return { successCount, errorCount, errors };
+  }
 }

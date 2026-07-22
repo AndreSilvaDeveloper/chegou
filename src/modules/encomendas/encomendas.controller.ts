@@ -28,6 +28,12 @@ export class EncomendasController {
     return this.service.listar(tenantId, q);
   }
 
+  @Get('stats')
+  @Roles('admin', 'sindico')
+  estatisticas(@TenantId() tenantId: string, @Query() q: ListarEncomendasQuery) {
+    return this.service.obterEstatisticas(tenantId, q);
+  }
+
   @Get('export.csv')
   @Roles('admin', 'sindico')
   async exportCsv(

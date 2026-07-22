@@ -18,6 +18,7 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<{
     accessToken: string;
+    refreshToken: string;
     tokenType: 'Bearer';
     user: AuthenticatedUser;
   }> {
@@ -35,15 +36,46 @@ export class AuthService {
 
     await this.userRepo.update(user.id, { lastLoginAt: new Date() });
 
+    return this.generateTokens(user);
+  }
+
+  async refresh(refreshToken: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync(refreshToken);
+      if (payload.type !== 'refresh') {
+        throw new UnauthorizedException('Token inválido');
+      }
+
+      const user = await this.findActiveUserById(payload.sub);
+      if (!user) {
+        throw new UnauthorizedException('Usuário não encontrado ou inativo');
+      }
+
+      return this.generateTokens(user);
+    } catch (e) {
+      throw new UnauthorizedException('Refresh token inválido ou expirado');
+    }
+  }
+
+  private async generateTokens(user: User) {
     const payload: JwtPayload = {
       sub: user.id,
       tenantId: user.tenantId,
       role: user.role,
     };
 
+    const accessToken = await this.jwtService.signAsync(payload);
+    
+    // Refresh token lasts 7 days
+    const refreshToken = await this.jwtService.signAsync(
+      { sub: user.id, type: 'refresh' },
+      { expiresIn: '7d' }
+    );
+
     return {
-      accessToken: await this.jwtService.signAsync(payload),
-      tokenType: 'Bearer',
+      accessToken,
+      refreshToken,
+      tokenType: 'Bearer' as const,
       user: {
         id: user.id,
         tenantId: user.tenantId,

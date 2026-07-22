@@ -93,4 +93,104 @@ export class ApartamentosService {
       order: { principal: 'DESC', nome: 'ASC' },
     });
   }
+
+  async dispararCobranca(tenantId: string, notificationService: any): Promise<{ enviados: number }> {
+    const apartamentos = await this.aptoRepo.find({
+      where: { tenantId, ativo: true },
+    });
+
+    let enviados = 0;
+
+    for (const apto of apartamentos) {
+      if (!apto.valorCondominio) continue;
+
+      const moradores = await this.moradorRepo.find({
+        where: { tenantId, apartamentoId: apto.id, ativo: true, principal: true },
+      });
+
+      for (const morador of moradores) {
+        if (!morador.telefoneE164) continue;
+
+        await notificationService.agendarNotificacao({
+          tenantId,
+          tipo: 'cobranca_condominio',
+          destinatarioTelefone: morador.telefoneE164,
+          destinatarioNome: morador.nome,
+          moradorId: morador.id,
+          referenciaTipo: 'cobranca_condominio',
+          referenciaId: apto.id,
+          conteudo: `Olá ${morador.nome.split(' ')[0]}, o valor do condomínio (R$ ${apto.valorCondominio}) vence em breve.`,
+          variaveisJson: {
+            nome: morador.nome.split(' ')[0],
+            valor: apto.valorCondominio,
+          },
+        });
+        enviados++;
+      }
+    }
+
+    return { enviados };
+  }
+
+  async importarCsv(tenantId: string, fileBuffer: Buffer) {
+    const papaparse = require('papaparse');
+    const csvData = fileBuffer.toString('utf-8');
+    
+    const results = papaparse.parse(csvData, {
+      header: true,
+      skipEmptyLines: true,
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    for (const [index, row] of results.data.entries()) {
+      try {
+        const line = index + 2; // +1 for 0-index, +1 for header
+        const bloco = row.bloco?.trim() || null;
+        const numero = row.numero?.trim();
+        const observacoes = row.observacoes?.trim() || null;
+        
+        let valorCondominio = null;
+        if (row.valor_condominio) {
+          valorCondominio = parseFloat(row.valor_condominio.replace(',', '.'));
+        }
+
+        if (!numero) {
+          errors.push({ line, error: 'Número é obrigatório' });
+          errorCount++;
+          continue;
+        }
+
+        // Verifica se já existe
+        const existing = await this.aptoRepo.findOne({
+          where: { tenantId, bloco: bloco || '', numero }
+        });
+
+        if (existing) {
+          errors.push({ line, error: 'Apartamento já existe' });
+          errorCount++;
+          continue;
+        }
+
+        await this.aptoRepo.save(
+          this.aptoRepo.create({
+            tenantId,
+            bloco,
+            numero,
+            observacoes,
+            valorCondominio: (valorCondominio === null || isNaN(valorCondominio)) ? null : valorCondominio,
+            ativo: true,
+          })
+        );
+        successCount++;
+      } catch (err: any) {
+        errors.push({ line: index + 2, error: err.message });
+        errorCount++;
+      }
+    }
+
+    return { successCount, errorCount, errors };
+  }
 }

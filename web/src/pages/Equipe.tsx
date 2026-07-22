@@ -1,10 +1,13 @@
+import { PageHeader } from '@/components/ui/page-header';
 import { EquipeManager } from '../components/EquipeManager';
 
 export function Equipe() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-800">Equipe</h1>
-      <p className="text-sm text-slate-500">Crie e gerencie os acessos de porteiros e síndicos deste condomínio.</p>
+    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+      <PageHeader 
+        title="Equipe" 
+        description="Crie e gerencie os acessos de porteiros e síndicos deste condomínio."
+      />
       <EquipeManager basePath="" allowedRoles={['porteiro', 'sindico']} />
     </div>
   );

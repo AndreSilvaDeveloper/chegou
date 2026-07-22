@@ -30,6 +30,9 @@ export class Apartamento {
   @Column({ type: 'varchar', length: 20 })
   numero!: string;
 
+  @Column({ name: 'valor_condominio', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  valorCondominio!: number | null;
+
   // Coluna gerada no banco — somente leitura no app
   @Column({ type: 'varchar', length: 80, insert: false, update: false, generatedType: 'STORED' })
   identificador!: string;

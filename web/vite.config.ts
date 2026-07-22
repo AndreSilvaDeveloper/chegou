@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import path from 'path';
 
 export default defineConfig({
   plugins: [
@@ -9,11 +10,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Portaria — Encomendas',
-        short_name: 'Portaria',
-        description: 'Gestão de encomendas em portaria de condomínio',
-        theme_color: '#2d56d4',
-        background_color: '#f8fafc',
+        name: 'Chegou — Gestão de Condomínio',
+        short_name: 'Chegou',
+        description: 'Gestão de encomendas e condomínio com notificação via WhatsApp',
+        theme_color: '#1e40af',
+        background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
@@ -35,6 +36,11 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
     port: 5173,
     proxy: {

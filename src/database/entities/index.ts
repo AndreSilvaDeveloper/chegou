@@ -10,3 +10,8 @@ export {
   type WaStatus,
 } from './whatsapp-message.entity';
 export { AuditLog } from './audit-log.entity';
+export { Vaga } from './vaga.entity';
+export { VagaLocacao } from './vaga-locacao.entity';
+export { Funcionario } from './funcionario.entity';
+export { Notificacao } from './notificacao.entity';
+export { Aviso } from './aviso.entity';

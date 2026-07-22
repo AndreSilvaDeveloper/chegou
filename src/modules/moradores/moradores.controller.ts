@@ -9,7 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles, TenantId } from '../../common/decorators';
 import { AtualizarMoradorDto } from './dto/atualizar-morador.dto';
 import { CriarMoradorDto } from './dto/criar-morador.dto';
@@ -53,5 +57,18 @@ export class MoradoresController {
   @HttpCode(200)
   desativar(@TenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.desativar(tenantId, id);
+  }
+
+  @Post('import')
+  @Roles('admin', 'sindico')
+  @UseInterceptors(FileInterceptor('file'))
+  importarCsv(
+    @TenantId() tenantId: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Nenhum arquivo enviado');
+    }
+    return this.service.importarCsv(tenantId, file.buffer);
   }
 }

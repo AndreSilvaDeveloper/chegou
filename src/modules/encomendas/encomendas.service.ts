@@ -223,6 +223,58 @@ export class EncomendasService {
     return lines.join('\n');
   }
 
+  async obterEstatisticas(tenantId: string, q: ListarEncomendasQuery) {
+    const qb = this.baseQuery(tenantId, q);
+    const encomendas = await qb.getMany();
+
+    const total = encomendas.length;
+    const porStatus = encomendas.reduce((acc, curr) => {
+      acc[curr.status] = (acc[curr.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Calculando tempo médio de retirada (em horas) para as retiradas
+    let tempoMedioHoras = 0;
+    const retiradas = encomendas.filter((e) => e.status === 'retirada' && e.retiradaAt && e.createdAt);
+    if (retiradas.length > 0) {
+      const totalMilissegundos = retiradas.reduce((acc, curr) => {
+        return acc + (curr.retiradaAt!.getTime() - curr.createdAt!.getTime());
+      }, 0);
+      tempoMedioHoras = totalMilissegundos / retiradas.length / (1000 * 60 * 60);
+    }
+
+    // Top apartamentos (agrupando via TS, para evitar group-by complexo no query builder com count)
+    const porApartamento = encomendas.reduce((acc, curr) => {
+      if (curr.apartamentoId) {
+        acc[curr.apartamentoId] = (acc[curr.apartamentoId] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Converte e ordena para pegar os top 5 (ou 10)
+    // Para simplificar, retorna apenas o ID do apartamento e o valor. 
+    // Em um cenário real, precisaríamos do JOIN para trazer a string do apartamento.
+    // Como getMany já fez leftJoinAndSelect('e.apartamento', 'a'), podemos pegar a info lá!
+    const apartMap = new Map<string, string>();
+    for (const e of encomendas) {
+      if (e.apartamentoId && e.apartamento) {
+        apartMap.set(e.apartamentoId, e.apartamento.identificador);
+      }
+    }
+
+    const topApartamentos = Object.entries(porApartamento)
+      .map(([id, count]) => ({ id, identificador: apartMap.get(id) || id, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return {
+      total,
+      porStatus,
+      tempoMedioHoras,
+      topApartamentos,
+    };
+  }
+
   async obter(tenantId: string, id: string): Promise<Encomenda> {
     const encomenda = await this.repo.findOne({
       where: { id, tenantId },
