@@ -93,3 +93,84 @@ export interface Tenant {
   createdAt: string;
   updatedAt: string;
 }
+
+export type TipoVaga = 'carro' | 'moto' | 'grande' | 'pcd';
+
+export interface Vaga {
+  id: string;
+  tenantId: string;
+  numero: string;
+  tipo: TipoVaga;
+  localizacao: string | null;
+  apartamentoId: string | null;
+  apartamento?: Apartamento | null;
+  observacoes: string | null;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type StatusLocacao = 'ativa' | 'encerrada' | 'inadimplente';
+
+export interface VagaLocacao {
+  id: string;
+  tenantId: string;
+  vagaId: string;
+  vaga?: Vaga;
+  moradorId: string | null;
+  morador?: Morador | null;
+  valorMensal: number | string;
+  diaVencimento: number;
+  dataInicio: string;
+  dataFim: string | null;
+  status: StatusLocacao;
+  observacoes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TipoAviso = 'geral' | 'urgente' | 'manutencao' | 'evento' | 'financeiro';
+export type DestinatarioAviso = 'todos' | 'bloco' | 'apartamento';
+
+export interface Aviso {
+  id: string;
+  tenantId: string;
+  titulo: string;
+  conteudo: string;
+  tipo: TipoAviso;
+  criadoPorId: string;
+  criadoPor?: Usuario;
+  destinatario: DestinatarioAviso;
+  destinatarioFiltro: any;
+  enviarWhatsapp: boolean;
+  enviadaAt: string | null;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TipoNotificacao = 'encomenda' | 'cobranca_vaga' | 'cobranca_condominio' | 'aviso' | 'lembrete';
+export type StatusNotificacao = 'pendente' | 'agendada' | 'enviando' | 'enviada' | 'falha' | 'cancelada';
+
+export interface Notificacao {
+  id: string;
+  tenantId: string;
+  tipo: TipoNotificacao;
+  prioridade: number;
+  destinatarioTelefone: string;
+  destinatarioNome: string | null;
+  moradorId: string | null;
+  morador?: Morador | null;
+  referenciaTipo: string | null;
+  referenciaId: string | null;
+  conteudo: string;
+  variaveisJson: any;
+  status: StatusNotificacao;
+  agendadaPara: string | null;
+  enviadaAt: string | null;
+  tentativas: number;
+  maxTentativas: number;
+  erroMensagem: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

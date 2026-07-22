@@ -6,6 +6,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   SortingState,
+  ColumnFiltersState,
+  getFilteredRowModel,
 } from "@tanstack/react-table"
 
 import {
@@ -17,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "./button"
+import { Input } from "./input"
 import { useState } from "react"
 import { EmptyState } from "./empty-state"
 
@@ -25,6 +28,8 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   emptyStateTitle?: string
   emptyStateDescription?: string
+  searchKey?: string
+  searchPlaceholder?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -32,8 +37,11 @@ export function DataTable<TData, TValue>({
   data,
   emptyStateTitle = "Nenhum resultado encontrado",
   emptyStateDescription = "Não há dados para exibir no momento.",
+  searchKey,
+  searchPlaceholder = "Buscar...",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
   const table = useReactTable({
     data,
@@ -42,14 +50,29 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
+      columnFilters,
     },
   })
 
   return (
     <div>
-      <div className="rounded-md border bg-card">
+      {searchKey && (
+        <div className="flex items-center p-4">
+          <Input
+            placeholder={searchPlaceholder}
+            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn(searchKey)?.setFilterValue(event.target.value)
+            }
+            className="max-w-sm"
+          />
+        </div>
+      )}
+      <div className="rounded-md border-y bg-card border-x-0 sm:border-x sm:rounded-md">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -93,7 +116,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
+      <div className="flex items-center justify-end space-x-2 py-4 px-4 sm:px-0">
         <Button
           variant="outline"
           size="sm"
