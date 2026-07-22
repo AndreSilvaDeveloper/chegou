@@ -169,12 +169,12 @@ chegou/
 | `avisos` | Avisos gerais do condomínio para moradores |
 
 ### Roles do Sistema
-| Role | Acesso | tenant_id |
-|---|---|---|
-| `superadmin` | Plataforma inteira | NULL |
-| `sindico` | Admin do condomínio | obrigatório |
-| `admin` | Gestão do condomínio | obrigatório |
-| `porteiro` | Operação de portaria | obrigatório |
+| Role | Acesso | tenant_id | Login de Teste (Seed) |
+|---|---|---|---|
+| `superadmin` | Plataforma inteira | NULL | `admin@portaria.app` / `senha123` |
+| `sindico` | Admin do condomínio | obrigatório | `sindico@bela-vista.app` / `senha123` |
+| `admin` | Gestão do condomínio | obrigatório | N/A |
+| `porteiro` | Operação de portaria | obrigatório | `porteiro@bela-vista.app` / `senha123` |
 
 ---
 
