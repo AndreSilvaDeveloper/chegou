@@ -184,12 +184,12 @@ export function ApartamentosManager({ basePath = '' }: { basePath?: string }) {
             className="pl-9 h-10"
           />
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <Button variant="outline" onClick={() => setOpenImport(true)} className="w-full md:w-auto">
+        <div className="flex flex-col gap-2 w-full sm:flex-row md:w-auto">
+          <Button variant="outline" onClick={() => setOpenImport(true)} className="w-full sm:w-auto">
             <Upload className="mr-2 h-4 w-4" />
             Importar CSV
           </Button>
-          <Button onClick={openCreate} className="w-full md:w-auto">
+          <Button onClick={openCreate} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Novo Apartamento
           </Button>

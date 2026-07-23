@@ -8,20 +8,21 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Chegou — Gestão de Condomínio',
+        name: 'Chegou — Central de Portaria',
         short_name: 'Chegou',
         description: 'Gestão de encomendas e condomínio com notificação via WhatsApp',
-        theme_color: '#1e40af',
-        background_color: '#0f172a',
+        theme_color: '#18181b',
+        background_color: '#09090b',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
         icons: [
-          { src: '/icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-          { src: '/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -43,8 +44,13 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // 0.0.0.0 para ser acessível quando roda dentro do Docker
+    host: true,
+    // Em dev no Docker (bind mount), o watcher precisa de polling p/ o HMR funcionar
+    watch: process.env.CHOKIDAR_USEPOLLING === 'true' ? { usePolling: true } : undefined,
     proxy: {
-      '/api': 'http://localhost:3000',
+      // No Docker aponta pro serviço `api`; no host, localhost:3000
+      '/api': process.env.VITE_PROXY_TARGET || 'http://localhost:3000',
     },
   },
 });

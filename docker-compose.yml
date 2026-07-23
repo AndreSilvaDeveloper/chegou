@@ -1,3 +1,17 @@
+# =============================================================================
+# Chegou — stack de DESENVOLVIMENTO (tudo em Docker, com hot reload)
+#
+#   docker compose up            → sobe TUDO: banco, redis, minio, API e front
+#   Front:   http://localhost:5173      (Vite + HMR)
+#   API:     http://localhost:3000/api  (NestJS + nest watch)
+#   Adminer: http://localhost:8081      (server: postgres · user/senha: portaria)
+#   MinIO:   http://localhost:9001      (console · user/senha: portaria/portaria123)
+#
+# O código é montado por bind mount → salvar um arquivo recarrega sozinho.
+# Só a infra (sem API/front): docker compose up postgres redis minio adminer
+# Depois de mudar dependências (package.json): docker compose up -d --build
+# =============================================================================
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -74,6 +88,69 @@ services:
       mc anonymous set download local/portaria-fotos
       "
     restart: "no"
+
+  # ---- Backend (NestJS) em modo dev, hot reload ----
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: portaria-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      LOG_LEVEL: debug
+      DATABASE_URL: postgresql://portaria:portaria@postgres:5432/portaria_dev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-nao-use-em-producao
+      JWT_EXPIRES_IN: 12h
+      BCRYPT_ROUNDS: "12"
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-twilio}
+      WHATSAPP_FROM_NUMBER: ${WHATSAPP_FROM_NUMBER:-+14155238886}
+      WHATSAPP_SANDBOX_MODE: "true"
+      WHATSAPP_WEBHOOK_VERIFY: "false"
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_BUCKET: portaria-fotos
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY: portaria
+      STORAGE_SECRET_KEY: portaria123
+      STORAGE_PUBLIC_URL: http://localhost:9000/portaria-fotos
+      # hot reload em bind mount (necessário no Windows/macOS Docker)
+      CHOKIDAR_USEPOLLING: "true"
+      TSC_WATCHFILE: DynamicPriorityPolling
+      TSC_WATCHDIRECTORY: DynamicPriorityPolling
+    volumes:
+      - .:/app
+      - /app/node_modules   # mantém o node_modules do container (não o do host)
+    command: sh -c "npm run db:migrate && npm run start:dev"
+
+  # ---- Frontend (Vite) em modo dev, HMR ----
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    container_name: portaria-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_PROXY_TARGET: http://api:3000
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
 
 volumes:
   portaria_pgdata:

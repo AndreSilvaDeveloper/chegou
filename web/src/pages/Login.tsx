@@ -2,7 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { api, AuthenticatedUser, getToken, setToken, setUser } from '../api/client';
 import { motion } from 'motion/react';
-import { Package, Mail, Lock, Eye, EyeOff, Loader2, MessageSquare } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,8 +54,8 @@ export function Login() {
         <div className="pointer-events-none absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-primary/15 blur-3xl" aria-hidden />
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-signal">
-            <Package className="h-6 w-6" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-signal">
+            <img src="/logo-mark.png" alt="Chegou" className="h-7 w-7" />
           </div>
           <div className="leading-none">
             <span className="text-xl font-extrabold tracking-tight text-foreground">chegou</span>
@@ -89,8 +89,8 @@ export function Login() {
         <div className="mx-auto flex w-full max-w-[400px] flex-col justify-center space-y-8">
           <div className="flex flex-col space-y-2 text-center md:text-left">
             <div className="mb-2 flex justify-center md:hidden">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-signal">
-                <Package className="h-8 w-8" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-signal">
+                <img src="/logo-mark.png" alt="Chegou" className="h-9 w-9" />
               </div>
             </div>
             <p className="eyebrow hidden md:block">Acesso restrito</p>
