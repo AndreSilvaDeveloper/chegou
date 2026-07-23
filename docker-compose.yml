@@ -102,7 +102,9 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      # Se a 3000 já estiver em uso no host (ex.: backend rodando fora do Docker),
+      # defina API_PORT no .env ou no shell: API_PORT=3010 docker compose up
+      - "${API_PORT:-3000}:3000"
     environment:
       NODE_ENV: development
       PORT: "3000"
@@ -144,7 +146,7 @@ services:
     depends_on:
       - api
     ports:
-      - "5173:5173"
+      - "${WEB_PORT:-5173}:5173"
     environment:
       VITE_PROXY_TARGET: http://api:3000
       CHOKIDAR_USEPOLLING: "true"
