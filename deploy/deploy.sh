@@ -23,7 +23,7 @@ echo ">> 1/3 git pull..."
 git pull --ff-only
 
 echo ">> 2/3 build + up (isso pode demorar no 1º deploy)..."
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
 
 echo ">> 3/3 limpando imagens antigas..."
 docker image prune -f

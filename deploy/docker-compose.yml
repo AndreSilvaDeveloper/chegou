@@ -136,6 +136,9 @@ services:
       timeout: 5s
       retries: 5
 
+  # Nginx INTERNO: unifica /, /api e /fotos numa porta local (só no 127.0.0.1).
+  # O TLS e o domínio ficam no reverse proxy que JÁ EXISTE no host (nginx/caddy/etc),
+  # que encaminha chegou.bellory.com.br → 127.0.0.1:${APP_PORT}. Ver README.
   proxy:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -143,31 +146,11 @@ services:
       - api
       - web
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN}
+      - "127.0.0.1:${APP_PORT:-8090}:80"
     volumes:
-      - ./nginx/templates:/etc/nginx/templates:ro
-      - certbot-conf:/etc/letsencrypt:ro
-      - certbot-webroot:/var/www/certbot:ro
-    # Recarrega o nginx a cada 6h para pegar certificados renovados pelo certbot
-    command: >
-      /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
-
-  certbot:
-    image: certbot/certbot:latest
-    restart: unless-stopped
-    volumes:
-      - certbot-conf:/etc/letsencrypt
-      - certbot-webroot:/var/www/certbot
-    # Tenta renovar a cada 12h (só renova quando faltar < 30 dias)
-    entrypoint: >
-      /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+      - ./nginx/app.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
   pgdata:
   redisdata:
   miniodata:
-  certbot-conf:
-  certbot-webroot:
