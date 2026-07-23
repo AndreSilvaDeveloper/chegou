@@ -1,5 +1,13 @@
 # Deploy Guide
 
+> **Servidor próprio, tudo em Docker?**
+> Use o guia novo em **[`deploy/README.md`](./deploy/README.md)** (single-server, build no
+> próprio servidor, `git pull` + `./deploy.sh`, nginx + certbot, MinIO). É o caminho recomendado.
+>
+> O conteúdo abaixo é a **alternativa gerenciada** (Render + Vercel), mantida como referência.
+
+---
+
 Arquitetura de produção:
 
 ```

@@ -9,5 +9,6 @@ web/
 .git
 .github
 test/
-scripts/
+scripts/*
+!scripts/seed-prod.js
 *.md

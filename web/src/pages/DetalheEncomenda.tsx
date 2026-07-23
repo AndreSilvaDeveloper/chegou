@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { CodigoStrip } from '@/components/ui/codigo-strip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTime, cn } from '@/lib/utils';
 import { 
@@ -51,7 +52,7 @@ export function DetalheEncomenda() {
 
   if (!enc) {
     return (
-      <div className="mx-auto max-w-3xl space-y-6 pb-10">
+      <div className="space-y-6 pb-10">
         <Skeleton className="h-10 w-1/3" />
         <Skeleton className="h-4 w-1/2" />
         <div className="grid gap-6 md:grid-cols-3">
@@ -122,7 +123,7 @@ export function DetalheEncomenda() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => nav(-1)} className="rounded-full">
           <ArrowLeft className="h-5 w-5" />
@@ -157,29 +158,32 @@ export function DetalheEncomenda() {
         <div className="space-y-6 md:col-span-1">
           {/* Status / Ações */}
           {ativa ? (
-            <Card className="border-primary/50 shadow-sm">
-              <CardHeader className="bg-primary/5 pb-4">
-                <CardTitle className="text-lg">Registrar Retirada</CardTitle>
+            <Card className="border-primary/40">
+              <CardHeader className="border-b border-border pb-4">
+                <p className="eyebrow">Ação</p>
+                <CardTitle className="text-lg">Registrar retirada</CardTitle>
                 <CardDescription>Como o morador vai comprovar a retirada?</CardDescription>
               </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                
+              <CardContent className="pt-5 space-y-4">
+
                 {/* Abas */}
-                <div className="flex rounded-lg border bg-muted p-1">
+                <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-1">
                   <button
+                    type="button"
                     onClick={() => setTab('codigo')}
                     className={cn(
-                      "flex-1 rounded-md py-1.5 text-sm font-medium transition-all",
-                      tab === 'codigo' ? "bg-background text-foreground shadow" : "text-muted-foreground hover:text-foreground"
+                      "min-h-[40px] flex-1 rounded-md text-sm font-medium transition-all",
+                      tab === 'codigo' ? "bg-card text-foreground shadow-panel" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     Código
                   </button>
                   <button
+                    type="button"
                     onClick={() => setTab('documento')}
                     className={cn(
-                      "flex-1 rounded-md py-1.5 text-sm font-medium transition-all",
-                      tab === 'documento' ? "bg-background text-foreground shadow" : "text-muted-foreground hover:text-foreground"
+                      "min-h-[40px] flex-1 rounded-md text-sm font-medium transition-all",
+                      tab === 'documento' ? "bg-card text-foreground shadow-panel" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     Documento
@@ -226,7 +230,7 @@ export function DetalheEncomenda() {
               <CardContent className="pt-6 text-center">
                 <div className={cn(
                   "mx-auto flex h-16 w-16 items-center justify-center rounded-full mb-4",
-                  enc.status === 'retirada' ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+                  enc.status === 'retirada' ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
                 )}>
                   <StatusIcon className="h-8 w-8" />
                 </div>
@@ -305,11 +309,9 @@ export function DetalheEncomenda() {
                 </div>
                 
                 {ativa && (
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm text-brand-600 mb-1"><KeyRound className="mr-2 h-4 w-4" /> Código de Retirada (Morador)</div>
-                    <div className="font-mono text-3xl font-bold tracking-widest text-brand-700 bg-brand-50 inline-block px-3 py-1 rounded-md border border-brand-200">
-                      {enc.codigoRetirada}
-                    </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <div className="flex items-center text-sm text-muted-foreground"><KeyRound className="mr-2 h-4 w-4" /> Código enviado ao morador</div>
+                    <CodigoStrip codigo={enc.codigoRetirada} size="lg" active={enc.status === 'notificado'} />
                   </div>
                 )}
                 

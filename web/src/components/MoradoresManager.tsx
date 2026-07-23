@@ -207,7 +207,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
         return (
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
-              <Pencil className="h-4 w-4 text-brand-600" />
+              <Pencil className="h-4 w-4 text-primary" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => confirmarDelete(m.id)}>
               <Trash2 className="h-4 w-4 text-destructive" />

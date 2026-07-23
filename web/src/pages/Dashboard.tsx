@@ -8,19 +8,21 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package, Clock, PackageCheck, Timer, Plus, Download, Search, Calendar, ChevronRight } from 'lucide-react';
-import { timeAgo, formatDateTime } from '@/lib/utils';
+import { Package, Clock, PackageCheck, Timer, Plus, Download, Search, Calendar, ChevronRight, Truck } from 'lucide-react';
+import { timeAgo, formatDateTime, cn } from '@/lib/utils';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CodigoStrip } from '@/components/ui/codigo-strip';
+import { StatusDot } from '@/components/ui/status-dot';
 
-const STATUS_CONFIG: Record<EncomendaStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" }> = {
-  aguardando: { label: 'Aguardando', variant: 'warning' },
-  notificado: { label: 'Notificado', variant: 'info' },
-  retirada: { label: 'Retirada', variant: 'success' },
-  cancelada: { label: 'Cancelada', variant: 'secondary' },
-  devolvida: { label: 'Devolvida', variant: 'secondary' },
+type Tone = "waiting" | "notified" | "done" | "neutral" | "danger";
+const STATUS_CONFIG: Record<EncomendaStatus, { label: string; tone: Tone; pulse?: boolean }> = {
+  aguardando: { label: 'Aguardando', tone: 'waiting', pulse: true },
+  notificado: { label: 'Notificado', tone: 'notified', pulse: true },
+  retirada: { label: 'Retirada', tone: 'done' },
+  cancelada: { label: 'Cancelada', tone: 'neutral' },
+  devolvida: { label: 'Devolvida', tone: 'neutral' },
 };
 
 type Filtro = 'pendentes' | 'todas' | 'retiradas' | 'canceladas';
@@ -96,8 +98,9 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8 pb-10">
-      <PageHeader 
-        title="Dashboard" 
+      <PageHeader
+        eyebrow="Portaria"
+        title="Central de encomendas"
         description="Acompanhe as entregas e métricas do condomínio"
       >
         <div className="flex w-full gap-2 sm:w-auto">
@@ -199,17 +202,21 @@ export function Dashboard() {
       {/* List Section */}
       <div className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-muted/40 p-1 sm:pb-1">
             {(['pendentes', 'todas', 'retiradas', 'canceladas'] as Filtro[]).map((f) => (
-              <Button
+              <button
                 key={f}
-                variant={filtro === f ? "default" : "outline"}
+                type="button"
                 onClick={() => setFiltro(f)}
-                className="capitalize rounded-full whitespace-nowrap min-w-24"
-                size="sm"
+                className={cn(
+                  "min-h-[40px] whitespace-nowrap rounded-lg px-4 text-sm font-medium capitalize transition-colors",
+                  filtro === f
+                    ? "bg-card text-foreground shadow-panel"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
                 {f}
-              </Button>
+              </button>
             ))}
           </div>
           
@@ -260,53 +267,47 @@ export function Dashboard() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {items.map((e) => {
               const conf = STATUS_CONFIG[e.status];
+              const pendente = e.status === 'aguardando' || e.status === 'notificado';
               return (
-                <Link
-                  key={e.id}
-                  to={`/encomendas/${e.id}`}
-                  className="group block"
-                >
-                  <Card className="h-full transition-all hover:border-primary/50 hover:shadow-md">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-2">
+                <Link key={e.id} to={`/encomendas/${e.id}`} className="group block">
+                  <Card className="h-full transition-colors hover:border-primary/50">
+                    <CardContent className="flex h-full flex-col gap-4 p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-2xl font-bold tracking-tight text-foreground">
+                            <span className="font-mono text-2xl font-bold tracking-tight text-foreground">
                               {e.apartamento?.identificador}
                             </span>
-                            <Badge variant={conf.variant}>{conf.label}</Badge>
+                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                           </div>
-                          
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p className="line-clamp-1 font-medium text-foreground/80">
-                              {e.descricao || 'Sem descrição'}
-                            </p>
-                            {e.transportadora && (
-                              <p className="text-xs">Entrega via {e.transportadora}</p>
-                            )}
-                            <p className="text-xs">{timeAgo(e.createdAt)} ({formatDateTime(e.createdAt)})</p>
+                          <div className="mt-2">
+                            <StatusDot tone={conf.tone} label={conf.label} pulse={conf.pulse} />
                           </div>
                         </div>
+                        {pendente && (
+                          <CodigoStrip codigo={e.codigoRetirada} active={e.status === 'notificado'} />
+                        )}
+                      </div>
 
-                        <div className="flex flex-col items-end gap-2 text-right">
-                          {(e.status === 'aguardando' || e.status === 'notificado') && (
-                            <div className="rounded-lg bg-primary/10 px-3 py-1.5 text-center">
-                              <div className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                                Código
-                              </div>
-                              <div className="font-mono text-xl font-bold text-primary">
-                                {e.codigoRetirada}
-                              </div>
-                            </div>
+                      <div className="mt-auto space-y-1.5 border-t border-border pt-3 text-sm">
+                        <p className="line-clamp-1 font-medium text-foreground">
+                          {e.descricao || 'Sem descrição'}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          {e.transportadora && (
+                            <span className="inline-flex items-center gap-1">
+                              <Truck className="h-3.5 w-3.5" />{e.transportadora}
+                            </span>
                           )}
-                          <div className="mt-auto hidden group-hover:block transition-all text-muted-foreground hover:text-primary">
-                            <ChevronRight className="h-5 w-5" />
-                          </div>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />{timeAgo(e.createdAt)}
+                          </span>
+                          <span className="font-mono">{formatDateTime(e.createdAt)}</span>
                         </div>
                       </div>
 
                       {e.notificacao?.status === 'failed' && (
-                        <div className="mt-4 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                        <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
                           <NotifBadge notif={e.notificacao} />
                         </div>
                       )}

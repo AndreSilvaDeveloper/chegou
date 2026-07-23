@@ -11,3 +11,7 @@ coverage/
 .idea/
 .vscode/
 *.tsbuildinfo
+
+# Deploy (servidor)
+deploy/backups/
+deploy/.env

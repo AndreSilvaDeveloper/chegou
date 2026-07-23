@@ -71,7 +71,7 @@ export function Vagas() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader 
         title="Gestão de Vagas" 
         description="Gerencie as vagas de garagem e as locações avulsas."

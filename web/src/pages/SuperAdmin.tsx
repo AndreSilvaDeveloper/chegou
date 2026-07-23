@@ -187,7 +187,7 @@ export function SuperAdmin() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader 
         title="Gestão de Condomínios" 
         description="Área administrativa para gerenciar todos os condomínios da plataforma."

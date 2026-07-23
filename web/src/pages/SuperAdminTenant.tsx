@@ -80,7 +80,7 @@ export function SuperAdminTenant() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <div className="flex items-center gap-4 mb-4">
         <Link to="/admin">
           <Button variant="ghost" size="icon" className="rounded-full" type="button">

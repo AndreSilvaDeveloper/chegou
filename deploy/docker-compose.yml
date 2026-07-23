@@ -1,0 +1,173 @@
+# =============================================================================
+# Chegou — stack de produção (single-server, tudo em Docker)
+#
+#   Internet ──▶ proxy (nginx + TLS) ─┬─ /            ▶ web  (SPA estática)
+#                                     ├─ /api         ▶ api  (NestJS :3000)
+#                                     └─ /fotos       ▶ minio (S3, bucket público)
+#
+#   api ▶ postgres (dados)  ·  redis (filas BullMQ)  ·  minio (fotos)
+#
+# As imagens `api` e `web` são buildadas NO PRÓPRIO SERVIDOR a partir do código
+# (após `git pull`). Sem registry, sem GitHub Actions — o deploy é `./deploy.sh`.
+# Migrations do banco rodam sozinhas no start do container `api`.
+# Variáveis ficam em `deploy/.env` (copie de `.env.example`). Nunca commite o .env.
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: portaria
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: portaria
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portaria -d portaria"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # Sem `ports:` → o banco NÃO fica exposto na internet, só na rede interna.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Cria o bucket de fotos e libera leitura pública (as fotos são servidas via /fotos)
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
+      mc mb --ignore-existing local/${STORAGE_BUCKET} &&
+      mc anonymous set download local/${STORAGE_BUCKET} &&
+      echo 'bucket ${STORAGE_BUCKET} pronto'
+      "
+    restart: "no"
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: chegou-api:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://portaria:${POSTGRES_PASSWORD}@postgres:5432/portaria
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+      # WhatsApp
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-twilio}
+      WHATSAPP_FROM_NUMBER: ${WHATSAPP_FROM_NUMBER}
+      WHATSAPP_SANDBOX_MODE: ${WHATSAPP_SANDBOX_MODE:-false}
+      WHATSAPP_WEBHOOK_VERIFY: ${WHATSAPP_WEBHOOK_VERIFY:-true}
+      WEBHOOK_BASE_URL: https://${DOMAIN}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      TWILIO_SMS_FROM: ${TWILIO_SMS_FROM:-}
+      TWILIO_TEMPLATE_ENCOMENDA_CHEGOU: ${TWILIO_TEMPLATE_ENCOMENDA_CHEGOU:-}
+      TWILIO_TEMPLATE_RETIRADA_CONFIRMADA: ${TWILIO_TEMPLATE_RETIRADA_CONFIRMADA:-}
+      ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID:-}
+      ZAPI_TOKEN: ${ZAPI_TOKEN:-}
+      # Storage (MinIO interno; público via /fotos no proxy)
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      STORAGE_PUBLIC_URL: https://${DOMAIN}/fotos/${STORAGE_BUCKET}
+      # Seed do superadmin (usado por: docker compose exec api node scripts/seed-prod.js)
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@portaria.app}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
+      SUPERADMIN_NOME: ${SUPERADMIN_NOME:-Super Admin}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    image: chegou-web:local
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  proxy:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot:ro
+    # Recarrega o nginx a cada 6h para pegar certificados renovados pelo certbot
+    command: >
+      /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    # Tenta renovar a cada 12h (só renova quando faltar < 30 dias)
+    entrypoint: >
+      /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  certbot-conf:
+  certbot-webroot:

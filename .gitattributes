@@ -1,0 +1,7 @@
+# Arquivos que PRECISAM ter fim de linha LF (senão quebram no Linux/Docker do servidor).
+*.sh            text eol=lf
+*.template      text eol=lf
+Dockerfile      text eol=lf
+*.Dockerfile    text eol=lf
+docker-compose*.yml text eol=lf
+.env.example    text eol=lf

@@ -116,7 +116,7 @@ export function Notificacoes() {
   const stats = statsQuery.data || { total: 0, pendentes: 0, enviadas: 0, falhas: 0, canceladas: 0 };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader 
         title="Fila de Notificações" 
         description="Acompanhe o status de envio das mensagens no WhatsApp e gerencie a fila."

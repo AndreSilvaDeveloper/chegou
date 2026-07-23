@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Camera, Package, Building2, User, Truck, FileText, ArrowRight, ArrowLeft, CheckCircle2, Loader2, Image as ImageIcon, X } from 'lucide-react';
+import { Search, Camera, Package, Building2, User, Truck, FileText, ArrowRight, ArrowLeft, CheckCircle2, Loader2, Image as ImageIcon, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -180,7 +180,7 @@ export function NovaEncomenda() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader 
         title="Registrar Encomenda" 
         description="Escaneie o pacote ou digite os dados manualmente."
@@ -335,8 +335,9 @@ export function NovaEncomenda() {
                     </select>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm text-warning-foreground">
-                    ⚠ Sem moradores: A encomenda será salva, mas a notificação no WhatsApp só será enviada quando um morador for cadastrado no apartamento.
+                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span><span className="font-semibold">Sem moradores:</span> a encomenda será salva, mas a notificação no WhatsApp só será enviada quando um morador for cadastrado no apartamento.</span>
                   </div>
                 )}
 

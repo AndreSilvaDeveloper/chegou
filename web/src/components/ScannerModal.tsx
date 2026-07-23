@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { X, ScanLine, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const CONTAINER_ID = 'scanner-region';
 
@@ -90,30 +92,34 @@ export function ScannerModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 z-50 flex items-start sm:items-center justify-center p-3 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:items-center"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl p-4 w-full max-w-sm max-h-[92vh] overflow-y-auto space-y-3 my-auto"
+        className="my-auto w-full max-w-sm space-y-3 overflow-y-auto rounded-xl border border-border bg-card p-4 text-card-foreground shadow-panel-lg max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800">Escanear código do pacote</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">
-            ×
-          </button>
+          <h3 className="flex items-center gap-2 font-semibold text-foreground">
+            <ScanLine className="h-5 w-5 text-primary" /> Escanear código do pacote
+          </h3>
+          <Button type="button" variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fechar">
+            <X className="h-5 w-5" />
+          </Button>
         </div>
-        <div id={CONTAINER_ID} className="rounded-lg overflow-hidden bg-black w-full min-h-[200px]" />
+        <div id={CONTAINER_ID} className="min-h-[200px] w-full overflow-hidden rounded-lg bg-black" />
         {error ? (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{error}</div>
+          <div className="flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
+          </div>
         ) : (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Aponte para o QR code ou o código de barras da etiqueta. O código é capturado automaticamente.
           </p>
         )}
-        <button type="button" onClick={onClose} className="btn-secondary w-full">
+        <Button type="button" variant="outline" onClick={onClose} className="w-full">
           Fechar / digitar manualmente
-        </button>
+        </Button>
       </div>
     </div>
   );

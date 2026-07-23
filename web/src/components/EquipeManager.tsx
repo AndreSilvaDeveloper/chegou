@@ -21,10 +21,10 @@ const ROLE_LABEL: Record<UserRole, string> = {
 };
 
 const ROLE_COLOR: Record<UserRole, string> = {
-  superadmin: 'bg-red-100 text-red-800 border-red-200',
-  sindico: 'bg-amber-100 text-amber-800 border-amber-200',
-  admin: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  porteiro: 'bg-slate-100 text-slate-800 border-slate-200',
+  superadmin: 'bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400',
+  sindico: 'bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-400',
+  admin: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30 dark:text-indigo-400',
+  porteiro: 'bg-muted text-muted-foreground border-border',
 };
 
 interface UsuarioForm {
@@ -204,7 +204,7 @@ export function EquipeManager({
         return (
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
-              <Pencil className="h-4 w-4 text-brand-600" />
+              <Pencil className="h-4 w-4 text-primary" />
             </Button>
             {!isMe && (
               <Button variant="ghost" size="icon" onClick={() => confirmarToggle(u)}>

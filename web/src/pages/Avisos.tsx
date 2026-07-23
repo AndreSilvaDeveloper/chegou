@@ -59,7 +59,7 @@ export function Avisos() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader 
         title="Avisos Gerais" 
         description="Envie comunicados para todos os moradores ou blocos específicos."
