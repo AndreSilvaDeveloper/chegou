@@ -16,14 +16,14 @@ export class EquipeService {
     return this.repo.find({
       where: { tenantId },
       order: { nome: 'ASC' },
-      relations: ['user'],
+      relations: { user: true },
     });
   }
 
   async obter(tenantId: string, id: string) {
     const func = await this.repo.findOne({
       where: { tenantId, id },
-      relations: ['user'],
+      relations: { user: true },
     });
     if (!func) throw new NotFoundException('Funcionário não encontrado');
     return func;

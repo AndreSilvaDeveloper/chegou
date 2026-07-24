@@ -601,7 +601,7 @@ export function NovaEncomenda() {
                   <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4 text-muted-foreground" /> Foto do pacote (Opcional)</Label>
                   {fotoPreview ? (
                     <div className="relative inline-block">
-                      <img src={fotoPreview} alt="Preview" className="rounded-xl border shadow-sm max-h-48 object-cover" />
+                      <img src={fotoPreview} alt="Preview" className="rounded-xl border shadow-xs max-h-48 object-cover" />
                       <Button
                         type="button"
                         variant="destructive"
@@ -683,7 +683,7 @@ export function NovaEncomenda() {
                   {fotoPreview && (
                     <div className="pt-2 border-t">
                       <div className="text-sm text-muted-foreground mb-2">Foto anexada</div>
-                      <img src={fotoPreview} alt="Preview" className="h-20 rounded-md border shadow-sm" />
+                      <img src={fotoPreview} alt="Preview" className="h-20 rounded-md border shadow-xs" />
                     </div>
                   )}
                 </div>

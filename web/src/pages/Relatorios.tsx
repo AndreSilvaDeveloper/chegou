@@ -13,6 +13,7 @@ import {
   Cell 
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { Package, Clock, Ban } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -27,7 +28,8 @@ interface StatsResponse {
   }[];
 }
 
-const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6'];
+// Paleta do sistema: success, warning, danger, info + primary (amarelo).
+const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#0ea5e9', 'hsl(var(--primary))'];
 
 export function Relatorios() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
@@ -56,11 +58,12 @@ export function Relatorios() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Relatórios e Estatísticas</h2>
-        <p className="text-muted-foreground">Visão geral do volume de encomendas do condomínio.</p>
-      </div>
+    <div className="space-y-6 pb-10">
+      <PageHeader
+        eyebrow="Portaria"
+        title="Relatórios"
+        description="Visão geral do volume de encomendas do condomínio."
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -124,7 +127,7 @@ export function Relatorios() {
                   labelLine={false}
                   label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="hsl(var(--primary))"
                   dataKey="value"
                 >
                   {pieData.map((_, index) => (

@@ -44,6 +44,8 @@ export interface Encomenda {
   apartamento?: Apartamento;
   moradorDestinoId: string | null;
   moradorDestino?: Morador | null;
+  /** Nome do destinatário (morador destino ou principal do apartamento). */
+  destinatarioNome?: string | null;
   tipo: EncomendaTipo | null;
   descricao: string | null;
   transportadora: string | null;

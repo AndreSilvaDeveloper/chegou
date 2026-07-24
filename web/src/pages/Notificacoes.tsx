@@ -38,13 +38,14 @@ const TABS: { key: TabKey; label: string; status: string }[] = [
   { key: 'falha', label: 'Falhas', status: 'falha' },
 ];
 
-const STATUS_META: Record<StatusNotificacao, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; dot: string }> = {
-  pendente: { label: 'Na fila', variant: 'secondary', dot: 'bg-slate-400' },
-  agendada: { label: 'Agendado', variant: 'secondary', dot: 'bg-amber-500' },
-  enviando: { label: 'Enviando', variant: 'secondary', dot: 'bg-amber-500 animate-pulse' },
-  enviada: { label: 'Enviado', variant: 'default', dot: 'bg-emerald-500' },
+type BadgeVariant = 'success' | 'warning' | 'secondary' | 'destructive' | 'outline';
+const STATUS_META: Record<StatusNotificacao, { label: string; variant: BadgeVariant; dot: string }> = {
+  pendente: { label: 'Na fila', variant: 'secondary', dot: 'bg-zinc-400 dark:bg-zinc-500' },
+  agendada: { label: 'Agendado', variant: 'warning', dot: 'bg-amber-500' },
+  enviando: { label: 'Enviando', variant: 'warning', dot: 'bg-amber-500 animate-pulse' },
+  enviada: { label: 'Enviado', variant: 'success', dot: 'bg-emerald-500' },
   falha: { label: 'Falha', variant: 'destructive', dot: 'bg-red-500' },
-  cancelada: { label: 'Cancelada', variant: 'outline', dot: 'bg-slate-400' },
+  cancelada: { label: 'Cancelada', variant: 'outline', dot: 'bg-zinc-400 dark:bg-zinc-500' },
 };
 
 const fmt = (d?: string | null) => (d ? format(new Date(d), "dd/MM/yy 'às' HH:mm", { locale: ptBR }) : '—');
@@ -221,7 +222,7 @@ export function Notificacoes() {
             type="button"
             onClick={() => setActiveTab(c.key)}
             className={cn(
-              'rounded-xl text-left transition-all focus:outline-none',
+              'rounded-xl text-left transition-all focus:outline-hidden',
               activeTab === c.key ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:opacity-90',
             )}
           >

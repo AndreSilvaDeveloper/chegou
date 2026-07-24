@@ -9,16 +9,17 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Package, Clock, PackageCheck, Timer, Plus } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent,
 } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
 
+// Cores semânticas do sistema: info=sky (recebido/azul), success=emerald (retirado), danger=red (pendente).
 const chartConfig: ChartConfig = {
-  recebidas: { label: 'Recebidas', color: 'hsl(var(--primary))' },
+  recebidas: { label: 'Recebidas', color: '#0ea5e9' },
   retiradas: { label: 'Retiradas', color: '#10b981' },
-  pendentes: { label: 'Pendentes', color: '#f59e0b' },
+  pendentes: { label: 'Pendentes', color: '#ef4444' },
 };
 
 function fmtTempo(horas: number | null): string {
@@ -108,16 +109,48 @@ export function Dashboard() {
             <Skeleton className="h-[300px] w-full" />
           ) : (
             <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full">
-              <BarChart data={serie} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+              <AreaChart data={serie} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <defs>
+                  {(['recebidas', 'retiradas', 'pendentes'] as const).map((k) => (
+                    <linearGradient key={k} id={`fill-${k}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={`var(--color-${k})`} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={`var(--color-${k})`} stopOpacity={0.1} />
+                    </linearGradient>
+                  ))}
+                </defs>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
                 <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="recebidas" fill="var(--color-recebidas)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="retiradas" fill="var(--color-retiradas)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Area
+                  dataKey="recebidas"
+                  type="natural"
+                  stroke="var(--color-recebidas)"
+                  fill="url(#fill-recebidas)"
+                  fillOpacity={0.4}
+                  stackId="a"
+                  strokeWidth={2}
+                />
+                <Area
+                  dataKey="retiradas"
+                  type="natural"
+                  stroke="var(--color-retiradas)"
+                  fill="url(#fill-retiradas)"
+                  fillOpacity={0.4}
+                  stackId="a"
+                  strokeWidth={2}
+                />
+                <Area
+                  dataKey="pendentes"
+                  type="natural"
+                  stroke="var(--color-pendentes)"
+                  fill="url(#fill-pendentes)"
+                  fillOpacity={0.4}
+                  stackId="a"
+                  strokeWidth={2}
+                />
+              </AreaChart>
             </ChartContainer>
           )}
         </CardContent>

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package, Clock, Plus, Download, Search, Calendar, ChevronRight, Truck } from 'lucide-react';
+import { Package, Clock, Plus, Download, Search, ChevronRight, Truck, User } from 'lucide-react';
 import { timeAgo, formatDateTime, cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { CodigoStrip } from '@/components/ui/codigo-strip';
@@ -94,7 +94,7 @@ export function Encomendas() {
 
   return (
     <div className="space-y-6 pb-10">
-      <PageHeader eyebrow="Portaria" title="Encomendas" description="Registre, acompanhe e entregue as encomendas da portaria">
+      <PageHeader eyebrow="Portaria" title="Encomendas">
         <div className="flex w-full gap-2 sm:w-auto">
           {isAdmin && (
             <Button onClick={exportCsv} variant="outline" className="hidden sm:flex">
@@ -109,16 +109,19 @@ export function Encomendas() {
         </div>
       </PageHeader>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-muted/40 p-1">
+      <div className="space-y-3">
+        {/* Filtro de status — todos na mesma linha, com o selecionado bem destacado */}
+        <div className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-muted/40 p-1 sm:flex sm:w-fit">
           {FILTROS.map((f) => (
             <button
               key={f.key}
               type="button"
               onClick={() => setFiltro(f.key)}
               className={cn(
-                'min-h-[40px] whitespace-nowrap rounded-lg px-4 text-sm font-medium transition-colors',
-                filtro === f.key ? 'bg-card text-foreground shadow-panel' : 'text-muted-foreground hover:text-foreground',
+                'min-h-[40px] whitespace-nowrap rounded-lg px-0.5 py-2 text-center text-xs font-semibold transition-colors sm:px-5 sm:text-sm',
+                filtro === f.key
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {f.label}
@@ -126,18 +129,21 @@ export function Encomendas() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:w-[600px]">
-          <div className="relative">
+        {/* Busca + datas (as duas datas na mesma linha, compactas) */}
+        <div className="space-y-2 lg:flex lg:items-center lg:gap-2 lg:space-y-0">
+          <div className="relative lg:max-w-xs lg:flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input className="h-9 pl-9" placeholder="Buscar (apto, cód)" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-9 pl-9" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
-          </div>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-9 pl-9" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+          <div className="grid grid-cols-2 gap-2 lg:flex">
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-xs font-medium text-muted-foreground">De</span>
+              <Input className="h-9 pl-8" type="date" title="Data inicial" value={desde} onChange={(e) => setDesde(e.target.value)} />
+            </div>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-xs font-medium text-muted-foreground">Até</span>
+              <Input className="h-9 pl-9" type="date" title="Data final" value={ate} onChange={(e) => setAte(e.target.value)} />
+            </div>
           </div>
         </div>
       </div>
@@ -165,6 +171,12 @@ export function Encomendas() {
                           </span>
                           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                         </div>
+                        {e.destinatarioNome && (
+                          <p className="mt-1 flex items-center gap-1 text-sm font-medium text-foreground">
+                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{e.destinatarioNome}</span>
+                          </p>
+                        )}
                         <div className="mt-2">
                           <StatusDot tone={conf.tone} label={conf.label} pulse={conf.pulse} />
                         </div>

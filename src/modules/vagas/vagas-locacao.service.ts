@@ -16,7 +16,7 @@ export class VagasLocacaoService {
   async listar(tenantId: string) {
     return this.repo.find({
       where: { tenantId },
-      relations: ['vaga', 'morador', 'vaga.apartamento'],
+      relations: { vaga: { apartamento: true }, morador: true },
       order: { createdAt: 'DESC' },
     });
   }
@@ -24,7 +24,7 @@ export class VagasLocacaoService {
   async obter(tenantId: string, id: string) {
     const locacao = await this.repo.findOne({
       where: { tenantId, id },
-      relations: ['vaga', 'morador'],
+      relations: { vaga: true, morador: true },
     });
     if (!locacao) throw new NotFoundException('Locação não encontrada');
     return locacao;

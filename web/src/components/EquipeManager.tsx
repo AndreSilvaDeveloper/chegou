@@ -191,7 +191,7 @@ export function EquipeManager({
       accessorKey: "ativo",
       header: "Status",
       cell: ({ row }) => row.original.ativo ? (
-        <Badge variant="success" className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200">Ativo</Badge>
+        <Badge variant="success">Ativo</Badge>
       ) : (
         <Badge variant="secondary">Inativo</Badge>
       ),
@@ -222,7 +222,7 @@ export function EquipeManager({
   ];
 
   return (
-    <Card className="p-4 shadow-sm">
+    <Card className="p-4 shadow-xs">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div className="relative w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -276,7 +276,7 @@ export function EquipeManager({
                 <Label htmlFor="role">Papel de Acesso *</Label>
                 <select 
                   id="role"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={form.role} 
                   onChange={e => setForm({...form, role: e.target.value as UserRole})} 
                   required

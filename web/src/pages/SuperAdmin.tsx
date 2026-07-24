@@ -157,7 +157,7 @@ export function SuperAdmin() {
       accessorKey: "ativo",
       header: "Status",
       cell: ({ row }) => row.original.ativo ? (
-        <Badge variant="success" className="bg-emerald-100 text-emerald-800 border-emerald-200">Ativo</Badge>
+        <Badge variant="success">Ativo</Badge>
       ) : (
         <Badge variant="secondary">Inativo</Badge>
       ),
@@ -193,7 +193,7 @@ export function SuperAdmin() {
         description="Área administrativa para gerenciar todos os condomínios da plataforma."
       />
 
-      <Card className="p-4 shadow-sm">
+      <Card className="p-4 shadow-xs">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
           <div className="relative w-full md:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -29,7 +29,7 @@ interface EditState {
 function StatusBadge({ c }: { c: AdminWhatsappCondominio }) {
   if (c.conectado) {
     return (
-      <Badge className="gap-1.5 bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-400">
+      <Badge variant="success" className="gap-1.5">
         <span className="h-2 w-2 rounded-full bg-emerald-500" /> Conectado
       </Badge>
     );

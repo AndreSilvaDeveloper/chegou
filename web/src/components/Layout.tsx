@@ -64,7 +64,7 @@ const NAV_ITEMS: NavItem[] = [
 function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <div className={cn('flex items-center gap-2.5', compact && 'justify-center')}>
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary shadow-xs">
         <img src="/logo-mark.png" alt="Chegou" className="h-6 w-6" />
       </div>
       {!compact && (
@@ -147,7 +147,7 @@ export function Layout() {
                     'flex items-center rounded-xl font-medium transition-colors',
                     isCollapsed ? 'h-11 w-11 justify-center' : 'min-h-[44px] gap-3 px-3 py-2.5 text-[15px]',
                     isActive
-                      ? 'bg-primary font-semibold text-primary-foreground shadow-sm'
+                      ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                   )
                 }

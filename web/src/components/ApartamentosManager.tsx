@@ -173,7 +173,7 @@ export function ApartamentosManager({ basePath = '' }: { basePath?: string }) {
   ];
 
   return (
-    <Card className="p-4 shadow-sm">
+    <Card className="p-4 shadow-xs">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div className="relative w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -21,14 +21,14 @@ export class AvisosService {
     return this.avisoRepo.find({
       where: { tenantId, ativo: true },
       order: { createdAt: 'DESC' },
-      relations: ['criadoPor'],
+      relations: { criadoPor: true },
     });
   }
 
   async obter(tenantId: string, id: string) {
     const aviso = await this.avisoRepo.findOne({
       where: { tenantId, id },
-      relations: ['criadoPor'],
+      relations: { criadoPor: true },
     });
     if (!aviso) throw new NotFoundException('Aviso não encontrado');
     return aviso;

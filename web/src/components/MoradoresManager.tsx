@@ -195,7 +195,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
       accessorKey: "receberWhatsapp",
       header: "Notificação",
       cell: ({ row }) => row.original.receberWhatsapp ? (
-        <Badge variant="success" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200">
+        <Badge variant="success">
           <MessageSquare className="mr-1 h-3 w-3" /> WhatsApp
         </Badge>
       ) : <span className="text-muted-foreground text-sm">Não recebe</span>,
@@ -219,7 +219,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
   ];
 
   return (
-    <Card className="p-4 shadow-sm">
+    <Card className="p-4 shadow-xs">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div className="relative w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -268,7 +268,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
                 <Label htmlFor="apartamento">Apartamento *</Label>
                 <select 
                   id="apartamento"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={form.apartamentoId} 
                   onChange={e => setForm({...form, apartamentoId: e.target.value})} 
                   required

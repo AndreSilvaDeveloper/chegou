@@ -57,7 +57,7 @@ function OptionCard({
       className={cn(
         'flex flex-col items-start gap-3 rounded-xl border-2 p-4 text-left transition-all',
         active
-          ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
+          ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary/20'
           : 'border-border bg-card hover:border-primary/40 hover:bg-muted/40'
       )}
     >
@@ -242,10 +242,7 @@ export function SuperAdminTenant() {
                   {tenant.nome}
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Badge
-                    variant={tenant.ativo ? 'success' : 'secondary'}
-                    className={tenant.ativo ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : ''}
-                  >
+                  <Badge variant={tenant.ativo ? 'success' : 'secondary'}>
                     {tenant.ativo ? 'Ativo' : 'Inativo'}
                   </Badge>
                   <Badge variant="outline" className="gap-1 font-normal">
@@ -272,7 +269,7 @@ export function SuperAdminTenant() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-sm sm:grid-cols-5">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-xs sm:grid-cols-5">
           {tabs.map((t) => (
             <TabsTrigger
               key={t.key}

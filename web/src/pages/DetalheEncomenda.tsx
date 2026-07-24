@@ -213,7 +213,7 @@ export function DetalheEncomenda() {
             <Card className="border-primary/40 shadow-panel">
               <CardHeader className="border-b border-border pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
                     <KeyRound className="h-5 w-5" />
                   </div>
                   <div>

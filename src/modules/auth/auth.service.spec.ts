@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { User } from '../../database/entities';
+import { Tenant, User } from '../../database/entities';
 import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
@@ -45,6 +45,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: getRepositoryToken(User), useValue: userRepo },
+        { provide: getRepositoryToken(Tenant), useValue: { findOne: jest.fn() } },
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: { get: () => 12 } },
       ],

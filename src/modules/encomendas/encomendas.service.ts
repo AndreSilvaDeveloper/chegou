@@ -75,6 +75,26 @@ export class EncomendasService {
     }
   }
 
+  /**
+   * Anexa o nome do destinatário a cada encomenda: o morador destino escolhido ou,
+   * na ausência dele, o morador principal do apartamento (mesma regra da notificação).
+   */
+  private async anexarDestinatario(items: Encomenda[]): Promise<void> {
+    const semDestino = items.filter((e) => !e.moradorDestino && e.apartamentoId);
+    let principalPorApto = new Map<string, string>();
+    if (semDestino.length > 0) {
+      const aptoIds = [...new Set(semDestino.map((e) => e.apartamentoId))];
+      const principais = await this.moradorRepo.find({
+        where: { apartamentoId: In(aptoIds), principal: true, ativo: true },
+      });
+      principalPorApto = new Map(principais.map((m) => [m.apartamentoId, m.nome]));
+    }
+    for (const e of items) {
+      (e as Encomenda & { destinatarioNome: string | null }).destinatarioNome =
+        e.moradorDestino?.nome ?? principalPorApto.get(e.apartamentoId) ?? null;
+    }
+  }
+
   async criar(tenantId: string, userId: string, dto: CriarEncomendaDto): Promise<Encomenda> {
     const apto = await this.aptoRepo.findOne({
       where: { id: dto.apartamentoId, tenantId, ativo: true },
@@ -256,6 +276,7 @@ export class EncomendasService {
       .skip((q.page - 1) * q.limit);
     const [items, total] = await qb.getManyAndCount();
     await this.anexarNotificacoes(items);
+    await this.anexarDestinatario(items);
     return { items, total, page: q.page, limit: q.limit };
   }
 

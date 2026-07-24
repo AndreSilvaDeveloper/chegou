@@ -17,12 +17,12 @@ import { cn } from '@/lib/utils';
 
 const STATE_META: Record<
   WhatsappConnection['state'],
-  { label: string; badge: 'default' | 'secondary' | 'destructive' | 'outline'; dot: string }
+  { label: string; badge: 'success' | 'warning' | 'secondary' | 'destructive' | 'outline'; dot: string }
 > = {
-  connected: { label: 'Conectado', badge: 'default', dot: 'bg-emerald-500' },
-  connecting: { label: 'Conectando…', badge: 'secondary', dot: 'bg-amber-500 animate-pulse' },
-  qr: { label: 'Aguardando leitura do QR', badge: 'secondary', dot: 'bg-amber-500 animate-pulse' },
-  disconnected: { label: 'Desconectado', badge: 'outline', dot: 'bg-slate-400' },
+  connected: { label: 'Conectado', badge: 'success', dot: 'bg-emerald-500' },
+  connecting: { label: 'Conectando…', badge: 'warning', dot: 'bg-amber-500 animate-pulse' },
+  qr: { label: 'Aguardando leitura do QR', badge: 'warning', dot: 'bg-amber-500 animate-pulse' },
+  disconnected: { label: 'Desconectado', badge: 'outline', dot: 'bg-zinc-400 dark:bg-zinc-500' },
   error: { label: 'Erro de conexão', badge: 'destructive', dot: 'bg-red-500' },
 };
 
@@ -188,11 +188,11 @@ export function WhatsappConnectionCard() {
               className="overflow-hidden"
             >
               <div className="mt-5 flex flex-col items-center gap-4 rounded-xl border border-border bg-muted/30 p-5 sm:flex-row sm:items-center sm:gap-6">
-                <div className="flex h-56 w-56 shrink-0 items-center justify-center rounded-lg bg-white p-3 shadow-sm">
+                <div className="flex h-56 w-56 shrink-0 items-center justify-center rounded-lg bg-white p-3 shadow-xs">
                   {qrQuery.data?.qrCode ? (
                     <img src={qrQuery.data.qrCode} alt="QR Code para conectar o WhatsApp" className="h-full w-full" />
                   ) : (
-                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                    <div className="flex flex-col items-center gap-2 text-zinc-400">
                       <Loader2 className="h-8 w-8 animate-spin" />
                       <span className="text-sm">Gerando QR Code…</span>
                     </div>

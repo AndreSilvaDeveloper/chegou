@@ -16,14 +16,14 @@ export class VagasService {
     return this.repo.find({
       where: { tenantId },
       order: { numero: 'ASC' },
-      relations: ['apartamento'],
+      relations: { apartamento: true },
     });
   }
 
   async obter(tenantId: string, id: string) {
     const vaga = await this.repo.findOne({
       where: { tenantId, id },
-      relations: ['apartamento'],
+      relations: { apartamento: true },
     });
     if (!vaga) throw new NotFoundException('Vaga não encontrada');
     return vaga;
