@@ -17,6 +17,7 @@ const Relatorios = React.lazy(() => import('./pages/Relatorios').then(m => ({ de
 const Vagas = React.lazy(() => import('./pages/Vagas').then(m => ({ default: m.Vagas })));
 const Avisos = React.lazy(() => import('./pages/Avisos').then(m => ({ default: m.Avisos })));
 const Notificacoes = React.lazy(() => import('./pages/Notificacoes').then(m => ({ default: m.Notificacoes })));
+const AdminWhatsapp = React.lazy(() => import('./pages/AdminWhatsapp').then(m => ({ default: m.AdminWhatsapp })));
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/moradores" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Moradores /></ProtectedRoute>} />
           <Route path="/equipe" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Equipe /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdmin /></ProtectedRoute>} />
+          <Route path="/admin/whatsapp" element={<ProtectedRoute allowedRoles={['superadmin']}><AdminWhatsapp /></ProtectedRoute>} />
           <Route path="/admin/condominios/:id" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminTenant /></ProtectedRoute>} />
           <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Relatorios /></ProtectedRoute>} />
           <Route path="/vagas" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Vagas /></ProtectedRoute>} />

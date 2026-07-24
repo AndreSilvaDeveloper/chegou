@@ -156,7 +156,7 @@ export function Dashboard() {
             Quantidade de encomendas recebidas nos últimos 7 dias.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0 md:pt-0">
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={MOCK_CHART_DATA} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -271,7 +271,7 @@ export function Dashboard() {
               return (
                 <Link key={e.id} to={`/encomendas/${e.id}`} className="group block">
                   <Card className="h-full transition-colors hover:border-primary/50">
-                    <CardContent className="flex h-full flex-col gap-4 p-5">
+                    <CardContent className="flex h-full flex-col gap-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">

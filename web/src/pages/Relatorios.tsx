@@ -68,7 +68,7 @@ export function Relatorios() {
             <CardTitle className="text-sm font-medium">Total de Encomendas</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 md:pt-0">
             <div className="text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">No período selecionado</p>
           </CardContent>
@@ -79,7 +79,7 @@ export function Relatorios() {
             <CardTitle className="text-sm font-medium">Aguardando Retirada</CardTitle>
             <Clock className="h-4 w-4 text-amber-500" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 md:pt-0">
             <div className="text-2xl font-bold">{stats.porStatus['aguardando'] || 0}</div>
             <p className="text-xs text-muted-foreground">Na portaria</p>
           </CardContent>
@@ -90,7 +90,7 @@ export function Relatorios() {
             <CardTitle className="text-sm font-medium">Canceladas</CardTitle>
             <Ban className="h-4 w-4 text-destructive" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 md:pt-0">
             <div className="text-2xl font-bold">{stats.porStatus['cancelada'] || 0}</div>
             <p className="text-xs text-muted-foreground">Rejeitadas ou devolvidas</p>
           </CardContent>
@@ -101,7 +101,7 @@ export function Relatorios() {
             <CardTitle className="text-sm font-medium">Tempo Médio de Retirada</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 md:pt-0">
             <div className="text-2xl font-bold">{stats.tempoMedioHoras.toFixed(1)}h</div>
             <p className="text-xs text-muted-foreground">Desde o recebimento</p>
           </CardContent>
@@ -114,7 +114,7 @@ export function Relatorios() {
             <CardTitle>Status das Encomendas</CardTitle>
             <CardDescription>Distribuição geral</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[300px] pt-0 md:pt-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -142,7 +142,7 @@ export function Relatorios() {
             <CardTitle>Top 5 Apartamentos</CardTitle>
             <CardDescription>Volume de encomendas recebidas</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[300px] pt-0 md:pt-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.topApartamentos} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />

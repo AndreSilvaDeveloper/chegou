@@ -1,36 +1,43 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { QUEUE_NOTIFICATION_DISPATCH } from '../../queues/queues.module';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notificacao } from '../../database/entities';
-import { StatusNotificacao } from '../../database/entities/notificacao.entity';
-import { WhatsappService } from '../whatsapp/whatsapp.service';
-import { NotificationThrottleService } from './notification-throttle.service';
+import { QUEUE_NOTIFICATION_DISPATCH } from '../../queues/queues.module';
+import { Encomenda, Notificacao } from '../../database/entities';
+import { StatusNotificacao, TipoNotificacao } from '../../database/entities/notificacao.entity';
+import { OpenwaService } from '../openwa/openwa.service';
 
+/**
+ * Consome a fila unificada de disparos e envia via OpenWA (número do próprio condomínio).
+ * O texto já vem renderizado (`notificacao.conteudo`); o agendamento anti-bloqueio
+ * (intervalo + jitter + janela + cap) é feito no enfileiramento — aqui só envia quando o job dispara.
+ */
 @Processor(QUEUE_NOTIFICATION_DISPATCH, {
-  concurrency: 1, // Garantir envio sequencial para respeitar throttle/anti-ban
+  concurrency: 1, // sequencial por segurança extra contra bloqueio
 })
 export class NotificationDispatcherService extends WorkerHost {
   private readonly logger = new Logger(NotificationDispatcherService.name);
 
   constructor(
-    @InjectRepository(Notificacao)
-    private notificacaoRepo: Repository<Notificacao>,
-    private whatsappService: WhatsappService,
-    private throttleService: NotificationThrottleService,
+    @InjectRepository(Notificacao) private readonly notificacaoRepo: Repository<Notificacao>,
+    @InjectRepository(Encomenda) private readonly encomendaRepo: Repository<Encomenda>,
+    private readonly openwa: OpenwaService,
   ) {
     super();
   }
 
-  async process(job: Job<{ notificacaoId: string }>): Promise<any> {
+  async process(job: Job<{ notificacaoId: string }>): Promise<void> {
     const { notificacaoId } = job.data;
-    
     const notificacao = await this.notificacaoRepo.findOne({ where: { id: notificacaoId } });
-    
-    if (!notificacao || notificacao.status === StatusNotificacao.CANCELADA) {
-      this.logger.debug(`Notificação ${notificacaoId} ignorada (não encontrada ou cancelada)`);
+
+    if (
+      !notificacao ||
+      notificacao.status === StatusNotificacao.CANCELADA ||
+      notificacao.status === StatusNotificacao.FALHA ||
+      notificacao.status === StatusNotificacao.ENVIADA
+    ) {
+      this.logger.debug(`Notificação ${notificacaoId} ignorada (estado terminal ou inexistente)`);
       return;
     }
 
@@ -39,43 +46,49 @@ export class NotificationDispatcherService extends WorkerHost {
       notificacao.tentativas += 1;
       await this.notificacaoRepo.save(notificacao);
 
-      // 1. Aplica delay anti-ban
-      await this.throttleService.waitForNextSlot();
+      await this.openwa.sendText(
+        notificacao.tenantId,
+        notificacao.destinatarioTelefone,
+        notificacao.conteudo,
+      );
 
-      // 2. Envia WhatsApp
-      const result = await this.whatsappService.sendTemplated({
-        tenantId: notificacao.tenantId,
-        to: notificacao.destinatarioTelefone,
-        templateKey: (notificacao.referenciaTipo || 'aviso_geral') as any,
-        variables: notificacao.variaveisJson as any,
-        idempotencyKey: `notificacao:${notificacao.id}`,
-      });
-
-      // 3. Sucesso
       notificacao.status = StatusNotificacao.ENVIADA;
       notificacao.enviadaAt = new Date();
-      notificacao.whatsappMessageId = result.id;
+      notificacao.erroMensagem = null;
       await this.notificacaoRepo.save(notificacao);
-      this.logger.log(`Notificação ${notificacaoId} enviada com sucesso`);
-      
-    } catch (error: any) {
-      this.logger.error(`Erro ao enviar notificação ${notificacaoId}: ${error.message}`, error.stack);
-      
-      // Se for rate limit específico do provedor, podemos tratar
-      if (error.response?.status === 429) {
-        await this.throttleService.handleRateLimitError(error);
-      }
+
+      await this.aplicarEfeitoColateral(notificacao);
+      this.logger.log(`Notificação ${notificacaoId} enviada via OpenWA`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Erro ao enviar notificação ${notificacaoId}: ${msg}`);
 
       if (notificacao.tentativas >= notificacao.maxTentativas) {
+        // Terminal: não relança (não adianta retentar) — fica FALHA, reenviável na Fila.
         notificacao.status = StatusNotificacao.FALHA;
-        notificacao.erroMensagem = error.message;
-      } else {
-        notificacao.status = StatusNotificacao.PENDENTE;
+        notificacao.erroMensagem = msg;
+        await this.notificacaoRepo.save(notificacao);
+        return;
       }
-      
+
+      notificacao.status = StatusNotificacao.PENDENTE;
+      notificacao.erroMensagem = msg;
       await this.notificacaoRepo.save(notificacao);
-      
-      throw error; // Repassa pro BullMQ fazer retry se ainda houver attempts
+      throw error; // BullMQ faz o retry com backoff
+    }
+  }
+
+  /** Efeitos pós-envio específicos por tipo (ex.: marcar encomenda como notificada). */
+  private async aplicarEfeitoColateral(notificacao: Notificacao): Promise<void> {
+    if (
+      notificacao.tipo === TipoNotificacao.ENCOMENDA &&
+      notificacao.referenciaTipo === 'encomenda' &&
+      notificacao.referenciaId
+    ) {
+      await this.encomendaRepo.update(
+        { id: notificacao.referenciaId, tenantId: notificacao.tenantId },
+        { status: 'notificado', notificadaAt: new Date() },
+      );
     }
   }
 }

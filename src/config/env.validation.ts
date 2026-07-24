@@ -30,6 +30,15 @@ export const envValidationSchema = Joi.object({
   ZAPI_INSTANCE_ID: Joi.string().allow('').optional(),
   ZAPI_TOKEN: Joi.string().allow('').optional(),
 
+  // ---- OpenWA (gateway WhatsApp multi-sessão, 1 instância por condomínio) ----
+  // Vazio = integração desligada (dev sem gateway continua funcionando).
+  OPENWA_BASE_URL: Joi.string().uri().allow('').optional(),
+  OPENWA_API_KEY: Joi.string().allow('').optional(),
+  // Prefixo do nome da sessão no gateway (evita colisão entre ambientes que compartilham o mesmo OpenWA).
+  OPENWA_SESSION_PREFIX: Joi.string().pattern(/^[a-z0-9-]+$/).default('chegou'),
+  // Base pública p/ registrar o webhook da sessão (fallback: WEBHOOK_BASE_URL). Vazio = não registra webhook.
+  OPENWA_WEBHOOK_BASE_URL: Joi.string().uri().allow('').optional(),
+
   STORAGE_ENDPOINT: Joi.string().allow('').optional(),
   STORAGE_BUCKET: Joi.string().allow('').optional(),
   STORAGE_REGION: Joi.string().default('us-east-1'),

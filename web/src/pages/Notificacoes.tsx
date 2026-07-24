@@ -14,6 +14,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { StatCard } from '@/components/ui/stat-card';
+import { WhatsappConnectionCard } from '@/components/WhatsappConnectionCard';
+import { WhatsappTemplateCard } from '@/components/WhatsappTemplateCard';
 
 export function Notificacoes() {
   const [activeTab, setActiveTab] = useState('todas');
@@ -117,10 +119,14 @@ export function Notificacoes() {
 
   return (
     <div className="space-y-6 pb-10">
-      <PageHeader 
-        title="Fila de Notificações" 
+      <PageHeader
+        title="Fila de Notificações"
         description="Acompanhe o status de envio das mensagens no WhatsApp e gerencie a fila."
       />
+
+      <WhatsappConnectionCard />
+
+      <WhatsappTemplateCard />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard title="Na Fila (Pendentes)" value={stats.pendentes} icon={Bell} />

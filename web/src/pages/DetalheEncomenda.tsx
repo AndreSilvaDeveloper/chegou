@@ -222,7 +222,7 @@ export function DetalheEncomenda() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-5 space-y-4">
+              <CardContent className="space-y-4 pt-0 md:pt-0">
                 {/* Passo a passo didático */}
                 <ol className="space-y-2 rounded-lg bg-muted/50 p-3 text-sm">
                   <li className="flex gap-2.5">
@@ -284,7 +284,7 @@ export function DetalheEncomenda() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="pt-6 text-center">
+              <CardContent className="text-center">
                 <div className={cn(
                   'mx-auto flex h-16 w-16 items-center justify-center rounded-full mb-4',
                   enc.status === 'retirada' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
@@ -316,7 +316,7 @@ export function DetalheEncomenda() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Linha do Tempo</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 md:pt-0">
               <ol className="relative space-y-6">
                 {eventos.map((ev, i) => {
                   const EvIcon = ev.icon;
@@ -366,7 +366,7 @@ export function DetalheEncomenda() {
               <CardTitle>Detalhes da Encomenda</CardTitle>
               <CardDescription>Todas as informações registradas na portaria.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-0 md:pt-0">
               {/* Código de retirada — visibilidade controlada por perfil */}
               {ativa && (
                 podeVerCodigo ? (
@@ -432,7 +432,7 @@ export function DetalheEncomenda() {
               <CardHeader>
                 <CardTitle>Foto do Pacote</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0 md:pt-0">
                 <a href={enc.fotoUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border hover:opacity-90 transition-opacity">
                   <img src={enc.fotoUrl} alt="Foto da encomenda" className="w-full object-cover max-h-[400px]" />
                 </a>

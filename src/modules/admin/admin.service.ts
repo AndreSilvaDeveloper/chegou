@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Tenant, User } from '../../database/entities';
+import { OpenwaService } from '../openwa/openwa.service';
 import { AtualizarTenantDto } from './dto/atualizar-tenant.dto';
 import { CriarTenantDto } from './dto/criar-tenant.dto';
 import { DEFAULT_TENANT_CONFIG } from './dto/config-tenant.dto';
@@ -20,6 +21,7 @@ export class AdminService {
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly config: ConfigService,
+    private readonly openwa: OpenwaService,
   ) {}
 
   async listarTenants(): Promise<Array<Tenant & { qtdUsuarios: number }>> {
@@ -72,7 +74,12 @@ export class AdminService {
           ativo: true,
         }),
       );
-      return tenant;
+
+      // Provisiona a instância WhatsApp (OpenWA) do condomínio — best-effort,
+      // nunca bloqueia o cadastro se o gateway estiver indisponível.
+      await this.openwa.provisionForTenant(tenant.id);
+
+      return await this.tenantRepo.findOneOrFail({ where: { id: tenant.id } });
     } catch (err) {
       if (err instanceof QueryFailedError && (err as any).code === PG_UNIQUE_VIOLATION) {
         throw new ConflictException('Slug, CNPJ ou e-mail do síndico já em uso');

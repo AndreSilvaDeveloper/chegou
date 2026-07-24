@@ -14,6 +14,7 @@ import { MoradoresModule } from './modules/moradores/moradores.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
+import { OpenwaModule } from './modules/openwa/openwa.module';
 import { VagasModule } from './modules/vagas/vagas.module';
 import { EquipeModule } from './modules/equipe/equipe.module';
 import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
@@ -38,6 +39,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
     AuthModule,
     HealthModule,
     WhatsappModule,
+    OpenwaModule,
     ApartamentosModule,
     MoradoresModule,
     UsuariosModule,

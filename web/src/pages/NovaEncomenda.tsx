@@ -340,7 +340,7 @@ export function NovaEncomenda() {
                 <CardTitle>Como deseja registrar?</CardTitle>
                 <CardDescription>Escaneie o código do pacote ou faça o cadastro manual.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
+              <CardContent className="grid gap-4 sm:grid-cols-2 pt-0 md:pt-0">
                 <button
                   type="button"
                   onClick={() => setScanTarget('destino')}
@@ -388,7 +388,7 @@ export function NovaEncomenda() {
                     : 'Digite o número do apartamento de destino.'}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-5 pt-0 md:pt-0">
                 {/* Seleção de bloco (apenas condomínios com múltiplos blocos) */}
                 {mostrarSelecaoBloco && (
                   loadingBlocos ? (
@@ -517,7 +517,7 @@ export function NovaEncomenda() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-5 pt-0 md:pt-0">
                 {moradores.length > 0 ? (
                   <div className="space-y-2">
                     <Label htmlFor="destinatario" className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> Destinatário (Opcional)</Label>
@@ -651,7 +651,7 @@ export function NovaEncomenda() {
                 <CardTitle>Confirmar Registro</CardTitle>
                 <CardDescription>Revise os dados antes de notificar o morador.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0 md:pt-0">
                 <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
                   <div className="flex items-center justify-between border-b pb-3">
                     <div className="text-sm text-muted-foreground">Destino</div>

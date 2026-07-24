@@ -7,8 +7,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, Repository } from 'typeorm';
-import { Apartamento, Encomenda, EncomendaStatus, Morador, WhatsappMessage } from '../../database/entities';
+import { Apartamento, Encomenda, EncomendaStatus, Morador, Tenant, WhatsappMessage } from '../../database/entities';
+import { TipoNotificacao } from '../../database/entities/notificacao.entity';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { NotificationService } from '../notificacoes/notification.service';
+import {
+  buildEncomendaVars,
+  renderTemplate,
+  resolveTemplateEncomenda,
+} from '../notificacoes/message-template';
 
 export interface NotificacaoResumo {
   status: string;
@@ -33,7 +40,9 @@ export class EncomendasService {
     @InjectRepository(Apartamento) private readonly aptoRepo: Repository<Apartamento>,
     @InjectRepository(Morador) private readonly moradorRepo: Repository<Morador>,
     @InjectRepository(WhatsappMessage) private readonly waRepo: Repository<WhatsappMessage>,
+    @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly whatsapp: WhatsappService,
+    private readonly notifications: NotificationService,
   ) {}
 
   /** Última notificação de chegada (encomenda_chegou) enviada por encomenda. */
@@ -98,9 +107,71 @@ export class EncomendasService {
       }),
     );
 
-    await this.whatsapp.enqueueNotifyMorador({ encomendaId: encomenda.id, tenantId });
+    await this.enfileirarNotificacaoEncomenda(tenantId, encomenda, apto);
 
     return this.obter(tenantId, encomenda.id);
+  }
+
+  /**
+   * Cria a notificação de chegada de encomenda na fila unificada (envio via OpenWA,
+   * com template personalizado do condomínio + código de retirada). Best-effort:
+   * uma falha aqui não deve derrubar o registro da encomenda.
+   */
+  private async enfileirarNotificacaoEncomenda(
+    tenantId: string,
+    encomenda: Encomenda,
+    apto: Apartamento,
+  ): Promise<void> {
+    try {
+      const morador =
+        (encomenda.moradorDestinoId
+          ? await this.moradorRepo.findOne({
+              where: { id: encomenda.moradorDestinoId, tenantId, ativo: true },
+            })
+          : null) ??
+        (await this.moradorRepo.findOne({
+          where: { tenantId, apartamentoId: apto.id, principal: true, ativo: true },
+        }));
+
+      if (!morador) {
+        this.logger.warn(`Encomenda ${encomenda.id} sem morador destinatário identificável`);
+        return;
+      }
+      if (!morador.telefoneE164) {
+        this.logger.warn(`Morador ${morador.id} sem telefone — sem notificação`);
+        return;
+      }
+      if (!morador.receberWhatsapp) {
+        this.logger.log(`Morador ${morador.id} optou por não receber WhatsApp`);
+        return;
+      }
+
+      const tenant = await this.tenantRepo.findOneOrFail({ where: { id: tenantId } });
+      encomenda.apartamento = apto; // garante identificador na renderização
+      const vars = buildEncomendaVars(encomenda, morador, tenant);
+      const template = resolveTemplateEncomenda(
+        (tenant.configJson as { whatsappTemplateEncomenda?: string })?.whatsappTemplateEncomenda,
+      );
+      const conteudo = renderTemplate(template, vars);
+
+      await this.notifications.agendarNotificacao({
+        tenantId,
+        tipo: TipoNotificacao.ENCOMENDA,
+        referenciaTipo: 'encomenda',
+        referenciaId: encomenda.id,
+        destinatarioTelefone: morador.telefoneE164,
+        destinatarioNome: morador.nome,
+        moradorId: morador.id,
+        conteudo,
+        variaveisJson: vars,
+        prioridade: 5,
+      });
+    } catch (err) {
+      this.logger.error(
+        `Falha ao enfileirar notificação da encomenda ${encomenda.id}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+    }
   }
 
   async retirar(

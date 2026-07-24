@@ -52,6 +52,18 @@ export class Tenant {
   @Column({ name: 'whatsapp_numero', type: 'varchar', length: 20, nullable: true })
   whatsappNumero!: string | null;
 
+  // ---- Integração OpenWA (gateway WhatsApp não-oficial) ----
+  // Sessão/instância própria do condomínio no gateway. Provisionada na criação do tenant.
+  @Column({ name: 'whatsapp_session_id', type: 'uuid', nullable: true })
+  whatsappSessionId!: string | null;
+
+  @Column({ name: 'whatsapp_session_name', type: 'varchar', length: 60, nullable: true })
+  whatsappSessionName!: string | null;
+
+  // Último status conhecido da sessão (ready, qr_ready, disconnected, failed, ...)
+  @Column({ name: 'whatsapp_status', type: 'varchar', length: 30, nullable: true })
+  whatsappStatus!: string | null;
+
   @Column({ name: 'config_json', type: 'jsonb', default: () => "'{}'::jsonb" })
   configJson!: Record<string, unknown>;
 

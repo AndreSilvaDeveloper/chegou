@@ -120,7 +120,7 @@ export function Vagas() {
                       {vaga.ativo ? 'Ativa' : 'Inativa'}
                     </Badge>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0 md:pt-0">
                     <div className="text-sm text-muted-foreground mt-2 space-y-1">
                       <p><span className="font-medium text-foreground">Localização:</span> {vaga.localizacao || 'Não informada'}</p>
                       <p><span className="font-medium text-foreground">Apartamento:</span> {vaga.apartamento ? `${vaga.apartamento.bloco ? vaga.apartamento.bloco + '-' : ''}${vaga.apartamento.numero}` : 'Vaga solta / Locação'}</p>

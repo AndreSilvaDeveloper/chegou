@@ -295,7 +295,7 @@ export function SuperAdminTenant() {
               <CardDescription>Atualize os dados básicos de identificação deste ambiente.</CardDescription>
             </CardHeader>
             <form onSubmit={salvar}>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 pt-0 md:pt-0">
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="nome">Nome do Condomínio *</Label>
@@ -369,7 +369,7 @@ export function SuperAdminTenant() {
                   Definem como o sistema se comporta em todo o app — cadastros, módulos e envios.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-8">
+              <CardContent className="space-y-8 pt-0 md:pt-0">
                 {/* Tipo */}
                 <section className="space-y-3">
                   <div>

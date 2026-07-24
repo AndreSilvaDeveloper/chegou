@@ -48,9 +48,11 @@ const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
 );
 CardDescription.displayName = "CardDescription";
 
+// Padding simétrico por padrão — vale para cards SEM header (o caso mais comum).
+// Cards COM header devem passar `pt-0 md:pt-0` para o conteúdo colar no título.
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("p-5 pt-0 md:p-6 md:pt-0", className)} {...props} />
+    <div ref={ref} className={cn("p-5 md:p-6", className)} {...props} />
   )
 );
 CardContent.displayName = "CardContent";

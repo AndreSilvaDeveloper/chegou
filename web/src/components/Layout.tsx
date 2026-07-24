@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Package, PackagePlus, Building2, Users, HardHat, Building,
   Menu, LogOut, Sun, Moon, Laptop, BarChart3, Car, Megaphone, Bell,
-  PanelLeftClose, PanelLeftOpen, Download,
+  PanelLeftClose, PanelLeftOpen, Download, MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -55,7 +55,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/avisos', label: 'Avisos', icon: Megaphone, roles: ['sindico', 'admin'], group: 'Comunicação' },
   { path: '/notificacoes', label: 'Fila WhatsApp', icon: Bell, roles: ['sindico', 'admin'], group: 'Comunicação' },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3, roles: ['sindico', 'admin'], group: 'Comunicação' },
-  { path: '/admin', label: 'Condomínios', icon: Building, roles: ['superadmin'], group: 'Plataforma' },
+  { path: '/admin', label: 'Condomínios', icon: Building, roles: ['superadmin'], end: true, group: 'Plataforma' },
+  { path: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle, roles: ['superadmin'], group: 'Plataforma' },
 ];
 
 function BrandMark({ compact = false }: { compact?: boolean }) {

@@ -165,6 +165,73 @@ export interface Aviso {
   updatedAt: string;
 }
 
+// ---- Conexão WhatsApp (OpenWA) ----
+export type WhatsappConnectionState = 'connected' | 'connecting' | 'qr' | 'disconnected' | 'error';
+
+export interface WhatsappConnection {
+  configured: boolean;
+  provisioned: boolean;
+  sessionId: string | null;
+  sessionName: string | null;
+  rawStatus: string | null;
+  state: WhatsappConnectionState;
+  connected: boolean;
+  phone: string | null;
+  pushName: string | null;
+  lastError: string | null;
+}
+
+export interface WhatsappQr {
+  state: WhatsappConnectionState;
+  rawStatus: string | null;
+  connected: boolean;
+  qrCode: string | null;
+}
+
+export interface TemplateVariavel {
+  token: string;
+  descricao: string;
+  exemplo: string;
+}
+
+/** Config de disparo/template do próprio condomínio (endpoint do síndico). */
+export interface WhatsappTenantConfig {
+  templateEncomenda: string;
+  templatePadrao: string;
+  variaveis: TemplateVariavel[];
+  intervaloSegundos: number;
+  jitterSegundos: number;
+  limiteDiario: number;
+  horarioEnvioInicio: string;
+  horarioEnvioFim: string;
+}
+
+/** Linha do painel WhatsApp do super admin (por condomínio). */
+export interface AdminWhatsappCondominio {
+  id: string;
+  nome: string;
+  slug: string;
+  ativo: boolean;
+  provisionado: boolean;
+  status: string | null;
+  conectado: boolean;
+  numero: string | null;
+  disparosEncomenda: number;
+  disparosAviso: number;
+  intervaloSegundos: number;
+  jitterSegundos: number;
+  limiteDiario: number;
+  horarioEnvioInicio: string;
+  horarioEnvioFim: string;
+  templateEncomenda: string;
+}
+
+export interface AdminWhatsappResponse {
+  variaveis: TemplateVariavel[];
+  templatePadrao: string;
+  condominios: AdminWhatsappCondominio[];
+}
+
 export type TipoNotificacao = 'encomenda' | 'cobranca_vaga' | 'cobranca_condominio' | 'aviso' | 'lembrete';
 export type StatusNotificacao = 'pendente' | 'agendada' | 'enviando' | 'enviada' | 'falha' | 'cancelada';
 
