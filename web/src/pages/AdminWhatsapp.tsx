@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { TemplateEditor } from '@/components/whatsapp/TemplateEditor';
-import { Smartphone, Package, Megaphone, Settings2, Loader2, Save, CheckCircle2 } from 'lucide-react';
+import { Smartphone, Package, Megaphone, Settings2, Loader2, Save, CheckCircle2, Plus, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -85,6 +85,35 @@ export function AdminWhatsapp() {
     onError: (e: ApiError) => toast.error(e.message || 'Falha ao salvar'),
   });
 
+  const [provisioningId, setProvisioningId] = useState<string | null>(null);
+
+  const provisionMutation = useMutation({
+    mutationFn: (tenantId: string) => api.post(`/admin/whatsapp/${tenantId}/provision`),
+    onMutate: (tenantId) => setProvisioningId(tenantId),
+    onSuccess: () => {
+      toast.success('Instância criada! Já pode ser conectada pelo condomínio.');
+      queryClient.invalidateQueries({ queryKey: ['admin-whatsapp'] });
+    },
+    onError: (e: ApiError) => toast.error(e.message || 'Falha ao criar a instância'),
+    onSettled: () => setProvisioningId(null),
+  });
+
+  const provisionAllMutation = useMutation({
+    mutationFn: () =>
+      api.post<{ total: number; provisionadas: number; falhas: { nome: string; erro: string }[] }>(
+        '/admin/whatsapp/provision-missing',
+      ),
+    onSuccess: (r) => {
+      if (r.total === 0) toast.info('Nenhum condomínio pendente de instância.');
+      else if (r.falhas.length === 0) toast.success(`${r.provisionadas} instância(s) criada(s) com sucesso!`);
+      else toast.warning(`${r.provisionadas} criada(s), ${r.falhas.length} com falha (${r.falhas[0].nome}: ${r.falhas[0].erro}).`);
+      queryClient.invalidateQueries({ queryKey: ['admin-whatsapp'] });
+    },
+    onError: (e: ApiError) => toast.error(e.message || 'Falha ao provisionar pendentes'),
+  });
+
+  const pendentes = (query.data?.condominios ?? []).filter((c) => c.ativo && !c.provisionado).length;
+
   const num = (v: string, fallback: number) => {
     const n = parseInt(v, 10);
     return Number.isFinite(n) ? n : fallback;
@@ -92,10 +121,22 @@ export function AdminWhatsapp() {
 
   return (
     <div className="space-y-6 pb-10">
-      <PageHeader
-        title="WhatsApp dos Condomínios"
-        description="Status da conexão, disparos realizados e regras de envio (anti-bloqueio) de cada condomínio."
-      />
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <PageHeader
+          title="WhatsApp dos Condomínios"
+          description="Status da conexão, disparos realizados e regras de envio (anti-bloqueio) de cada condomínio."
+        />
+        {pendentes > 0 && (
+          <Button
+            onClick={() => provisionAllMutation.mutate()}
+            disabled={provisionAllMutation.isPending}
+            className="min-h-[44px] shrink-0"
+          >
+            {provisionAllMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+            Criar {pendentes} instância(s) pendente(s)
+          </Button>
+        )}
+      </div>
 
       {query.isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">
@@ -141,9 +182,24 @@ export function AdminWhatsapp() {
                       <><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Template personalizado</>
                     ) : 'Template padrão'}
                   </span>
-                  <Button variant="outline" size="sm" onClick={() => setEditing(c)} className="min-h-[40px]">
-                    <Settings2 className="mr-2 h-4 w-4" /> Configurar
-                  </Button>
+                  <div className="flex gap-2">
+                    {!c.provisionado && (
+                      <Button
+                        size="sm"
+                        onClick={() => provisionMutation.mutate(c.id)}
+                        disabled={provisioningId === c.id}
+                        className="min-h-[40px]"
+                      >
+                        {provisioningId === c.id
+                          ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          : <Plus className="mr-2 h-4 w-4" />}
+                        Criar instância
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => setEditing(c)} className="min-h-[40px]">
+                      <Settings2 className="mr-2 h-4 w-4" /> Configurar
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

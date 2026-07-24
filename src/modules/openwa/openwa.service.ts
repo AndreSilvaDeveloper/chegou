@@ -1,7 +1,7 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Tenant } from '../../database/entities';
 import { DEFAULT_TENANT_CONFIG } from '../admin/dto/config-tenant.dto';
 import {
@@ -149,6 +149,51 @@ export class OpenwaService {
     } catch (err) {
       this.logger.warn(`Falha ao provisionar sessão OpenWA p/ tenant ${tenantId}: ${errMsg(err)}`);
     }
+  }
+
+  /**
+   * Provisiona explicitamente a instância de um condomínio (cria/adota a sessão e grava
+   * os vínculos no tenant). Diferente do provisionForTenant, PROPAGA erros para a UI.
+   */
+  async provision(tenantId: string): Promise<ConnectionInfo> {
+    if (!this.configured) {
+      throw new BadRequestException('Integração OpenWA não configurada no servidor');
+    }
+    const tenant = await this.loadTenant(tenantId);
+    const session = await this.ensureSession(tenant);
+    this.logger.log(`Instância OpenWA provisionada (manual) p/ ${tenant.slug}: ${session.name}`);
+    return this.buildInfo(tenant, session);
+  }
+
+  /**
+   * Provisiona todos os condomínios ativos que ainda não têm instância. Best-effort por
+   * condomínio (coleta as falhas em vez de abortar). Sequencial para não sobrecarregar o gateway.
+   */
+  async provisionMissing(): Promise<{
+    total: number;
+    provisionadas: number;
+    falhas: Array<{ tenantId: string; nome: string; erro: string }>;
+  }> {
+    if (!this.configured) {
+      throw new BadRequestException('Integração OpenWA não configurada no servidor');
+    }
+    const pendentes = await this.tenantRepo.find({
+      where: { ativo: true, whatsappSessionId: IsNull() },
+      order: { nome: 'ASC' },
+    });
+
+    const falhas: Array<{ tenantId: string; nome: string; erro: string }> = [];
+    let provisionadas = 0;
+    for (const tenant of pendentes) {
+      try {
+        await this.ensureSession(tenant);
+        provisionadas++;
+      } catch (err) {
+        falhas.push({ tenantId: tenant.id, nome: tenant.nome, erro: errMsg(err) });
+        this.logger.warn(`Falha ao provisionar ${tenant.slug}: ${errMsg(err)}`);
+      }
+    }
+    return { total: pendentes.length, provisionadas, falhas };
   }
 
   private async loadTenant(tenantId: string): Promise<Tenant> {
