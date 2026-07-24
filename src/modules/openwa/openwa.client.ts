@@ -157,7 +157,16 @@ export class OpenWaClient {
     return this.req<OpenWaWebhook>('POST', `/sessions/${id}/webhooks`, { url, events });
   }
 
-  // ---- Mensagens (usado no futuro controle de disparo) ----
+  // ---- Contatos ----
+  /**
+   * Resolve um número para o JID canônico do WhatsApp (trata o "nono dígito" brasileiro
+   * automaticamente). `whatsappId` vem no formato nativo do engine (ex.: `553299712094@c.us`).
+   */
+  checkNumber(id: string, number: string): Promise<{ number: string; exists: boolean; whatsappId: string | null }> {
+    return this.req('GET', `/sessions/${id}/contacts/check/${encodeURIComponent(number)}`);
+  }
+
+  // ---- Mensagens ----
   sendText(id: string, chatId: string, text: string): Promise<{ messageId: string; timestamp: number }> {
     return this.req('POST', `/sessions/${id}/messages/send-text`, { chatId, text });
   }

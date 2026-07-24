@@ -83,10 +83,38 @@ export class OpenWaNotConnectedError extends Error {
   }
 }
 
-/** Telefone E.164 (ou dígitos) → JID de contato do WhatsApp (`55...@c.us`). */
-function toChatId(phone: string): string {
-  const digits = (phone ?? '').replace(/\D/g, '');
-  return `${digits}@c.us`;
+/** O número (em nenhuma variação com/sem o 9) está registrado no WhatsApp. Falha terminal. */
+export class WhatsappNumberNotFoundError extends Error {
+  constructor(public readonly phone: string) {
+    super('Número não está no WhatsApp');
+    this.name = 'WhatsappNumberNotFoundError';
+  }
+}
+
+function onlyDigits(phone: string): string {
+  return (phone ?? '').replace(/\D/g, '');
+}
+
+/**
+ * Remove o "nono dígito" de um celular brasileiro (55 + DDD + 9 + 8 → 55 + DDD + 8).
+ * Muitos números do WhatsApp no Brasil existem SEM o 9; enviar com o 9 não entrega.
+ * Só mexe quando o padrão bate (13 dígitos, começa com 55, parte do assinante começa com 9).
+ */
+function stripBrazilNinthDigit(digits: string): string {
+  if (digits.length === 13 && digits.startsWith('55')) {
+    const ddd = digits.slice(2, 4);
+    const assinante = digits.slice(4); // 9 dígitos: 9XXXXXXXX
+    if (assinante.length === 9 && assinante.startsWith('9')) {
+      return `55${ddd}${assinante.slice(1)}`;
+    }
+  }
+  return digits;
+}
+
+/** Formas candidatas do número (com e sem o 9), sem duplicar. */
+function brazilCandidates(digits: string): string[] {
+  const semNove = stripBrazilNinthDigit(digits);
+  return semNove === digits ? [digits] : [digits, semNove];
 }
 
 /** Campos de `tenants` que a integração escreve (evita conflito de tipo com o jsonb `configJson`). */
@@ -420,8 +448,34 @@ export class OpenwaService {
       );
     }
 
-    const res = await this.client.sendText(session.id, toChatId(phone), text);
+    const chatId = await this.resolveChatId(session.id, phone);
+    const res = await this.client.sendText(session.id, chatId, text);
     return { messageId: res.messageId };
+  }
+
+  /**
+   * Descobre o JID correto do destinatário. Pergunta ao WhatsApp (via `checkNumber`) qual
+   * variação — com ou sem o nono dígito — realmente existe, e usa o JID canônico retornado.
+   * Se o gateway não resolver, cai no número SEM o 9 (padrão que entrega na maioria dos DDDs).
+   */
+  private async resolveChatId(sessionId: string, phone: string): Promise<string> {
+    const digits = onlyDigits(phone);
+    for (const candidato of brazilCandidates(digits)) {
+      let check: { exists: boolean; whatsappId: string | null };
+      try {
+        check = await this.client.checkNumber(sessionId, candidato);
+      } catch (err) {
+        // Erro de rede/gateway → não dá pra afirmar que não existe; envia best-effort (sem o 9).
+        this.logger.warn(`checkNumber falhou p/ ${candidato}: ${errMsg(err)} — usando fallback sem o 9`);
+        return `${stripBrazilNinthDigit(digits)}@c.us`;
+      }
+      if (check.exists && check.whatsappId) {
+        return check.whatsappId; // já vem no formato nativo do engine (ex.: 55...@c.us)
+      }
+    }
+    // Gateway respondeu para todas as variações (com e sem o 9) e nenhuma existe no WhatsApp.
+    this.logger.warn(`Número não está no WhatsApp: ${digits} (checado com e sem o 9)`);
+    throw new WhatsappNumberNotFoundError(digits);
   }
 
   /** Config de disparo/template do condomínio (para o síndico ver/editar o próprio). */

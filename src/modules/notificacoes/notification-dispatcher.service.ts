@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 import { QUEUE_NOTIFICATION_DISPATCH } from '../../queues/queues.module';
 import { Encomenda, Notificacao } from '../../database/entities';
 import { StatusNotificacao, TipoNotificacao } from '../../database/entities/notificacao.entity';
-import { OpenwaService } from '../openwa/openwa.service';
+import { OpenwaService, WhatsappNumberNotFoundError } from '../openwa/openwa.service';
 
 /**
  * Consome a fila unificada de disparos e envia via OpenWA (número do próprio condomínio).
@@ -61,10 +61,19 @@ export class NotificationDispatcherService extends WorkerHost {
       this.logger.log(`Notificação ${notificacaoId} enviada via OpenWA`);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Erro ao enviar notificação ${notificacaoId}: ${msg}`);
+      const numeroInvalido = error instanceof WhatsappNumberNotFoundError;
 
-      if (notificacao.tentativas >= notificacao.maxTentativas) {
-        // Terminal: não relança (não adianta retentar) — fica FALHA, reenviável na Fila.
+      if (numeroInvalido) {
+        this.logger.warn(
+          `Notificação ${notificacaoId} falhou: número ${notificacao.destinatarioTelefone} não está no WhatsApp` +
+            (notificacao.destinatarioNome ? ` (${notificacao.destinatarioNome})` : ''),
+        );
+      } else {
+        this.logger.error(`Erro ao enviar notificação ${notificacaoId}: ${msg}`);
+      }
+
+      // Número inexistente é terminal (não muda numa retentativa) → falha direto.
+      if (numeroInvalido || notificacao.tentativas >= notificacao.maxTentativas) {
         notificacao.status = StatusNotificacao.FALHA;
         notificacao.erroMensagem = msg;
         await this.notificacaoRepo.save(notificacao);
