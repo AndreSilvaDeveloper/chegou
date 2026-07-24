@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { User } from '../../database/entities';
+import { Tenant, User } from '../../database/entities';
 import { LoginDto } from './dto/login.dto';
 import { AuthenticatedUser, JwtPayload } from './types';
 
@@ -12,9 +12,28 @@ import { AuthenticatedUser, JwtPayload } from './types';
 export class AuthService {
   constructor(
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {}
+
+  /**
+   * Dados do usuário logado + configurações do condomínio (config_json).
+   * O front usa isso para adaptar telas (ex.: estrutura de blocos).
+   */
+  async me(
+    user: AuthenticatedUser,
+  ): Promise<AuthenticatedUser & { config: Record<string, unknown> }> {
+    let config: Record<string, unknown> = {};
+    if (user.tenantId) {
+      const tenant = await this.tenantRepo.findOne({
+        where: { id: user.tenantId },
+        select: { configJson: true },
+      });
+      config = tenant?.configJson ?? {};
+    }
+    return { ...user, config };
+  }
 
   async login(dto: LoginDto): Promise<{
     accessToken: string;

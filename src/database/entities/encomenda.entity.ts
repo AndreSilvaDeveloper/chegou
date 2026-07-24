@@ -13,6 +13,7 @@ import { Morador } from './morador.entity';
 import { User } from './user.entity';
 
 export type EncomendaStatus = 'aguardando' | 'notificado' | 'retirada' | 'cancelada' | 'devolvida';
+export type EncomendaTipo = 'caixa' | 'envelope';
 
 @Entity({ name: 'encomendas' })
 export class Encomenda {
@@ -39,6 +40,9 @@ export class Encomenda {
   @ManyToOne(() => Morador, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'morador_destino_id' })
   moradorDestino?: Morador | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  tipo!: EncomendaTipo | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   descricao!: string | null;

@@ -1,5 +1,7 @@
 export type EncomendaStatus = 'aguardando' | 'notificado' | 'retirada' | 'cancelada' | 'devolvida';
 
+export type EncomendaTipo = 'caixa' | 'envelope';
+
 export type WaStatus = 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | 'received';
 
 export interface NotificacaoResumo {
@@ -42,6 +44,7 @@ export interface Encomenda {
   apartamento?: Apartamento;
   moradorDestinoId: string | null;
   moradorDestino?: Morador | null;
+  tipo: EncomendaTipo | null;
   descricao: string | null;
   transportadora: string | null;
   codigoRastreio: string | null;
@@ -81,6 +84,18 @@ export interface Usuario {
   updatedAt: string;
 }
 
+export type TenantTipo = 'residencial' | 'comercial' | 'misto';
+export type TenantEstruturaBlocos = 'unico' | 'multiplos';
+
+export interface TenantConfig {
+  tipo?: TenantTipo;
+  estruturaBlocos?: TenantEstruturaBlocos;
+  moduloVagas?: boolean;
+  moduloAvisos?: boolean;
+  horarioEnvioInicio?: string;
+  horarioEnvioFim?: string;
+}
+
 export interface Tenant {
   id: string;
   nome: string;
@@ -90,6 +105,7 @@ export interface Tenant {
   estado: string | null;
   plano: string;
   ativo: boolean;
+  configJson?: TenantConfig;
   createdAt: string;
   updatedAt: string;
 }

@@ -31,6 +31,39 @@ export class ApartamentosService {
     return qb.getMany();
   }
 
+  /** Lista os blocos distintos (não vazios) do condomínio, em ordem alfabética. */
+  async listarBlocos(tenantId: string): Promise<string[]> {
+    const rows = await this.aptoRepo
+      .createQueryBuilder('a')
+      .select('DISTINCT a.bloco', 'bloco')
+      .where('a.tenantId = :tenantId', { tenantId })
+      .andWhere('a.ativo = true')
+      .andWhere("a.bloco IS NOT NULL AND a.bloco <> ''")
+      .orderBy('a.bloco', 'ASC')
+      .getRawMany<{ bloco: string }>();
+    return rows.map((r) => r.bloco);
+  }
+
+  /** Busca exata por número (e bloco, se informado). Retorna null se não existir. */
+  async buscarPorNumero(
+    tenantId: string,
+    numero: string,
+    bloco?: string,
+  ): Promise<Apartamento | null> {
+    const qb = this.aptoRepo
+      .createQueryBuilder('a')
+      .where('a.tenantId = :tenantId', { tenantId })
+      .andWhere('a.ativo = true')
+      .andWhere('a.numero = :numero', { numero: numero.trim() });
+    const b = bloco?.trim();
+    if (b) {
+      qb.andWhere('a.bloco = :bloco', { bloco: b });
+    } else {
+      qb.andWhere("(a.bloco IS NULL OR a.bloco = '')");
+    }
+    return (await qb.getOne()) ?? null;
+  }
+
   async obter(tenantId: string, id: string): Promise<Apartamento> {
     const apto = await this.aptoRepo.findOne({ where: { id, tenantId } });
     if (!apto) throw new NotFoundException('Apartamento não encontrado');

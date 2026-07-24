@@ -29,6 +29,27 @@ export class ApartamentosController {
     return this.service.listar(tenantId, q);
   }
 
+  // Rotas estáticas ANTES de ':id' para não serem capturadas pelo param.
+  @Get('blocos')
+  @Roles('porteiro', 'admin', 'sindico')
+  listarBlocos(@TenantId() tenantId: string) {
+    return this.service.listarBlocos(tenantId);
+  }
+
+  @Get('lookup')
+  @Roles('porteiro', 'admin', 'sindico')
+  async lookup(
+    @TenantId() tenantId: string,
+    @Query('numero') numero: string,
+    @Query('bloco') bloco?: string,
+  ) {
+    if (!numero || !numero.trim()) {
+      throw new BadRequestException('Informe o número do apartamento');
+    }
+    const apartamento = await this.service.buscarPorNumero(tenantId, numero, bloco);
+    return { apartamento };
+  }
+
   @Get(':id')
   @Roles('porteiro', 'admin', 'sindico')
   obter(@TenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {

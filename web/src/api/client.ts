@@ -1,3 +1,5 @@
+import type { TenantConfig } from './types';
+
 const TOKEN_KEY = 'portaria.token';
 const USER_KEY = 'portaria.user';
 
@@ -8,6 +10,8 @@ export interface AuthenticatedUser {
   role: 'superadmin' | 'sindico' | 'admin' | 'porteiro';
   nome: string;
   email: string;
+  /** Configurações do condomínio (vindas de /auth/me). */
+  config?: TenantConfig;
 }
 
 export function getToken(): string | null {

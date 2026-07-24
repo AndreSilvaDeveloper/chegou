@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Header, HttpCode, Param, ParseUUIDPipe, Post, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser, Roles, TenantId } from '../../common/decorators';
+import { Encomenda } from '../../database/entities';
 import { AuthenticatedUser } from '../auth/types';
 import { CancelarEncomendaDto } from './dto/cancelar-encomenda.dto';
 import { CriarEncomendaDto } from './dto/criar-encomenda.dto';
@@ -24,8 +25,16 @@ export class EncomendasController {
 
   @Get()
   @Roles('porteiro', 'admin', 'sindico')
-  listar(@TenantId() tenantId: string, @Query() q: ListarEncomendasQuery) {
-    return this.service.listar(tenantId, q);
+  async listar(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() q: ListarEncomendasQuery,
+  ) {
+    const res = await this.service.listar(tenantId, q);
+    if (user.role === 'porteiro') {
+      res.items = res.items.map((e) => this.ocultarCodigoRetirada(e));
+    }
+    return res;
   }
 
   @Get('stats')
@@ -49,8 +58,18 @@ export class EncomendasController {
 
   @Get(':id')
   @Roles('porteiro', 'admin', 'sindico')
-  obter(@TenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
-    return this.service.obter(tenantId, id);
+  async obter(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const enc = await this.service.obter(tenantId, id);
+    return user.role === 'porteiro' ? this.ocultarCodigoRetirada(enc) : enc;
+  }
+
+  /** Mascara o código de retirada — só o morador (via WhatsApp) deve conhecê-lo. */
+  private ocultarCodigoRetirada(e: Encomenda): Encomenda {
+    return { ...e, codigoRetirada: '' } as Encomenda;
   }
 
   @Post(':id/retirar')

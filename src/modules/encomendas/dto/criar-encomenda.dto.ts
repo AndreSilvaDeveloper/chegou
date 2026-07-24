@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CriarEncomendaDto {
   @IsUUID()
@@ -7,6 +7,10 @@ export class CriarEncomendaDto {
   @IsOptional()
   @IsUUID()
   moradorDestinoId?: string;
+
+  @IsOptional()
+  @IsIn(['caixa', 'envelope'])
+  tipo?: 'caixa' | 'envelope';
 
   @IsOptional()
   @IsString()

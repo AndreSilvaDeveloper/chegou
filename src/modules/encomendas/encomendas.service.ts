@@ -86,6 +86,7 @@ export class EncomendasService {
         tenantId,
         apartamentoId: apto.id,
         moradorDestinoId: dto.moradorDestinoId ?? null,
+        tipo: dto.tipo ?? null,
         descricao: dto.descricao ?? null,
         transportadora: dto.transportadora ?? null,
         codigoRastreio: dto.codigoRastreio ?? null,

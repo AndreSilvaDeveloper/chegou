@@ -10,6 +10,7 @@ import { QueryFailedError, Repository } from 'typeorm';
 import { Tenant, User } from '../../database/entities';
 import { AtualizarTenantDto } from './dto/atualizar-tenant.dto';
 import { CriarTenantDto } from './dto/criar-tenant.dto';
+import { DEFAULT_TENANT_CONFIG } from './dto/config-tenant.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -58,6 +59,7 @@ export class AdminService {
           estado: dto.estado ?? null,
           plano: 'basico',
           ativo: true,
+          configJson: { ...DEFAULT_TENANT_CONFIG },
         }),
       );
       await this.userRepo.save(
@@ -89,6 +91,13 @@ export class AdminService {
     if (dto.estado !== undefined) tenant.estado = dto.estado || null;
     if (dto.plano !== undefined) tenant.plano = dto.plano;
     if (dto.ativo !== undefined) tenant.ativo = dto.ativo;
+    if (dto.configJson !== undefined) {
+      tenant.configJson = {
+        ...DEFAULT_TENANT_CONFIG,
+        ...(tenant.configJson ?? {}),
+        ...dto.configJson,
+      };
+    }
     try {
       return await this.tenantRepo.save(tenant);
     } catch (err) {

@@ -1,4 +1,6 @@
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, Matches, MaxLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ConfigTenantDto } from './config-tenant.dto';
 
 export class AtualizarTenantDto {
   @IsOptional()
@@ -31,4 +33,9 @@ export class AtualizarTenantDto {
   @IsOptional()
   @IsBoolean()
   ativo?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ConfigTenantDto)
+  configJson?: ConfigTenantDto;
 }

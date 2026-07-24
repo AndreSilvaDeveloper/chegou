@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, ComponentType, ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, getUser } from '../api/client';
 import { Encomenda } from '../api/types';
@@ -13,32 +13,57 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { CodigoStrip } from '@/components/ui/codigo-strip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTime, cn } from '@/lib/utils';
-import { 
-  ArrowLeft, Package, Clock, CheckCircle2, XCircle, 
-  User, Truck, Building2, KeyRound, FileText, Loader2 
+import {
+  ArrowLeft, Package, Clock, CheckCircle2, XCircle,
+  User, Truck, Building2, KeyRound, FileText, Loader2, Box, Mail,
+  Lock, ShieldCheck, MessageCircle, CreditCard,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info"; icon: React.ElementType }> = {
+type StatusVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info';
+
+const STATUS_CONFIG: Record<string, { label: string; variant: StatusVariant; icon: ComponentType<{ className?: string }> }> = {
   aguardando: { label: 'Aguardando Retirada', variant: 'warning', icon: Clock },
-  notificado: { label: 'Morador Notificado', variant: 'info', icon: Clock },
+  notificado: { label: 'Morador Notificado', variant: 'info', icon: MessageCircle },
   retirada: { label: 'Entregue', variant: 'success', icon: CheckCircle2 },
   cancelada: { label: 'Cancelada', variant: 'secondary', icon: XCircle },
   devolvida: { label: 'Devolvida', variant: 'secondary', icon: XCircle },
 };
+
+/** Item de detalhe com ícone em caixa — leitura fácil. */
+function DetailItem({
+  icon: Icon, label, children, className,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('flex items-start gap-3', className)}>
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <div className="mt-0.5 font-medium text-foreground">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 export function DetalheEncomenda() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const user = getUser();
   const [enc, setEnc] = useState<Encomenda | null>(null);
-  
+
   // Retirada
   const [codigo, setCodigo] = useState('');
   const [documento, setDocumento] = useState('');
   const [tab, setTab] = useState<'codigo' | 'documento'>('codigo');
   const [saving, setSaving] = useState(false);
-  
+
   // Cancelamento
   const [motivo, setMotivo] = useState('');
   const [showCancel, setShowCancel] = useState(false);
@@ -65,6 +90,7 @@ export function DetalheEncomenda() {
 
   const ativa = enc.status === 'aguardando' || enc.status === 'notificado';
   const isAdmin = user?.role === 'admin' || user?.role === 'sindico';
+  const podeVerCodigo = isAdmin; // porteiro NÃO vê o código — só o morador o conhece
   const conf = STATUS_CONFIG[enc.status] || STATUS_CONFIG.aguardando;
   const StatusIcon = conf.icon;
 
@@ -78,7 +104,7 @@ export function DetalheEncomenda() {
       toast.error('Informe o documento');
       return;
     }
-    
+
     setSaving(true);
     try {
       await api.post(`/encomendas/${enc.id}/retirar`, {
@@ -115,12 +141,39 @@ export function DetalheEncomenda() {
     }
   };
 
-  // Timeline Eventos
+  // Linha do tempo
   const eventos = [
-    { label: 'Recebimento', date: enc.createdAt, done: true },
-    { label: 'Notificação', date: enc.notificadaAt, done: !!enc.notificadaAt, error: enc.notificacao?.status === 'failed' },
-    { label: enc.status === 'cancelada' ? 'Cancelamento' : 'Retirada', date: enc.retiradaAt, done: !!enc.retiradaAt || enc.status === 'cancelada' },
+    { label: 'Encomenda recebida', hint: 'Registrada na portaria', date: enc.createdAt, done: true, icon: Package },
+    {
+      label: 'Morador notificado',
+      hint: enc.notificacao?.status === 'failed' ? 'Falha no envio' : 'Aviso enviado no WhatsApp',
+      date: enc.notificadaAt,
+      done: !!enc.notificadaAt,
+      error: enc.notificacao?.status === 'failed',
+      icon: MessageCircle,
+    },
+    {
+      label: enc.status === 'cancelada' ? 'Encomenda cancelada' : 'Encomenda entregue',
+      hint: enc.status === 'cancelada' ? 'Não pode mais ser retirada' : 'Retirada confirmada',
+      date: enc.retiradaAt || enc.canceladaAt,
+      done: !!enc.retiradaAt || enc.status === 'cancelada',
+      error: enc.status === 'cancelada',
+      icon: enc.status === 'cancelada' ? XCircle : CheckCircle2,
+    },
   ];
+
+  const TabButton = ({ value, icon: Icon, label }: { value: 'codigo' | 'documento'; icon: ComponentType<{ className?: string }>; label: string }) => (
+    <button
+      type="button"
+      onClick={() => setTab(value)}
+      className={cn(
+        'flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-md text-sm font-medium transition-all',
+        tab === value ? 'bg-card text-foreground shadow-panel' : 'text-muted-foreground hover:text-foreground',
+      )}
+    >
+      <Icon className="h-4 w-4" /> {label}
+    </button>
+  );
 
   return (
     <div className="space-y-6 pb-10">
@@ -128,8 +181,8 @@ export function DetalheEncomenda() {
         <Button variant="ghost" size="icon" onClick={() => nav(-1)} className="rounded-full">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <PageHeader 
-          title={`Apto ${enc.apartamento?.identificador}`} 
+        <PageHeader
+          title={`Apto ${enc.apartamento?.identificador}`}
           description={enc.descricao || 'Detalhes da encomenda'}
           className="mb-0 border-0 pb-0"
         >
@@ -154,48 +207,47 @@ export function DetalheEncomenda() {
       )}
 
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Coluna Esquerda: Timeline e Ações */}
+        {/* Coluna Esquerda: Ação e Timeline */}
         <div className="space-y-6 md:col-span-1">
-          {/* Status / Ações */}
           {ativa ? (
-            <Card className="border-primary/40">
+            <Card className="border-primary/40 shadow-panel">
               <CardHeader className="border-b border-border pb-4">
-                <p className="eyebrow">Ação</p>
-                <CardTitle className="text-lg">Registrar retirada</CardTitle>
-                <CardDescription>Como o morador vai comprovar a retirada?</CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                    <KeyRound className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Entregar encomenda</CardTitle>
+                    <CardDescription>Confirme a retirada pelo morador</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="pt-5 space-y-4">
+                {/* Passo a passo didático */}
+                <ol className="space-y-2 rounded-lg bg-muted/50 p-3 text-sm">
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">1</span>
+                    <span className="text-muted-foreground">Peça ao morador o <span className="font-semibold text-foreground">código de 4 dígitos</span> que ele recebeu no WhatsApp.</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">2</span>
+                    <span className="text-muted-foreground">Digite abaixo e toque em <span className="font-semibold text-foreground">Confirmar</span>.</span>
+                  </li>
+                </ol>
 
-                {/* Abas */}
+                {/* Abas Código / Documento */}
                 <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setTab('codigo')}
-                    className={cn(
-                      "min-h-[40px] flex-1 rounded-md text-sm font-medium transition-all",
-                      tab === 'codigo' ? "bg-card text-foreground shadow-panel" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Código
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTab('documento')}
-                    className={cn(
-                      "min-h-[40px] flex-1 rounded-md text-sm font-medium transition-all",
-                      tab === 'documento' ? "bg-card text-foreground shadow-panel" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Documento
-                  </button>
+                  <TabButton value="codigo" icon={KeyRound} label="Código" />
+                  <TabButton value="documento" icon={CreditCard} label="Documento" />
                 </div>
 
                 <form onSubmit={retirar} className="space-y-4">
                   {tab === 'codigo' ? (
                     <div className="space-y-2 text-center">
-                      <Label>Código de 4 dígitos (recebido no Zap)</Label>
+                      <Label htmlFor="codigo-retirada">Código de 4 dígitos</Label>
                       <Input
-                        className="h-16 text-center font-mono text-4xl tracking-[0.5em]"
+                        id="codigo-retirada"
+                        className="h-20 text-center font-mono text-5xl tracking-[0.4em]"
                         placeholder="0000"
                         maxLength={4}
                         pattern="\d{4}"
@@ -204,21 +256,26 @@ export function DetalheEncomenda() {
                         onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))}
                         autoFocus
                       />
+                      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                        <MessageCircle className="h-3.5 w-3.5" /> O morador recebeu este código no WhatsApp.
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label>Número do Documento</Label>
+                      <Label htmlFor="documento-retirada">Número do Documento</Label>
                       <Input
-                        className="h-12 text-lg"
+                        id="documento-retirada"
+                        className="h-14 text-lg"
                         placeholder="CPF, RG, etc..."
                         value={documento}
                         onChange={(e) => setDocumento(e.target.value)}
                         autoFocus
                       />
+                      <p className="text-xs text-muted-foreground">Use quando o morador não tiver o código em mãos.</p>
                     </div>
                   )}
-                  
-                  <Button type="submit" disabled={saving} size="lg" className="w-full font-semibold">
+
+                  <Button type="submit" disabled={saving} size="lg" className="h-14 w-full text-base font-semibold">
                     {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
                     Confirmar Entrega
                   </Button>
@@ -229,21 +286,21 @@ export function DetalheEncomenda() {
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className={cn(
-                  "mx-auto flex h-16 w-16 items-center justify-center rounded-full mb-4",
-                  enc.status === 'retirada' ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
+                  'mx-auto flex h-16 w-16 items-center justify-center rounded-full mb-4',
+                  enc.status === 'retirada' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
                 )}>
                   <StatusIcon className="h-8 w-8" />
                 </div>
                 <h3 className="text-xl font-bold">{conf.label}</h3>
                 {enc.retiradaAt && <p className="text-sm text-muted-foreground mt-1">Em {formatDateTime(enc.retiradaAt)}</p>}
-                
+
                 {enc.retiradaDocumento && (
                   <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
                     <span className="text-muted-foreground block mb-1">Documento apresentado:</span>
                     <span className="font-mono font-medium">{enc.retiradaDocumento}</span>
                   </div>
                 )}
-                
+
                 {enc.cancelamentoMotivo && (
                   <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-left">
                     <span className="text-destructive font-medium block mb-1">Motivo do Cancelamento:</span>
@@ -254,44 +311,51 @@ export function DetalheEncomenda() {
             </Card>
           )}
 
-          {/* Timeline */}
+          {/* Linha do tempo (vertical) */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Linha do Tempo</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-                {eventos.map((ev, i) => (
-                  <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    {/* Icon */}
-                    <div className={cn(
-                      "flex items-center justify-center w-10 h-10 rounded-full border-4 border-background shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm",
-                      ev.error ? "bg-destructive text-destructive-foreground" : 
-                      ev.done ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                    )}>
-                      {ev.done ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
-                    </div>
-                    {/* Content */}
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-3 rounded-lg border bg-card shadow-sm">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={cn("font-medium", ev.done ? "text-foreground" : "text-muted-foreground")}>{ev.label}</span>
+              <ol className="relative space-y-6">
+                {eventos.map((ev, i) => {
+                  const EvIcon = ev.icon;
+                  const isLast = i === eventos.length - 1;
+                  return (
+                    <li key={i} className="relative flex gap-4">
+                      {!isLast && (
+                        <span
+                          className={cn(
+                            'absolute left-[19px] top-10 h-[calc(100%-1rem)] w-0.5',
+                            ev.done ? 'bg-primary/30' : 'bg-border',
+                          )}
+                        />
+                      )}
+                      <div className={cn(
+                        'z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-4 border-background',
+                        ev.error ? 'bg-destructive text-destructive-foreground' :
+                          ev.done ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                      )}>
+                        <EvIcon className="h-5 w-5" />
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {ev.date ? formatDateTime(ev.date) : 'Pendente'}
+                      <div className="pt-1">
+                        <p className={cn('font-medium leading-tight', ev.done ? 'text-foreground' : 'text-muted-foreground')}>{ev.label}</p>
+                        <p className="text-xs text-muted-foreground">{ev.hint}</p>
+                        <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                          {ev.date ? formatDateTime(ev.date) : 'Pendente'}
+                        </p>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    </li>
+                  );
+                })}
+              </ol>
             </CardContent>
           </Card>
-          
+
           {ativa && isAdmin && (
-            <div className="pt-2">
-              <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setShowCancel(true)}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancelar Encomenda
-              </Button>
-            </div>
+            <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setShowCancel(true)}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancelar Encomenda
+            </Button>
           )}
         </div>
 
@@ -300,42 +364,60 @@ export function DetalheEncomenda() {
           <Card>
             <CardHeader className="pb-4">
               <CardTitle>Detalhes da Encomenda</CardTitle>
+              <CardDescription>Todas as informações registradas na portaria.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <div className="flex items-center text-sm text-muted-foreground mb-1"><Building2 className="mr-2 h-4 w-4" /> Apartamento</div>
-                  <div className="font-mono text-xl font-bold">{enc.apartamento?.identificador}</div>
-                </div>
-                
-                {ativa && (
-                  <div className="space-y-2 sm:col-span-2">
-                    <div className="flex items-center text-sm text-muted-foreground"><KeyRound className="mr-2 h-4 w-4" /> Código enviado ao morador</div>
+              {/* Código de retirada — visibilidade controlada por perfil */}
+              {ativa && (
+                podeVerCodigo ? (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                      <ShieldCheck className="h-4 w-4 text-primary" /> Código enviado ao morador
+                      <Badge variant="outline" className="ml-auto text-[11px]">Visível para administração</Badge>
+                    </div>
                     <CodigoStrip codigo={enc.codigoRetirada} size="lg" active={enc.status === 'notificado'} />
                   </div>
-                )}
-                
-                <div className="space-y-1">
-                  <div className="flex items-center text-sm text-muted-foreground mb-1"><User className="mr-2 h-4 w-4" /> Destinatário</div>
-                  <div className="font-medium text-lg">{enc.moradorDestino?.nome || 'Qualquer morador'}</div>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center text-sm text-muted-foreground mb-1"><Package className="mr-2 h-4 w-4" /> Código de Rastreio</div>
-                  <div className="font-mono font-medium">{enc.codigoRastreio || '—'}</div>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center text-sm text-muted-foreground mb-1"><Truck className="mr-2 h-4 w-4" /> Transportadora</div>
-                  <div className="font-medium">{enc.transportadora || '—'}</div>
-                </div>
-                
-                <div className="space-y-1 sm:col-span-2">
-                  <div className="flex items-center text-sm text-muted-foreground mb-1"><FileText className="mr-2 h-4 w-4" /> Descrição</div>
-                  <div className="font-medium">{enc.descricao || 'Sem descrição detalhada'}</div>
-                </div>
+                ) : (
+                  <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium text-foreground">O código fica só com o morador</p>
+                      <p className="mt-0.5 text-muted-foreground">
+                        Ele recebeu os 4 dígitos por WhatsApp. Na hora da retirada, peça o código e digite no campo ao lado.
+                      </p>
+                    </div>
+                  </div>
+                )
+              )}
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                <DetailItem icon={Building2} label="Apartamento">
+                  <span className="font-mono text-xl font-bold">{enc.apartamento?.identificador}</span>
+                </DetailItem>
+
+                <DetailItem icon={User} label="Destinatário">
+                  {enc.moradorDestino?.nome || 'Qualquer morador'}
+                </DetailItem>
+
+                <DetailItem icon={enc.tipo === 'envelope' ? Mail : Box} label="Tipo">
+                  {enc.tipo === 'caixa' ? 'Caixa' : enc.tipo === 'envelope' ? 'Envelope' : '—'}
+                </DetailItem>
+
+                <DetailItem icon={Truck} label="Transportadora">
+                  {enc.transportadora || '—'}
+                </DetailItem>
+
+                <DetailItem icon={Package} label="Código de Rastreio">
+                  <span className="font-mono">{enc.codigoRastreio || '—'}</span>
+                </DetailItem>
+
+                <DetailItem icon={FileText} label="Descrição" className="sm:col-span-2">
+                  {enc.descricao || 'Sem descrição detalhada'}
+                </DetailItem>
               </div>
-              
+
               {enc.notificacao && (
                 <div className="pt-4 border-t">
                   <div className="text-sm font-medium mb-2">Status do WhatsApp</div>
@@ -372,9 +454,9 @@ export function DetalheEncomenda() {
       >
         <div className="py-4 space-y-2">
           <Label>Motivo do cancelamento *</Label>
-          <Input 
-            value={motivo} 
-            onChange={(e) => setMotivo(e.target.value)} 
+          <Input
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
             placeholder="Ex: Devolvida ao remetente, pacote danificado..."
             autoFocus
           />

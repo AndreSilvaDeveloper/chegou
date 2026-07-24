@@ -24,7 +24,7 @@ async function main() {
   }
 
   const email = (process.env.SUPERADMIN_EMAIL || 'admin@portaria.app').trim();
-  const nome = (process.env.SUPERADMIN_NOME || 'Super Admin').trim();
+  const nome = (process.env.SUPERADMIN_NOME || 'Super_Admin').trim();
   const senha = process.env.SUPERADMIN_PASSWORD;
   const rounds = Number(process.env.BCRYPT_ROUNDS || 12);
   const reset = String(process.env.SEED_RESET_PASSWORD || '').toLowerCase() === 'true';
