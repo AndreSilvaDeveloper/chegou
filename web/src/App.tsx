@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Lazy loading all pages
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Encomendas = React.lazy(() => import('./pages/Encomendas').then(m => ({ default: m.Encomendas })));
 const NovaEncomenda = React.lazy(() => import('./pages/NovaEncomenda').then(m => ({ default: m.NovaEncomenda })));
 const DetalheEncomenda = React.lazy(() => import('./pages/DetalheEncomenda').then(m => ({ default: m.DetalheEncomenda })));
 const Apartamentos = React.lazy(() => import('./pages/Apartamentos').then(m => ({ default: m.Apartamentos })));
@@ -26,7 +27,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Encomendas />} />
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Dashboard /></ProtectedRoute>} />
           <Route path="/encomendas/nova" element={<NovaEncomenda />} />
           <Route path="/encomendas/:id" element={<DetalheEncomenda />} />
           <Route path="/apartamentos" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Apartamentos /></ProtectedRoute>} />

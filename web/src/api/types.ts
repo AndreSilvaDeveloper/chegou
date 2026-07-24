@@ -84,6 +84,26 @@ export interface Usuario {
   updatedAt: string;
 }
 
+export interface VolumePonto {
+  label: string;
+  recebidas: number;
+  retiradas: number;
+  pendentes: number;
+}
+
+export interface DashboardData {
+  cards: {
+    totalMes: number;
+    totalMesAnterior: number;
+    variacao: number | null;
+    aguardando: number;
+    retiradosHoje: number;
+    tempoMedioHoras: number | null;
+  };
+  semana: VolumePonto[];
+  meses: VolumePonto[];
+}
+
 export type TenantTipo = 'residencial' | 'comercial' | 'misto';
 export type TenantEstruturaBlocos = 'unico' | 'multiplos';
 

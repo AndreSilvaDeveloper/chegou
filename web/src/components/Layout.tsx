@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Package, PackagePlus, Building2, Users, HardHat, Building,
   Menu, LogOut, Sun, Moon, Laptop, BarChart3, Car, Megaphone, ListChecks,
-  PanelLeftClose, PanelLeftOpen, Download, MessageCircle,
+  PanelLeftClose, PanelLeftOpen, Download, MessageCircle, LayoutDashboard,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -46,6 +46,7 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['sindico', 'admin'], group: 'Portaria' },
   { path: '/', label: 'Encomendas', icon: Package, roles: ['porteiro', 'sindico', 'admin'], end: true, group: 'Portaria' },
   { path: '/encomendas/nova', label: 'Nova encomenda', icon: PackagePlus, roles: ['porteiro', 'sindico', 'admin'], group: 'Portaria' },
   { path: '/apartamentos', label: 'Apartamentos', icon: Building2, roles: ['sindico', 'admin'], group: 'Condomínio' },

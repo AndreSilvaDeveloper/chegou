@@ -347,6 +347,145 @@ export class EncomendasService {
     };
   }
 
+  // ---------------- Dashboard (métricas + séries de volume) ----------------
+
+  private static readonly WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  private static readonly MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+  /** Y/M/D no fuso America/Sao_Paulo. */
+  private localYmd(d: Date): { y: number; m: number; d: number } {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const g = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? '0');
+    return { y: g('year'), m: g('month'), d: g('day') };
+  }
+
+  private addDays(y: number, m: number, d: number, delta: number): { y: number; m: number; d: number } {
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + delta);
+    return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
+  }
+
+  /** Série de volume (recebidas/retiradas/pendentes) agrupada por dia ou mês, no fuso local. */
+  private async serieVolume(
+    tenantId: string,
+    unit: 'day' | 'month',
+    startBoundary: string,
+    buckets: { key: string; label: string }[],
+  ): Promise<{ label: string; recebidas: number; retiradas: number; pendentes: number }[]> {
+    const recebidasRows: { bucket: string; recebidas: number; pendentes: number }[] = await this.repo.manager.query(
+      `SELECT to_char(date_trunc($3, created_at AT TIME ZONE 'America/Sao_Paulo'), 'YYYY-MM-DD') AS bucket,
+              COUNT(*)::int AS recebidas,
+              COUNT(*) FILTER (WHERE status IN ('aguardando','notificado'))::int AS pendentes
+         FROM encomendas
+        WHERE tenant_id = $1 AND created_at >= $2
+        GROUP BY 1`,
+      [tenantId, startBoundary, unit],
+    );
+    const retiradasRows: { bucket: string; retiradas: number }[] = await this.repo.manager.query(
+      `SELECT to_char(date_trunc($3, retirada_at AT TIME ZONE 'America/Sao_Paulo'), 'YYYY-MM-DD') AS bucket,
+              COUNT(*)::int AS retiradas
+         FROM encomendas
+        WHERE tenant_id = $1 AND status = 'retirada' AND retirada_at IS NOT NULL AND retirada_at >= $2
+        GROUP BY 1`,
+      [tenantId, startBoundary, unit],
+    );
+    const recMap = new Map(recebidasRows.map((r) => [r.bucket, r]));
+    const retMap = new Map(retiradasRows.map((r) => [r.bucket, Number(r.retiradas)]));
+    return buckets.map((b) => ({
+      label: b.label,
+      recebidas: Number(recMap.get(b.key)?.recebidas ?? 0),
+      pendentes: Number(recMap.get(b.key)?.pendentes ?? 0),
+      retiradas: retMap.get(b.key) ?? 0,
+    }));
+  }
+
+  async dashboard(tenantId: string) {
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const dayStart = (yy: number, mm: number, dd: number) => `${yy}-${pad2(mm)}-${pad2(dd)} 00:00:00-03:00`;
+    const monthStart = (yy: number, mm: number) => `${yy}-${pad2(mm)}-01 00:00:00-03:00`;
+    const dayKey = (yy: number, mm: number, dd: number) => `${yy}-${pad2(mm)}-${pad2(dd)}`;
+
+    const { y, m, d } = this.localYmd(new Date());
+
+    // Limites de mês (atual e anterior) e do dia de hoje.
+    const mesIni = monthStart(y, m);
+    const prox = m === 12 ? { y: y + 1, m: 1 } : { y, m: m + 1 };
+    const mesFim = monthStart(prox.y, prox.m);
+    const ant = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+    const mesAntIni = monthStart(ant.y, ant.m);
+
+    const hojeIni = dayStart(y, m, d);
+    const amanha = this.addDays(y, m, d, 1);
+    const hojeFim = dayStart(amanha.y, amanha.m, amanha.d);
+
+    const t30 = this.addDays(y, m, d, -30);
+    const tempoDesde = dayStart(t30.y, t30.m, t30.d);
+
+    const [cardsRow]: { total_mes: number; total_mes_anterior: number; aguardando: number; retirados_hoje: number }[] =
+      await this.repo.manager.query(
+        `SELECT
+           COUNT(*) FILTER (WHERE created_at >= $2 AND created_at < $3)::int AS total_mes,
+           COUNT(*) FILTER (WHERE created_at >= $4 AND created_at < $2)::int AS total_mes_anterior,
+           COUNT(*) FILTER (WHERE status IN ('aguardando','notificado'))::int AS aguardando,
+           COUNT(*) FILTER (WHERE status = 'retirada' AND retirada_at >= $5 AND retirada_at < $6)::int AS retirados_hoje
+         FROM encomendas WHERE tenant_id = $1`,
+        [tenantId, mesIni, mesFim, mesAntIni, hojeIni, hojeFim],
+      );
+
+    const [tempoRow]: { horas: number | null }[] = await this.repo.manager.query(
+      `SELECT EXTRACT(EPOCH FROM AVG(retirada_at - created_at)) / 3600 AS horas
+         FROM encomendas
+        WHERE tenant_id = $1 AND status = 'retirada' AND retirada_at IS NOT NULL AND retirada_at >= $2`,
+      [tenantId, tempoDesde],
+    );
+
+    const totalMes = Number(cardsRow.total_mes);
+    const totalMesAnterior = Number(cardsRow.total_mes_anterior);
+    const variacao = totalMesAnterior > 0 ? Math.round(((totalMes - totalMesAnterior) / totalMesAnterior) * 100) : null;
+
+    // Semana atual (segunda a domingo).
+    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=Dom
+    const monday = this.addDays(y, m, d, dow === 0 ? -6 : -(dow - 1));
+    const weekBuckets: { key: string; label: string }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const day = this.addDays(monday.y, monday.m, monday.d, i);
+      const wd = new Date(Date.UTC(day.y, day.m - 1, day.d)).getUTCDay();
+      weekBuckets.push({ key: dayKey(day.y, day.m, day.d), label: EncomendasService.WEEKDAYS[wd] });
+    }
+    const semana = await this.serieVolume(tenantId, 'day', dayStart(monday.y, monday.m, monday.d), weekBuckets);
+
+    // Últimos 4 meses (incluindo o atual).
+    const monthBuckets: { key: string; label: string }[] = [];
+    for (let i = 3; i >= 0; i--) {
+      let mm = m - 1 - i;
+      let yy = y;
+      while (mm < 0) {
+        mm += 12;
+        yy -= 1;
+      }
+      monthBuckets.push({ key: `${yy}-${pad2(mm + 1)}-01`, label: EncomendasService.MONTHS[mm] });
+    }
+    const meses = await this.serieVolume(tenantId, 'month', `${monthBuckets[0].key} 00:00:00-03:00`, monthBuckets);
+
+    return {
+      cards: {
+        totalMes,
+        totalMesAnterior,
+        variacao,
+        aguardando: Number(cardsRow.aguardando),
+        retiradosHoje: Number(cardsRow.retirados_hoje),
+        tempoMedioHoras: tempoRow?.horas != null ? Number(tempoRow.horas) : null,
+      },
+      semana,
+      meses,
+    };
+  }
+
   async obter(tenantId: string, id: string): Promise<Encomenda> {
     const encomenda = await this.repo.findOne({
       where: { id, tenantId },

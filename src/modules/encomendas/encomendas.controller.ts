@@ -43,6 +43,12 @@ export class EncomendasController {
     return this.service.obterEstatisticas(tenantId, q);
   }
 
+  @Get('dashboard')
+  @Roles('admin', 'sindico')
+  dashboard(@TenantId() tenantId: string) {
+    return this.service.dashboard(tenantId);
+  }
+
   @Get('export.csv')
   @Roles('admin', 'sindico')
   async exportCsv(
