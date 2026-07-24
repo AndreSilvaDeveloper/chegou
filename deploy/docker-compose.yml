@@ -106,6 +106,12 @@ services:
       TWILIO_TEMPLATE_RETIRADA_CONFIRMADA: ${TWILIO_TEMPLATE_RETIRADA_CONFIRMADA:-}
       ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID:-}
       ZAPI_TOKEN: ${ZAPI_TOKEN:-}
+      # OpenWA (gateway WhatsApp multi-sessão — 1 instância por condomínio)
+      OPENWA_BASE_URL: ${OPENWA_BASE_URL:-}
+      OPENWA_API_KEY: ${OPENWA_API_KEY:-}
+      OPENWA_SESSION_PREFIX: ${OPENWA_SESSION_PREFIX:-chegou}
+      # Base pública p/ o gateway alcançar nosso webhook (se vazio, o app usa WEBHOOK_BASE_URL = https://DOMAIN)
+      OPENWA_WEBHOOK_BASE_URL: ${OPENWA_WEBHOOK_BASE_URL:-}
       # Storage (MinIO interno; público via /fotos no proxy)
       STORAGE_ENDPOINT: http://minio:9000
       STORAGE_BUCKET: ${STORAGE_BUCKET}
