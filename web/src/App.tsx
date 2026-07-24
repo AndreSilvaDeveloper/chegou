@@ -17,6 +17,7 @@ const Relatorios = React.lazy(() => import('./pages/Relatorios').then(m => ({ de
 const Vagas = React.lazy(() => import('./pages/Vagas').then(m => ({ default: m.Vagas })));
 const Avisos = React.lazy(() => import('./pages/Avisos').then(m => ({ default: m.Avisos })));
 const Notificacoes = React.lazy(() => import('./pages/Notificacoes').then(m => ({ default: m.Notificacoes })));
+const Whatsapp = React.lazy(() => import('./pages/Whatsapp').then(m => ({ default: m.Whatsapp })));
 const AdminWhatsapp = React.lazy(() => import('./pages/AdminWhatsapp').then(m => ({ default: m.AdminWhatsapp })));
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/vagas" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Vagas /></ProtectedRoute>} />
           <Route path="/avisos" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Avisos /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Notificacoes /></ProtectedRoute>} />
+          <Route path="/whatsapp" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Whatsapp /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

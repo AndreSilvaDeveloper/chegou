@@ -77,6 +77,8 @@ export class NotificationService {
     const skip = (page - 1) * limit;
 
     const qb = this.notificacaoRepo.createQueryBuilder('notif')
+      .leftJoinAndSelect('notif.morador', 'm')
+      .leftJoinAndSelect('m.apartamento', 'a')
       .where('notif.tenant_id = :tenantId', { tenantId })
       .orderBy('notif.createdAt', 'DESC');
 
@@ -108,11 +110,12 @@ export class NotificationService {
       .where('notif.tenant_id = :tenantId', { tenantId })
       .groupBy('notif.status');
 
-    const result = await qb.getRawMany();
-    
+    const result = await qb.getRawMany<{ status: string; count: string }>();
+
     const stats = {
       total: 0,
-      pendentes: 0,
+      naFila: 0, // pendente + enviando
+      agendadas: 0,
       enviadas: 0,
       falhas: 0,
       canceladas: 0,
@@ -121,14 +124,23 @@ export class NotificationService {
     for (const row of result) {
       const count = parseInt(row.count, 10);
       stats.total += count;
-      if (row.status === StatusNotificacao.PENDENTE || row.status === StatusNotificacao.AGENDADA || row.status === StatusNotificacao.ENVIANDO) {
-        stats.pendentes += count;
-      } else if (row.status === StatusNotificacao.ENVIADA) {
-        stats.enviadas += count;
-      } else if (row.status === StatusNotificacao.FALHA) {
-        stats.falhas += count;
-      } else if (row.status === StatusNotificacao.CANCELADA) {
-        stats.canceladas += count;
+      switch (row.status) {
+        case StatusNotificacao.PENDENTE:
+        case StatusNotificacao.ENVIANDO:
+          stats.naFila += count;
+          break;
+        case StatusNotificacao.AGENDADA:
+          stats.agendadas += count;
+          break;
+        case StatusNotificacao.ENVIADA:
+          stats.enviadas += count;
+          break;
+        case StatusNotificacao.FALHA:
+          stats.falhas += count;
+          break;
+        case StatusNotificacao.CANCELADA:
+          stats.canceladas += count;
+          break;
       }
     }
 

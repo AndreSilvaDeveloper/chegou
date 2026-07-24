@@ -7,153 +7,249 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Notificacao, StatusNotificacao } from '@/api/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Bell, RefreshCw, XCircle } from 'lucide-react';
+import {
+  ListChecks, Clock, CalendarClock, CheckCircle2, AlertTriangle,
+  Send, XCircle, RefreshCw, Phone, Home,
+} from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
+import { StatCard } from '@/components/ui/stat-card';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { StatCard } from '@/components/ui/stat-card';
-import { WhatsappConnectionCard } from '@/components/WhatsappConnectionCard';
-import { WhatsappTemplateCard } from '@/components/WhatsappTemplateCard';
+import { cn } from '@/lib/utils';
+
+interface FilaStats {
+  total: number;
+  naFila: number;
+  agendadas: number;
+  enviadas: number;
+  falhas: number;
+  canceladas: number;
+}
+
+type TabKey = 'todas' | 'na-fila' | 'agendada' | 'enviada' | 'falha';
+
+const TABS: { key: TabKey; label: string; status: string }[] = [
+  { key: 'todas', label: 'Todos', status: '' },
+  { key: 'na-fila', label: 'Na fila', status: 'pendente' },
+  { key: 'agendada', label: 'Agendado', status: 'agendada' },
+  { key: 'enviada', label: 'Enviados', status: 'enviada' },
+  { key: 'falha', label: 'Falhas', status: 'falha' },
+];
+
+const STATUS_META: Record<StatusNotificacao, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; dot: string }> = {
+  pendente: { label: 'Na fila', variant: 'secondary', dot: 'bg-slate-400' },
+  agendada: { label: 'Agendado', variant: 'secondary', dot: 'bg-amber-500' },
+  enviando: { label: 'Enviando', variant: 'secondary', dot: 'bg-amber-500 animate-pulse' },
+  enviada: { label: 'Enviado', variant: 'default', dot: 'bg-emerald-500' },
+  falha: { label: 'Falha', variant: 'destructive', dot: 'bg-red-500' },
+  cancelada: { label: 'Cancelada', variant: 'outline', dot: 'bg-slate-400' },
+};
+
+const fmt = (d?: string | null) => (d ? format(new Date(d), "dd/MM/yy 'às' HH:mm", { locale: ptBR }) : '—');
 
 export function Notificacoes() {
-  const [activeTab, setActiveTab] = useState('todas');
+  const [activeTab, setActiveTab] = useState<TabKey>('todas');
   const queryClient = useQueryClient();
 
-  const getStatusQuery = () => {
-    if (activeTab === 'todas') return '';
-    return `?status=${activeTab}`;
-  };
+  const statusParam = TABS.find((t) => t.key === activeTab)?.status ?? '';
 
   const notificacoesQuery = useQuery({
     queryKey: ['notificacoes', activeTab],
-    queryFn: () => api.get<{items: Notificacao[], total: number}>(`/notificacoes${getStatusQuery()}`).then(res => res.items),
+    queryFn: () =>
+      api
+        .get<{ items: Notificacao[]; total: number }>(`/notificacoes${statusParam ? `?status=${statusParam}` : ''}`)
+        .then((res) => res.items),
+    refetchInterval: 12000,
   });
 
   const statsQuery = useQuery({
     queryKey: ['notificacoes-stats'],
-    queryFn: () => api.get<any>('/notificacoes/stats'),
+    queryFn: () => api.get<FilaStats>('/notificacoes/stats'),
+    refetchInterval: 12000,
   });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
+    queryClient.invalidateQueries({ queryKey: ['notificacoes-stats'] });
+  };
 
   const cancelarMutation = useMutation({
     mutationFn: (id: string) => api.post(`/notificacoes/${id}/cancelar`),
-    onSuccess: () => {
-      toast.success('Notificação cancelada com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
-      queryClient.invalidateQueries({ queryKey: ['notificacoes-stats'] });
-    },
-    onError: () => toast.error('Falha ao cancelar notificação')
+    onSuccess: () => { toast.success('Notificação cancelada.'); invalidate(); },
+    onError: () => toast.error('Falha ao cancelar notificação'),
   });
 
   const reenviarMutation = useMutation({
     mutationFn: (id: string) => api.post(`/notificacoes/${id}/reenviar`),
-    onSuccess: () => {
-      toast.success('Notificação reenviada para a fila!');
-      queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
-      queryClient.invalidateQueries({ queryKey: ['notificacoes-stats'] });
-    },
-    onError: () => toast.error('Falha ao reenviar notificação')
+    onSuccess: () => { toast.success('Reenviado para a fila!'); invalidate(); },
+    onError: () => toast.error('Falha ao reenviar notificação'),
   });
+
+  const stats: FilaStats = statsQuery.data ?? { total: 0, naFila: 0, agendadas: 0, enviadas: 0, falhas: 0, canceladas: 0 };
+
+  const cards = [
+    { key: 'todas' as TabKey, title: 'Total', value: stats.total, icon: ListChecks, variant: 'default' as const },
+    { key: 'na-fila' as TabKey, title: 'Na fila', value: stats.naFila, icon: Clock, variant: 'primary' as const },
+    { key: 'agendada' as TabKey, title: 'Agendado', value: stats.agendadas, icon: CalendarClock, variant: 'warning' as const },
+    { key: 'enviada' as TabKey, title: 'Enviados', value: stats.enviadas, icon: CheckCircle2, variant: 'success' as const },
+    { key: 'falha' as TabKey, title: 'Falhas', value: stats.falhas, icon: AlertTriangle, variant: 'danger' as const },
+  ];
 
   const columns = [
     {
       accessorKey: 'destinatarioNome',
       header: 'Destinatário',
-      cell: ({ row }: any) => (
-        <div>
-          <div className="font-medium">{row.original.destinatarioNome || 'Desconhecido'}</div>
-          <div className="text-xs text-muted-foreground">{row.original.destinatarioTelefone}</div>
-        </div>
-      )
+      cell: ({ row }: any) => {
+        const n = row.original as Notificacao;
+        return (
+          <div className="min-w-0">
+            <div className="font-medium text-foreground">{n.destinatarioNome || 'Desconhecido'}</div>
+            <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
+              <Phone className="h-3 w-3" /> {n.destinatarioTelefone || '—'}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'unidade',
+      header: 'Unidade',
+      cell: ({ row }: any) => {
+        const n = row.original as Notificacao;
+        const identificador = n.morador?.apartamento?.identificador || n.variaveisJson?.unidade;
+        return identificador ? (
+          <div className="flex items-center gap-1.5 text-sm">
+            <Home className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">{identificador}</span>
+          </div>
+        ) : <span className="text-muted-foreground">—</span>;
+      },
     },
     {
       accessorKey: 'tipo',
       header: 'Tipo',
-      cell: ({ row }: any) => <Badge variant="outline" className="capitalize">{row.original.tipo.replace('_', ' ')}</Badge>
+      cell: ({ row }: any) => <Badge variant="outline" className="capitalize">{String(row.original.tipo).replace(/_/g, ' ')}</Badge>,
     },
     {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }: any) => {
-        const status = row.original.status as StatusNotificacao;
-        let variant: 'default' | 'destructive' | 'outline' | 'secondary' = 'default';
-        
-        if (status === 'pendente' || status === 'agendada' || status === 'enviando') variant = 'secondary';
-        else if (status === 'enviada') variant = 'default';
-        else if (status === 'falha' || status === 'cancelada') variant = 'destructive';
-
-        return <Badge variant={variant} className="capitalize">{status}</Badge>;
-      }
+        const n = row.original as Notificacao;
+        const meta = STATUS_META[n.status] ?? STATUS_META.pendente;
+        return (
+          <div className="space-y-1">
+            <Badge variant={meta.variant} className="gap-1.5">
+              <span className={cn('h-2 w-2 rounded-full', meta.dot)} />
+              {meta.label}
+            </Badge>
+            {n.status === 'falha' && n.erroMensagem && (
+              <p className="max-w-[220px] truncate text-xs text-red-600 dark:text-red-400" title={n.erroMensagem}>
+                {n.erroMensagem}
+              </p>
+            )}
+          </div>
+        );
+      },
     },
     {
-      accessorKey: 'createdAt',
-      header: 'Criada em',
-      cell: ({ row }: any) => format(new Date(row.original.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })
+      id: 'datas',
+      header: 'Datas',
+      cell: ({ row }: any) => {
+        const n = row.original as Notificacao;
+        return (
+          <div className="space-y-0.5 text-xs">
+            <div className="text-muted-foreground">Criada: <span className="text-foreground">{fmt(n.createdAt)}</span></div>
+            {n.status === 'enviada' && (
+              <div className="text-muted-foreground">Enviada: <span className="text-emerald-600 dark:text-emerald-400">{fmt(n.enviadaAt)}</span></div>
+            )}
+            {n.status === 'agendada' && n.agendadaPara && (
+              <div className="text-muted-foreground">Agendada: <span className="text-amber-600 dark:text-amber-400">{fmt(n.agendadaPara)}</span></div>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: 'actions',
       header: 'Ações',
       cell: ({ row }: any) => {
-        const notif = row.original as Notificacao;
-        if (notif.status === 'pendente' || notif.status === 'agendada') {
+        const n = row.original as Notificacao;
+        if (n.status === 'falha') {
           return (
-            <Button variant="ghost" size="sm" onClick={() => cancelarMutation.mutate(notif.id)} disabled={cancelarMutation.isPending}>
-              <XCircle className="h-4 w-4 mr-1 text-destructive" /> Cancelar
+            <Button size="sm" onClick={() => reenviarMutation.mutate(n.id)} disabled={reenviarMutation.isPending} className="min-h-[40px]">
+              <Send className="mr-1.5 h-4 w-4" /> Enviar manualmente
             </Button>
           );
         }
-        if (notif.status === 'falha') {
+        if (n.status === 'pendente' || n.status === 'agendada') {
           return (
-            <Button variant="ghost" size="sm" onClick={() => reenviarMutation.mutate(notif.id)} disabled={reenviarMutation.isPending}>
-              <RefreshCw className="h-4 w-4 mr-1" /> Reenviar
+            <Button variant="ghost" size="sm" onClick={() => cancelarMutation.mutate(n.id)} disabled={cancelarMutation.isPending} className="min-h-[40px]">
+              <XCircle className="mr-1.5 h-4 w-4 text-destructive" /> Cancelar
             </Button>
           );
         }
         return null;
-      }
-    }
+      },
+    },
   ];
-
-  const stats = statsQuery.data || { total: 0, pendentes: 0, enviadas: 0, falhas: 0, canceladas: 0 };
 
   return (
     <div className="space-y-6 pb-10">
-      <PageHeader
-        title="Fila de Notificações"
-        description="Acompanhe o status de envio das mensagens no WhatsApp e gerencie a fila."
-      />
-
-      <WhatsappConnectionCard />
-
-      <WhatsappTemplateCard />
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Na Fila (Pendentes)" value={stats.pendentes} icon={Bell} />
-        <StatCard title="Enviadas (Sucesso)" value={stats.enviadas} icon={Bell} />
-        <StatCard title="Falhas" value={stats.falhas} icon={Bell} />
-        <StatCard title="Total (Geral)" value={stats.total} icon={Bell} />
+      <div className="flex items-start justify-between gap-3">
+        <PageHeader
+          title="Filas de Disparo"
+          description="Acompanhe o status de cada mensagem na fila do WhatsApp e reenvie as que falharam."
+        />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => invalidate()}
+          title="Atualizar"
+          className="shrink-0"
+        >
+          <RefreshCw className={cn('h-4 w-4', (notificacoesQuery.isFetching || statsQuery.isFetching) && 'animate-spin')} />
+        </Button>
       </div>
-      
-      <Tabs defaultValue="todas" onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="todas">Todas</TabsTrigger>
-          <TabsTrigger value="pendente">Na Fila</TabsTrigger>
-          <TabsTrigger value="enviada">Enviadas</TabsTrigger>
-          <TabsTrigger value="falha">Falhas</TabsTrigger>
+
+      {/* Cards de status — clique para filtrar */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+        {cards.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => setActiveTab(c.key)}
+            className={cn(
+              'rounded-xl text-left transition-all focus:outline-none',
+              activeTab === c.key ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:opacity-90',
+            )}
+          >
+            <StatCard title={c.title} value={c.value} icon={c.icon} variant={c.variant} className="h-full" />
+          </button>
+        ))}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)} className="space-y-4">
+        <TabsList className="flex-wrap">
+          {TABS.map((t) => (
+            <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
           {notificacoesQuery.isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full rounded-2xl" />
           ) : (
             <Card>
               <CardContent className="p-0">
-                <DataTable 
-                  columns={columns} 
-                  data={notificacoesQuery.data || []} 
+                <DataTable
+                  columns={columns}
+                  data={notificacoesQuery.data || []}
                   searchKey="destinatarioNome"
                   searchPlaceholder="Buscar por destinatário..."
+                  emptyStateTitle="Nenhuma mensagem nesta fila"
+                  emptyStateDescription="Quando uma encomenda for registrada, a notificação aparece aqui."
                 />
               </CardContent>
             </Card>
