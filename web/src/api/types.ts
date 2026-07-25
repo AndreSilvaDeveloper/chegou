@@ -106,6 +106,150 @@ export interface DashboardData {
   meses: VolumePonto[];
 }
 
+// ---- Relatórios (/relatorios) ----
+
+export interface RelatorioPeriodo {
+  desde: string;
+  ate: string;
+  dias: number;
+  granularidade: 'dia' | 'semana' | 'mes';
+  anteriorDesde: string;
+  anteriorAte: string;
+  bloco: string | null;
+}
+
+export interface RelatorioFaixa {
+  key: string;
+  label: string;
+  total: number;
+}
+
+export interface RelatorioSeriePonto {
+  label: string;
+  data: string;
+  recebidas: number;
+  retiradas: number;
+  pendentes: number;
+  canceladas: number;
+}
+
+export interface RelatorioEncomendas {
+  periodo: RelatorioPeriodo;
+  blocos: string[];
+  resumo: {
+    recebidas: number;
+    retiradas: number;
+    pendentes: number;
+    canceladas: number;
+    devolvidas: number;
+    notificadas: number;
+    comFoto: number;
+    taxaRetirada: number;
+    taxaNotificacao: number;
+    tempoMedioHoras: number | null;
+    tempoMedianoHoras: number | null;
+    tempoP90Horas: number | null;
+    minutosAteNotificar: number | null;
+    estoqueAtual: number;
+    porStatus: { status: EncomendaStatus; label: string; total: number }[];
+    anterior: {
+      recebidas: number;
+      retiradas: number;
+      canceladas: number;
+      taxaRetirada: number;
+      tempoMedioHoras: number | null;
+    };
+    variacao: {
+      recebidas: number | null;
+      retiradas: number | null;
+      taxaRetirada: number | null;
+      tempoMedio: number | null;
+    };
+  };
+  serie: RelatorioSeriePonto[];
+  tempoRetirada: RelatorioFaixa[];
+  aging: RelatorioFaixa[];
+  pendentesAntigas: {
+    id: string;
+    identificador: string;
+    status: EncomendaStatus;
+    destinatario: string | null;
+    descricao: string | null;
+    transportadora: string | null;
+    criadaEm: string;
+    horas: number;
+  }[];
+  porHora: { hora: number; label: string; recebidas: number }[];
+  porDiaSemana: { dia: number; label: string; nome: string; recebidas: number }[];
+  topApartamentos: {
+    id: string;
+    identificador: string;
+    bloco: string | null;
+    total: number;
+    pendentes: number;
+    tempoMedioHoras: number | null;
+  }[];
+  porBloco: { bloco: string; total: number; apartamentos: number }[];
+  transportadoras: { nome: string; total: number; tempoMedioHoras: number | null }[];
+  porTipo: { tipo: string; label: string; total: number }[];
+  operadores: { id: string; nome: string; role: UserRole; recebidas: number; retiradas: number }[];
+}
+
+export interface RelatorioWhatsapp {
+  periodo: { desde: string; ate: string; dias: number; granularidade: 'dia' | 'semana' | 'mes' };
+  resumo: {
+    total: number;
+    enviadas: number;
+    falhas: number;
+    naFila: number;
+    agendadas: number;
+    canceladas: number;
+    taxaEntrega: number | null;
+    minutosNaFila: number | null;
+    tentativasMedia: number | null;
+  };
+  serie: { label: string; data: string; enviadas: number; falhas: number; naFila: number }[];
+  porTipo: { tipo: TipoNotificacao; total: number; enviadas: number; falhas: number }[];
+  erros: { erro: string; total: number }[];
+  porHora: { hora: number; label: string; enviadas: number }[];
+  alcance: {
+    moradores: number;
+    alcancaveis: number;
+    semTelefone: number;
+    optOut: number;
+    percentual: number | null;
+    apartamentosSemPrincipal: number;
+  };
+}
+
+export interface RelatorioVagas {
+  resumo: {
+    totalVagas: number;
+    vinculadas: number;
+    ocupadas: number;
+    livres: number;
+    taxaOcupacao: number;
+    locacoesAtivas: number;
+    inadimplentes: number;
+    encerradas: number;
+    receitaMensal: number;
+    receitaEmRisco: number;
+  };
+  porTipo: { tipo: TipoVaga; total: number; ocupadas: number; livres: number }[];
+  serie: { label: string; data: string; novas: number; valor: number }[];
+  contratos: {
+    id: string;
+    numero: string;
+    tipo: TipoVaga;
+    status: StatusLocacao;
+    valor: number;
+    diaVencimento: number;
+    dataInicio: string;
+    morador: string | null;
+    apartamento: string | null;
+  }[];
+}
+
 export type TenantTipo = 'residencial' | 'comercial' | 'misto';
 export type TenantEstruturaBlocos = 'unico' | 'multiplos';
 
