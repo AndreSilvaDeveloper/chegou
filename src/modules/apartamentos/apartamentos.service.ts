@@ -1,22 +1,123 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { Apartamento, Morador } from '../../database/entities';
+import { TenantConfigService } from '../../common/tenant-config/tenant-config.service';
+import { VagasService } from '../vagas/vagas.service';
 import { AtualizarApartamentoDto } from './dto/atualizar-apartamento.dto';
 import { CriarApartamentoDto } from './dto/criar-apartamento.dto';
+import { VagasDoApartamentoDto } from './dto/vagas-do-apartamento.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
+
+/**
+ * Teto da listagem. Condomínio grande não cabe num select — a tela busca no
+ * servidor conforme se digita, e avisa quando a lista veio cortada.
+ */
+export const LIMITE_LISTAGEM = 50;
+
+/** Como o condomínio organiza as unidades. */
+export type EstruturaBlocos = 'unico' | 'multiplos';
 
 @Injectable()
 export class ApartamentosService {
   constructor(
     @InjectRepository(Apartamento) private readonly aptoRepo: Repository<Apartamento>,
     @InjectRepository(Morador) private readonly moradorRepo: Repository<Morador>,
+    private readonly tenantConfig: TenantConfigService,
+    private readonly vagas: VagasService,
+    private readonly dataSource: DataSource,
   ) {}
+
+  /**
+   * Estrutura efetiva do condomínio.
+   *
+   * `estruturaBlocos` é quem manda — um residencial de torre única existe, e
+   * deduzir bloco só pelo tipo obrigaria o síndico a inventar um "bloco A" para
+   * todo mundo. O `tipo` entra apenas como padrão para condomínio antigo, que
+   * pode não ter a estrutura preenchida.
+   */
+  async estruturaBlocos(tenantId: string): Promise<EstruturaBlocos> {
+    const config = await this.tenantConfig.get(tenantId);
+    const estrutura = config.estruturaBlocos as EstruturaBlocos | undefined;
+    if (estrutura === 'unico' || estrutura === 'multiplos') return estrutura;
+    return config.tipo === 'comercial' ? 'unico' : 'multiplos';
+  }
+
+  /**
+   * O bloco segue a estrutura do condomínio: obrigatório onde há vários blocos,
+   * recusado onde só existe um. Devolve o valor a gravar.
+   */
+  private async normalizarBloco(
+    tenantId: string,
+    bloco: string | null | undefined,
+    blocoAtual?: string | null,
+  ): Promise<string | null> {
+    const informado = bloco?.trim() || null;
+    const estrutura = await this.estruturaBlocos(tenantId);
+
+    // Dado legado: condomínio que virou "bloco único" depois de já ter unidades
+    // com bloco. Reenviar o bloco que já está gravado continua valendo — quem
+    // está só corrigindo o número não pode ser impedido por isso.
+    const mantendoOAtual = blocoAtual !== undefined && informado === (blocoAtual || null);
+
+    if (estrutura === 'unico') {
+      if (informado && !mantendoOAtual) {
+        throw new BadRequestException(
+          'Este condomínio é de bloco único — informe apenas o número da unidade',
+        );
+      }
+      return informado;
+    }
+
+    if (!informado) {
+      throw new BadRequestException('Informe o bloco da unidade');
+    }
+    return informado;
+  }
+
+  /**
+   * Vagas só entram por aqui se o condomínio contratou o módulo e o usuário
+   * gerencia vagas. Sem isso, a tela de apartamentos viraria uma porta lateral
+   * para criar vaga em condomínio sem o módulo — ou para o porteiro, que não
+   * gerencia vagas em lugar nenhum.
+   */
+  private async assertPodeMexerEmVagas(
+    tenantId: string,
+    podeGerenciarVagas: boolean,
+  ): Promise<void> {
+    if (!podeGerenciarVagas) {
+      throw new ForbiddenException('Seu perfil não gerencia vagas de garagem');
+    }
+    if (!(await this.tenantConfig.isModuleEnabled(tenantId, 'vagas'))) {
+      throw new ForbiddenException('Módulo "Vagas de garagem" não está habilitado neste condomínio');
+    }
+  }
+
+  private temVagas(vagas?: VagasDoApartamentoDto): boolean {
+    return !!(vagas?.novasVagas?.length || vagas?.vagasExistentesIds?.length);
+  }
+
+  /** Cria as vagas novas e vincula as existentes, na mesma transação. */
+  private async aplicarVagas(
+    tenantId: string,
+    apartamentoId: string,
+    vagas: VagasDoApartamentoDto,
+    manager: EntityManager,
+  ): Promise<void> {
+    for (const nova of vagas.novasVagas ?? []) {
+      await this.vagas.criarVinculada(tenantId, apartamentoId, nova, manager);
+    }
+    for (const vagaId of vagas.vagasExistentesIds ?? []) {
+      await this.vagas.vincularAoApartamento(tenantId, vagaId, apartamentoId, manager);
+    }
+  }
 
   async listar(tenantId: string, q?: string): Promise<Apartamento[]> {
     const qb = this.aptoRepo
@@ -24,9 +125,16 @@ export class ApartamentosService {
       .where('a.tenantId = :tenantId', { tenantId })
       .andWhere('a.ativo = true')
       .orderBy('a.identificador', 'ASC')
-      .take(50);
+      .take(LIMITE_LISTAGEM);
     if (q && q.trim()) {
-      qb.andWhere('a.identificador ILIKE :q', { q: `%${q.trim()}%` });
+      // Busca por PREFIXO, e não por "contém": digitar "A" traz o bloco A
+      // inteiro, e digitar "1" traz as unidades que começam em 1 (101, 12...),
+      // não toda unidade que tenha um 1 no meio. É como o porteiro pensa.
+      const prefixo = `${q.trim()}%`;
+      qb.andWhere(
+        '(a.identificador ILIKE :prefixo OR a.numero ILIKE :prefixo OR a.bloco ILIKE :prefixo)',
+        { prefixo },
+      );
     }
     return qb.getMany();
   }
@@ -70,24 +178,40 @@ export class ApartamentosService {
     return apto;
   }
 
-  async criar(tenantId: string, dto: CriarApartamentoDto): Promise<Apartamento> {
+  /**
+   * Cria a unidade e, opcionalmente, as vagas que pertencem a ela.
+   *
+   * Tudo numa transação: vaga com número repetido não pode deixar para trás um
+   * apartamento meio criado.
+   */
+  async criar(
+    tenantId: string,
+    dto: CriarApartamentoDto,
+    opcoes: { podeGerenciarVagas: boolean } = { podeGerenciarVagas: false },
+  ): Promise<Apartamento> {
+    const bloco = await this.normalizarBloco(tenantId, dto.bloco);
+    const comVagas = this.temVagas(dto.vagas);
+    if (comVagas) await this.assertPodeMexerEmVagas(tenantId, opcoes.podeGerenciarVagas);
+
     try {
-      const saved = await this.aptoRepo.save(
-        this.aptoRepo.create({
-          tenantId,
-          bloco: dto.bloco ?? null,
-          numero: dto.numero,
-          observacoes: dto.observacoes ?? null,
-          ativo: true,
-        }),
-      );
+      const id = await this.dataSource.transaction(async (manager) => {
+        const repo = manager.getRepository(Apartamento);
+        const saved = await repo.save(
+          repo.create({
+            tenantId,
+            bloco,
+            numero: dto.numero,
+            observacoes: dto.observacoes ?? null,
+            ativo: true,
+          }),
+        );
+        if (comVagas) await this.aplicarVagas(tenantId, saved.id, dto.vagas!, manager);
+        return saved.id;
+      });
       // recarrega pra trazer o `identificador` (coluna gerada no banco)
-      return this.obter(tenantId, saved.id);
+      return this.obter(tenantId, id);
     } catch (err) {
-      if (err instanceof QueryFailedError && (err as any).code === PG_UNIQUE_VIOLATION) {
-        throw new ConflictException('Já existe um apartamento com este bloco/número');
-      }
-      throw err;
+      throw this.traduzirDuplicidade(err);
     }
   }
 
@@ -97,7 +221,9 @@ export class ApartamentosService {
     dto: AtualizarApartamentoDto,
   ): Promise<Apartamento> {
     const apto = await this.obter(tenantId, id);
-    if (dto.bloco !== undefined) apto.bloco = dto.bloco;
+    if (dto.bloco !== undefined) {
+      apto.bloco = await this.normalizarBloco(tenantId, dto.bloco, apto.bloco);
+    }
     if (dto.numero !== undefined) apto.numero = dto.numero;
     if (dto.observacoes !== undefined) apto.observacoes = dto.observacoes;
     if (dto.ativo !== undefined) apto.ativo = dto.ativo;
@@ -105,18 +231,80 @@ export class ApartamentosService {
       const saved = await this.aptoRepo.save(apto);
       return this.obter(tenantId, saved.id);
     } catch (err) {
-      if (err instanceof QueryFailedError && (err as any).code === PG_UNIQUE_VIOLATION) {
-        throw new ConflictException('Já existe um apartamento com este bloco/número');
-      }
-      throw err;
+      throw this.traduzirDuplicidade(err);
     }
   }
 
-  async desativar(tenantId: string, id: string): Promise<{ ok: true }> {
+  /**
+   * Desativa a unidade e as vagas dela.
+   *
+   * A vaga é do apartamento: quando a unidade sai de operação, a vaga sai junto
+   * em vez de cair no pool de locação — soltar vaga para aluguel é decisão
+   * comercial, não efeito colateral.
+   */
+  async desativar(tenantId: string, id: string): Promise<{ ok: true; vagasDesativadas: number }> {
     const apto = await this.obter(tenantId, id);
-    apto.ativo = false;
-    await this.aptoRepo.save(apto);
-    return { ok: true };
+
+    const vagasDesativadas = await this.dataSource.transaction(async (manager) => {
+      const total = await this.vagas.desativarPorApartamento(tenantId, id, manager);
+      apto.ativo = false;
+      await manager.getRepository(Apartamento).save(apto);
+      return total;
+    });
+
+    return { ok: true, vagasDesativadas };
+  }
+
+  // ------------------------------------------------------- vagas da unidade
+
+  async listarVagas(tenantId: string, apartamentoId: string) {
+    await this.obter(tenantId, apartamentoId);
+    return this.vagas.listarPorApartamento(tenantId, apartamentoId);
+  }
+
+  async adicionarVagas(
+    tenantId: string,
+    apartamentoId: string,
+    dto: VagasDoApartamentoDto,
+    opcoes: { podeGerenciarVagas: boolean },
+  ) {
+    await this.obter(tenantId, apartamentoId);
+    await this.assertPodeMexerEmVagas(tenantId, opcoes.podeGerenciarVagas);
+    if (!this.temVagas(dto)) {
+      throw new BadRequestException('Informe ao menos uma vaga para cadastrar ou vincular');
+    }
+
+    await this.dataSource.transaction((manager) =>
+      this.aplicarVagas(tenantId, apartamentoId, dto, manager),
+    );
+    return this.vagas.listarPorApartamento(tenantId, apartamentoId);
+  }
+
+  /** Solta a vaga da unidade — ela volta a ficar disponível para locação. */
+  async desvincularVaga(
+    tenantId: string,
+    apartamentoId: string,
+    vagaId: string,
+    opcoes: { podeGerenciarVagas: boolean },
+  ) {
+    await this.obter(tenantId, apartamentoId);
+    await this.assertPodeMexerEmVagas(tenantId, opcoes.podeGerenciarVagas);
+    return this.vagas.desvincularDoApartamento(tenantId, vagaId, apartamentoId);
+  }
+
+  /**
+   * Traduz violação de unicidade. A transação também grava vagas, então a
+   * mensagem não pode assumir que o duplicado é sempre a unidade.
+   */
+  private traduzirDuplicidade(err: unknown): Error {
+    if (err instanceof QueryFailedError && (err as { code?: string }).code === PG_UNIQUE_VIOLATION) {
+      const detalhe = `${(err as { constraint?: string }).constraint ?? ''} ${err.message}`;
+      if (detalhe.includes('vagas')) {
+        return new ConflictException('Já existe uma vaga com este número neste condomínio');
+      }
+      return new ConflictException('Já existe um apartamento com este bloco/número');
+    }
+    return err instanceof Error ? err : new Error(String(err));
   }
 
   async listarMoradores(tenantId: string, apartamentoId: string): Promise<Morador[]> {

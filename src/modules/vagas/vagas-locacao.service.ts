@@ -136,7 +136,11 @@ export class VagasLocacaoService {
     this.assertPeriodo(dto.dataInicio, dto.dataFim ?? null);
 
     if (dadosLocatario.moradorId) {
-      await this.assertMoradorDoTenant(tenantId, dadosLocatario.moradorId);
+      const morador = await this.assertMoradorDoTenant(tenantId, dadosLocatario.moradorId);
+      // Grava no contrato quem alugou. O `morador_id` é ON DELETE SET NULL:
+      // sem este registro, remover o morador deixaria o histórico financeiro
+      // sem dono identificável.
+      dadosLocatario.locatarioNome = morador.nome;
     }
 
     const locacao = this.repo.create({

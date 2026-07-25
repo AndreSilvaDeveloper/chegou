@@ -12,6 +12,7 @@ import { Search, Plus, User, Pencil, PowerOff, Power, Loader2, ArrowUpDown, KeyR
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 const ROLE_LABEL: Record<UserRole, string> = {
   superadmin: 'Super Admin',
@@ -269,8 +270,12 @@ export function EquipeManager({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone (Opcional)</Label>
-                <Input id="telefone" className="font-mono text-sm" placeholder="+5511988887777" value={form.telefone} onChange={e => setForm({...form, telefone: e.target.value})} />
+                <Label htmlFor="telefone" className="text-base">Telefone (Opcional)</Label>
+                <PhoneInput
+                  id="telefone"
+                  value={form.telefone}
+                  onChange={(e164) => setForm({ ...form, telefone: e164 })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Papel de Acesso *</Label>

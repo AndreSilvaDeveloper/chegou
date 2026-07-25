@@ -11,6 +11,7 @@ Todas exigem o módulo habilitado.
 | Rota | admin | sindico | porteiro |
 |---|:---:|:---:|:---:|
 | `GET /vagas`, `GET /vagas/:id` | ✅ | ✅ | ✅ |
+| `GET /vagas/:id/historico` (contratos + cobranças + pagamentos) | ✅ | ✅ | — |
 | `GET /vagas/disponiveis` (pool de locação) | ✅ | ✅ | — |
 | `POST/PATCH/DELETE /vagas` | ✅ | ✅ | — |
 | `GET/POST/PATCH /vagas-locacao`, `POST :id/encerrar` | ✅ | ✅ | — |
@@ -39,7 +40,8 @@ vigentes.
 
 1. **Vaga vinculada a apartamento é da unidade e não pode ser alugada.** É a
    regra central do módulo — o pool de locação é só `apartamento_id IS NULL`,
-   ativo e sem contrato vigente.
+   ativo e sem contrato vigente. A vaga é **do apartamento**: o morador vai
+   embora e ela fica com a unidade.
 2. **Uma locação vigente por vaga.** Garantido pelo índice parcial
    `uq_vagas_locacao_vaga_vigente` (status `ativa` ou `inadimplente`), além da
    checagem no service: o índice pega duas requests simultâneas.
@@ -58,6 +60,40 @@ vigentes.
 8. **Envio de cobrança passa pela fila** de notificações — herda janela de
    horário e ritmo anti-bloqueio.
 
+### Histórico (o que sobrevive ao fim do contrato)
+
+9. **Encerrar contrato não perdoa dívida.** Cobrança não paga continua em
+   aberto, aparece no histórico da vaga e soma no relatório.
+10. **O nome de quem alugou fica gravado no contrato** (`locatario_nome`),
+    inclusive quando o locatário é morador. `morador_id` é `ON DELETE SET NULL`:
+    sem esse registro, remover o morador deixaria o histórico financeiro sem
+    dono identificável. Para exibição, o nome vivo do morador tem preferência —
+    o gravado é a rede de segurança.
+11. **As FKs protegem o histórico**: `vagas_locacao.vaga_id` e
+    `vagas_cobrancas.locacao_id` são `ON DELETE RESTRICT` (migration 022).
+    Apagar vaga com contrato é erro; o caminho é desativar (`ativo = false`).
+    O `CASCADE` por `tenant_id` continua — excluir o condomínio limpa tudo dele.
+12. **Vaga desativada mantém o histórico acessível** — a rota de histórico não
+    filtra por `ativo`.
+13. **Cobrança cancelada não entra em nenhum total**: não foi cobrada e não é
+    dívida.
+
+## O vínculo com o apartamento é operado de fora
+
+A tela de **Apartamentos** cadastra e vincula vagas da unidade. Para que a regra
+não fosse reescrita lá, o `VagasService` expõe as operações do vínculo — todas
+aceitam um `EntityManager` opcional para rodar dentro da transação de quem chama:
+
+| Método | O que garante |
+|---|---|
+| `criarVinculada` | Número único no condomínio; nasce pertencendo à unidade |
+| `vincularAoApartamento` | Vaga do condomínio, sem outro apartamento e **sem locação vigente** |
+| `desvincularDoApartamento` | Solta a vaga de volta ao pool de locação |
+| `desativarPorApartamento` | Desativa as vagas quando a unidade sai de operação; recusa se houver locação vigente |
+| `listarPorApartamento` | Vagas da unidade, já com `situacao` |
+
+Regra nova de vínculo entra **aqui**, não no módulo Apartamentos.
+
 ## Gateway de cobrança
 
 `gateway/cobranca.gateway.ts` com dois adapters: `manual` (padrão — registro
@@ -69,8 +105,13 @@ próprio, hoje `NoopEmailAdapter`.
 
 `web/src/pages/Vagas.tsx` (abas Vagas / Locações / Cobranças) +
 `web/src/components/vagas/`: `VagaFormDialog`, `LocacaoFormDialog`,
-`PrecosDialog`, `ContratoDialog`, `CobrancasPanel` e `vagas-shared.tsx`
-(rótulos, ícones, formatação de moeda/data/competência).
+`PrecosDialog`, `ContratoDialog`, `CobrancasPanel`, `HistoricoVagaDialog` e
+`vagas-shared.tsx` (rótulos, ícones, formatação de moeda/data/competência).
+
+O botão **Histórico** no card da vaga abre a linha do tempo: cada contrato com
+as cobranças dele, o que foi pago e o que ficou em aberto. Foi criado porque a
+informação existia mas era invisível — as cobranças só apareciam filtradas por
+competência, então o que aconteceu há três meses sumia da tela.
 
 ## Decisões e armadilhas
 
@@ -90,3 +131,7 @@ próprio, hoje `NoopEmailAdapter`.
       (`cobranca-template.ts`) e no `LocacaoFormDialog`.
 - [ ] Regra de cobrança → confira idempotência e o array `ignoradas`.
 - [ ] Rota nova → o módulo é opcional: `@RequiresModule('vagas')` no controller.
+- [ ] Mexeu em cobrança, encerramento ou vínculo → `test/vagas-historico.e2e-spec.ts`
+      cobre que o histórico sobrevive; rode.
+- [ ] Nunca apague contrato ou cobrança para "limpar" — o banco recusa, e é de
+      propósito.

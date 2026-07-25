@@ -12,6 +12,7 @@ web/src/
 ├── api/types.ts        # tipos espelhando as respostas da API
 ├── components/         # componentes de negócio
 │   ├── ui/             # shadcn + peças próprias (FormDialog, EmptyState, StatCard…)
+│   ├── apartamentos/   # vagas que pertencem à unidade
 │   ├── vagas/          # diálogos e painéis do módulo Vagas
 │   └── whatsapp/       # cards da conexão
 ├── hooks/              # use-tenant-config, use-theme, use-mobile, use-debounce…
@@ -50,11 +51,30 @@ perfil a mais que a API = tela carrega vazia com erro.
 | Ação destrutiva | `ConfirmDialog` (nunca `confirm()`) |
 | Indicador numérico | `StatCard` |
 | Select | `SimpleSelect` |
+| Select com lista grande | `SearchSelect` (busca por digitação; use `onSearchChange` para buscar no servidor) |
+| Telefone | `PhoneInput` — digita `(32) 99999-9999`, entrega E.164. **Nunca peça `+55`** |
+| Telefone em listagem | `formatarTelefone()` de `@/lib/telefone` |
 | Erro de request | `toast.error(mensagemErro(err, 'Não foi possível …'))` |
 
 Regras fixas: mobile-first (base = celular, `sm:`/`md:` amplia), `min-h-[48px]`
 em botão de ação, ícone **sempre** com texto, `Label` sempre visível, ícones só
 do Lucide, dark mode em tudo, testar em 375px.
+
+### Cor: use o token, nunca o hex
+
+A paleta inteira está em `styles.css` (tema **Warm Sand**, âmbar `#FFC72C`).
+Escolha pelo papel da superfície, não pela cor:
+
+| Onde | Classe |
+|---|---|
+| Menu/topo (shell) | `bg-sidebar` |
+| Área de trabalho e **campos** | `bg-background` |
+| Card de conteúdo | `bg-card` |
+| Diálogo, gaveta, dropdown | `bg-popover` |
+| Bloco secundário dentro do card | `bg-muted` |
+| Hover | `hover:bg-accent` |
+
+Cor fixa (`bg-[#...]`) quebra o dark mode e a troca de tema — não use.
 
 ## Hooks de contexto (`hooks/use-tenant-config.ts`)
 

@@ -84,6 +84,12 @@ const fmtInt = (n: number) => n.toLocaleString('pt-BR');
 const fmtMoeda = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
+/** `YYYY-MM-DD` → `dd/MM/aa`, sem passar por Date (que embaralharia o fuso). */
+const fmtDataCurta = (ymd: string) => {
+  const [a, m, d] = ymd.slice(0, 10).split('-');
+  return `${d}/${m}/${a.slice(2)}`;
+};
+
 /** Horas → "45m", "3h 20m" ou "2d 4h" (o síndico lê tempo, não decimal). */
 function fmtHoras(horas: number | null | undefined): string {
   if (horas == null) return '—';
@@ -1163,6 +1169,81 @@ function AbaVagas({ data }: { data: RelatorioVagas }) {
           description={`${fmtMoeda(resumo.receitaEmRisco)} em risco`}
         />
       </div>
+
+      {/* Histórico financeiro: soma TODAS as competências já geradas, inclusive
+          as de contratos encerrados — dívida não some quando o contrato acaba. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          title="Recebido no histórico"
+          value={fmtMoeda(data.financeiro.valorRecebido)}
+          icon={Wallet}
+          variant="success"
+          description={`${fmtInt(data.financeiro.cobrancas)} cobrança(s) geradas`}
+        />
+        <StatCard
+          title="Em aberto"
+          value={fmtMoeda(data.financeiro.valorEmAberto)}
+          icon={Clock}
+          variant="warning"
+          description="Inclui contratos já encerrados"
+        />
+        <StatCard
+          title="Vencido"
+          value={fmtMoeda(data.financeiro.valorVencido)}
+          icon={AlertTriangle}
+          variant={data.financeiro.valorVencido > 0 ? 'danger' : 'default'}
+          description={`${fmtInt(data.financeiro.cobrancasVencidas)} cobrança(s) vencidas`}
+        />
+      </div>
+
+      <SecaoCard
+        title="Histórico por vaga"
+        description="O que cada vaga já rendeu, somando todos os contratos — inclusive os encerrados."
+      >
+        {!data.historicoPorVaga.length ? (
+          <EmptyState
+            icon={Car}
+            title="Nenhuma vaga já alugada"
+            description="Quando houver locação, o histórico financeiro de cada vaga aparece aqui."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="py-2 pr-4 font-medium">Vaga</th>
+                  <th className="py-2 pr-4 font-medium">Contratos</th>
+                  <th className="py-2 pr-4 font-medium">Desde</th>
+                  <th className="py-2 pr-4 text-right font-medium">Recebido</th>
+                  <th className="py-2 text-right font-medium">Em aberto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.historicoPorVaga.map((v) => (
+                  <tr key={v.numero} className="border-b border-border/60 last:border-0">
+                    <td className="py-2 pr-4">
+                      <span className="font-mono font-semibold text-foreground">{v.numero}</span>
+                      <span className="ml-2 text-muted-foreground">
+                        {TIPO_VAGA_LABEL[v.tipo] ?? v.tipo}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4 font-mono text-foreground">{v.contratos}</td>
+                    <td className="py-2 pr-4 font-mono text-muted-foreground">
+                      {v.desde ? fmtDataCurta(v.desde) : '—'}
+                    </td>
+                    <td className="py-2 pr-4 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                      {fmtMoeda(v.recebido)}
+                    </td>
+                    <td className="py-2 text-right font-mono text-amber-600 dark:text-amber-400">
+                      {v.emAberto > 0 ? fmtMoeda(v.emAberto) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SecaoCard>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SecaoCard title="Ocupação por tipo de vaga" description="Quantas vagas de cada tipo estão em uso.">

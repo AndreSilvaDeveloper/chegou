@@ -87,6 +87,13 @@ export class AdminTenantManagementController {
   }
 
   // ---------------- apartamentos ----------------
+  /** Estrutura de blocos do condomínio — o formulário de unidade se adapta. */
+  @Get('apartamentos/estrutura')
+  async estruturaApartamentos(@Param('tenantId', ParseUUIDPipe) tenantId: string) {
+    await this.ensureTenant(tenantId);
+    return { estruturaBlocos: await this.apartamentos.estruturaBlocos(tenantId) };
+  }
+
   @Get('apartamentos')
   async listarApartamentos(
     @Param('tenantId', ParseUUIDPipe) tenantId: string,

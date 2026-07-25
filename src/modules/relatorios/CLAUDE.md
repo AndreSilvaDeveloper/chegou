@@ -11,6 +11,19 @@ performance.
 | `GET /relatorios/whatsapp` | ✅ | ✅ | — |
 | `GET /relatorios/vagas` (`@RequiresModule('vagas')`) | ✅ | ✅ | — |
 
+## O que cada relatório entrega
+
+| Relatório | Conteúdo |
+|---|---|
+| `encomendas` | Volume, tempos, produtividade da portaria, comparação com o período anterior |
+| `whatsapp` | Saúde dos disparos no período |
+| `vagas` | Ocupação atual **+ histórico financeiro acumulado** |
+
+O de vagas tem duas naturezas misturadas de propósito: `resumo`/`porTipo` são
+**foto do agora** (não dependem do período), e `financeiro`/`historicoPorVaga`
+somam **tudo o que já foi cobrado**, inclusive de contrato encerrado — dívida
+não some quando o contrato acaba. Cobrança cancelada não entra em nada.
+
 ## Regras de negócio
 
 1. **`tenant_id = $1` em toda query.** São queries SQL cruas, sem o TypeORM para

@@ -14,21 +14,9 @@ export const envValidationSchema = Joi.object({
   JWT_EXPIRES_IN: Joi.string().default('12h'),
   BCRYPT_ROUNDS: Joi.number().integer().min(8).max(15).default(12),
 
-  WHATSAPP_PROVIDER: Joi.string().valid('twilio', 'zapi', 'gupshup').required(),
-  WHATSAPP_FROM_NUMBER: Joi.string().pattern(/^\+[1-9]\d{1,14}$/).required(),
-  WHATSAPP_SANDBOX_MODE: Joi.boolean().truthy('true').falsy('false').default(false),
-  WHATSAPP_WEBHOOK_VERIFY: Joi.boolean().truthy('true').falsy('false').default(true),
+  // WhatsApp: só o gateway próprio (OpenWA), uma sessão por condomínio.
+  // Não há mais provedor terceirizado nem número global — o número é da sessão.
   WEBHOOK_BASE_URL: Joi.string().uri().allow('').optional(),
-
-  TWILIO_ACCOUNT_SID: Joi.string().allow('').optional(),
-  TWILIO_AUTH_TOKEN: Joi.string().allow('').optional(),
-  TWILIO_WHATSAPP_FROM: Joi.string().allow('').optional(),
-  TWILIO_SMS_FROM: Joi.string().allow('').optional(),
-  TWILIO_TEMPLATE_ENCOMENDA_CHEGOU: Joi.string().allow('').optional(),
-  TWILIO_TEMPLATE_RETIRADA_CONFIRMADA: Joi.string().allow('').optional(),
-
-  ZAPI_INSTANCE_ID: Joi.string().allow('').optional(),
-  ZAPI_TOKEN: Joi.string().allow('').optional(),
 
   // ---- OpenWA (gateway WhatsApp multi-sessão, 1 instância por condomínio) ----
   // Vazio = integração desligada (dev sem gateway continua funcionando).

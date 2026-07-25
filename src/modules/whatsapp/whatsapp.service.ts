@@ -1,28 +1,27 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Queue } from 'bullmq';
 import { Repository } from 'typeorm';
 import { Encomenda, Morador, WhatsappMessage } from '../../database/entities';
-import { QUEUE_CONFIRMAR_RETIRADA, QUEUE_NOTIFY_MORADOR } from '../../queues/queues.module';
-import { WHATSAPP_GATEWAY, WhatsappGateway } from './gateway/whatsapp.gateway';
-import { InboundMessage, StatusUpdate } from './gateway/types';
-import { renderTemplate, TemplateKey, templateToVariables, TemplateVariables } from './templates';
+import { OpenwaService } from '../openwa/openwa.service';
+import { renderTemplate, TemplateKey, TemplateVariables } from './templates';
+
+/** Provedor gravado no histórico — hoje só existe o gateway próprio (OpenWA). */
+export const PROVIDER = 'openwa';
 
 /** Compara números de formatos diferentes ("whatsapp:+55...", "+55 11 ..."). */
 function somenteDigitos(valor: string | null | undefined): string {
   return (valor ?? '').replace(/\D/g, '');
 }
 
-export interface NotifyMoradorJob {
-  encomendaId: string;
-  tenantId: string;
-}
-
-export interface ConfirmarRetiradaJob {
-  encomendaId: string;
-  tenantId: string;
+/** Mensagem recebida, já traduzida do formato do gateway. */
+export interface InboundMessage {
+  providerMessageId: string;
+  from: string;
+  to: string;
+  body: string;
+  messageType: 'text' | 'image' | 'interactive' | 'template' | 'system';
+  receivedAt: Date;
+  raw: Record<string, unknown>;
 }
 
 export interface SendOutboundParams<K extends TemplateKey> {
@@ -35,36 +34,34 @@ export interface SendOutboundParams<K extends TemplateKey> {
   idempotencyKey: string;
 }
 
+/**
+ * Histórico de mensagens e resposta automática ao morador.
+ *
+ * O disparo em massa NÃO passa por aqui — ele vai pela fila de notificações,
+ * que aplica janela de horário e ritmo anti-bloqueio. Este service cuida do que
+ * é reativo: registrar o que entrou e responder na hora quem perguntou o código.
+ */
 @Injectable()
 export class WhatsappService {
   private readonly logger = new Logger(WhatsappService.name);
-  private readonly sandboxMode: boolean;
 
   constructor(
-    @Inject(WHATSAPP_GATEWAY) private readonly gateway: WhatsappGateway,
     @InjectRepository(WhatsappMessage) private readonly msgRepo: Repository<WhatsappMessage>,
     @InjectRepository(Morador) private readonly moradorRepo: Repository<Morador>,
     @InjectRepository(Encomenda) private readonly encomendaRepo: Repository<Encomenda>,
-    @InjectQueue(QUEUE_NOTIFY_MORADOR) private readonly notifyQueue: Queue<NotifyMoradorJob>,
-    @InjectQueue(QUEUE_CONFIRMAR_RETIRADA) private readonly confirmarQueue: Queue<ConfirmarRetiradaJob>,
-    private readonly config: ConfigService,
-  ) {
-    this.sandboxMode = config.get<boolean>('WHATSAPP_SANDBOX_MODE', false);
-  }
+    private readonly openwa: OpenwaService,
+  ) {}
 
-  async enqueueNotifyMorador(payload: NotifyMoradorJob): Promise<void> {
-    await this.notifyQueue.add('notify', payload, {
-      jobId: `encomenda:${payload.encomendaId}:notify`,
-    });
-  }
-
-  async enqueueConfirmarRetirada(payload: ConfirmarRetiradaJob): Promise<void> {
-    await this.confirmarQueue.add('confirmar', payload, {
-      jobId: `encomenda:${payload.encomendaId}:confirmar`,
-    });
-  }
-
-  async sendTemplated<K extends TemplateKey>(params: SendOutboundParams<K>): Promise<WhatsappMessage> {
+  /**
+   * Resposta imediata a quem escreveu, pelo número do próprio condomínio.
+   *
+   * Vai direto ao gateway, sem fila: é réplica a uma mensagem que o morador
+   * acabou de mandar — a janela de 24h do WhatsApp está aberta e segurar isso
+   * numa fila de ritmo transformaria uma conversa em silêncio.
+   */
+  async sendTemplated<K extends TemplateKey>(
+    params: SendOutboundParams<K>,
+  ): Promise<WhatsappMessage> {
     const existing = await this.msgRepo.findOne({
       where: { tenantId: params.tenantId, idempotencyKey: params.idempotencyKey },
     });
@@ -73,7 +70,6 @@ export class WhatsappService {
       return existing;
     }
 
-    const fromNumber = this.config.getOrThrow<string>('WHATSAPP_FROM_NUMBER');
     const body = renderTemplate(params.templateKey, params.variables);
 
     const message =
@@ -83,10 +79,12 @@ export class WhatsappService {
         encomendaId: params.encomendaId ?? null,
         moradorId: params.moradorId ?? null,
         direction: 'out',
-        provider: this.gateway.provider,
-        fromNumber,
+        provider: PROVIDER,
+        // O número de origem é o da sessão do condomínio no gateway; quem sabe
+        // qual é, é o OpenWA — aqui fica vazio em vez de um valor inventado.
+        fromNumber: '',
         toNumber: params.to,
-        messageType: this.sandboxMode ? 'text' : 'template',
+        messageType: 'text',
         templateName: params.templateKey,
         body,
         status: 'queued',
@@ -96,20 +94,9 @@ export class WhatsappService {
     await this.msgRepo.save(message);
 
     try {
-      const result = this.sandboxMode
-        ? await this.gateway.sendText({ to: params.to, body })
-        : await this.gateway.sendTemplate({
-            to: params.to,
-            templateName: params.templateKey,
-            variables: templateToVariables(params.variables),
-          });
-
-      message.providerMessageId = result.providerMessageId;
+      const { messageId } = await this.openwa.sendText(params.tenantId, params.to, body);
+      message.providerMessageId = messageId;
       message.status = 'sent';
-      message.payloadJson = {
-        ...message.payloadJson,
-        rawResponse: result.rawResponse as Record<string, unknown>,
-      };
       await this.msgRepo.save(message);
       return message;
     } catch (err) {
@@ -156,9 +143,13 @@ export class WhatsappService {
     return null;
   }
 
+  /**
+   * Registra a mensagem recebida. Idempotente por `providerMessageId`: o gateway
+   * reentrega o mesmo evento, e reprocessar daria resposta duplicada ao morador.
+   */
   async recordInbound(inbound: InboundMessage): Promise<WhatsappMessage> {
     const existing = await this.msgRepo.findOne({
-      where: { provider: this.gateway.provider, providerMessageId: inbound.providerMessageId },
+      where: { provider: PROVIDER, providerMessageId: inbound.providerMessageId },
     });
     if (existing) return existing;
 
@@ -169,7 +160,7 @@ export class WhatsappService {
         tenantId: morador?.tenantId ?? null,
         moradorId: morador?.id ?? null,
         direction: 'in',
-        provider: this.gateway.provider,
+        provider: PROVIDER,
         providerMessageId: inbound.providerMessageId,
         fromNumber: inbound.from,
         toNumber: inbound.to,
@@ -181,6 +172,12 @@ export class WhatsappService {
     );
   }
 
+  /**
+   * O morador escreveu — se for sobre retirada, responde com o código pendente.
+   *
+   * Mensagem sem condomínio identificado não vira intenção: responder seria
+   * falar em nome do condomínio errado.
+   */
   async handleInboundIntent(message: WhatsappMessage): Promise<void> {
     if (message.direction !== 'in' || !message.body || !message.moradorId || !message.tenantId) {
       return;
@@ -234,22 +231,5 @@ export class WhatsappService {
       },
       idempotencyKey: `inbound:${message.id}:lembrete`,
     });
-  }
-
-  async recordStatus(update: StatusUpdate): Promise<void> {
-    const msg = await this.msgRepo.findOne({
-      where: { provider: this.gateway.provider, providerMessageId: update.providerMessageId },
-    });
-    if (!msg) {
-      this.logger.warn(`Status update para mensagem desconhecida: ${update.providerMessageId}`);
-      return;
-    }
-    msg.status = update.status;
-    if (update.errorMessage) msg.errorMessage = update.errorMessage;
-    await this.msgRepo.save(msg);
-  }
-
-  get isSandboxMode(): boolean {
-    return this.sandboxMode;
   }
 }

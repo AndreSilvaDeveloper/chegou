@@ -3,64 +3,92 @@
 
 /* =========================================================================
    CHEGOU — "Central de Portaria"
-   Graphite + signal design system. Dark-first, high contrast.
-   Neutrals = zinc scale. Signal = electric blue, reserved for actions.
+   Claro: PAPEL QUENTE / greige (em teste). Escuro: GRAFITE NEUTRO (original).
+   Sinal âmbar #FFC72C nos dois. Alto contraste (mínimo 4.5:1 em texto).
+
+   HIERARQUIA DE SUPERFÍCIES (a regra que rege tudo abaixo)
+   --------------------------------------------------------
+   O sistema tem 4 níveis. No claro o painel AFUNDA no papel; no escuro ele
+   SOBE do breu. Em ambos, cada nível se distingue do vizinho sem depender de
+   sombra — o porteiro usa o app no sol da portaria, onde sombra some.
+   No escuro, card e popover dividem o mesmo tom (como no tema original).
+
+     nível           claro       escuro     papel
+     shell (menu)    #E8E4DE     #0A0A0A    moldura de tudo
+     background      #FBF9F6     #121212    a folha de trabalho / campos
+     card            #F7F5F1     #1A1A1A    o conteúdo
+     popover/diálogo #FFFFFF     #1A1A1A    o que flutua por cima
+
+   Campo de formulário usa `--background`: no claro fica mais claro que o card
+   (convida a escrever), no escuro fica mais escuro (afunda no card). Nos dois
+   casos ele se separa do card sozinho.
+
+   PARA VOLTAR O CLARO ao tema original (branco/zinc): os valores estão no
+   bloco comentado ao final deste arquivo, marcado "TEMA ANTERIOR". O escuro
+   já está no original — só o primário virou âmbar #FFC72C.
    ========================================================================= */
 
 @layer base {
   :root {
-    /* shadcn — Nova · base: neutral · theme: Yellow · radius: Large.
-       The inset panel (--background) floats white on a light neutral shell (--sidebar). */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    /* ---- Claro: PAPEL QUENTE (greige). Neutro quente a 8° do âmbar #FFC72C,
+       então o sinal pertence à cena em vez de brigar com ela. Saturação baixa
+       de propósito: o tom só aparece nas áreas grandes (menu, painel).
+       Card quase colado no painel — quem separa é a borda, não o tom. */
+    --background: 36 40% 97.5%;         /* #FBF9F6 — a folha */
+    --foreground: 30 12% 9%;            /* #1A1714 — 15.8:1 sobre o card */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card: 37 28% 95.8%;               /* #F7F5F1 — 1,7 ponto abaixo da folha */
+    --card-foreground: 30 12% 9%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;               /* branco — o que flutua é o mais alto */
+    --popover-foreground: 30 12% 9%;
 
-    --primary: 47.9 95.8% 53.1%;        /* yellow */
-    --primary-foreground: 26 83.3% 14.1%;
+    --primary: 44.1 100% 58.6%;         /* #FFC72C */
+    --primary-foreground: 30 90% 12%;   /* #3A2003 — 10:1 sobre o âmbar */
 
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    /* Blocos DENTRO do card (faixa do código, chips, barra de abas) ficam a um
+       passo curto dele — quem os delimita é a borda. Espaçar mais transformava
+       cada bloco num segundo card competindo com o primeiro. */
+    --secondary: 36 25% 94.6%;          /* #F5F2EE — 1,2 ponto abaixo do card */
+    --secondary-foreground: 30 10% 12%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 36 25% 94.6%;
+    --muted-foreground: 34 10% 35%;     /* #625A50 — 6.1:1 sobre o card */
 
-    --accent: 0 0% 94.5%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 35 20% 91.5%;             /* #EEEAE5 — hover, perceptível sem pesar */
+    --accent-foreground: 30 10% 12%;
 
-    --destructive: 0 84.2% 55%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 47.9 95.8% 53.1%;
+    --border: 36 18% 81%;               /* #D7D0C6 */
+    --input: 36 17% 76%;                /* borda do campo — mais firme que a geral */
+    --ring: 44.1 100% 58.6%;
 
     --radius: 0.75rem;                  /* Large */
 
-    /* Unified shell (sidebar + header share this surface) */
-    --sidebar: 0 0% 96.5%;
-    --sidebar-foreground: 0 0% 25%;
-    --sidebar-accent: 0 0% 92%;
-    --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 89.8%;
+    /* Shell (menu lateral + topo): o nível mais fundo do claro */
+    --sidebar: 35 18% 89%;              /* #E8E4DE */
+    --sidebar-foreground: 34 10% 27%;
+    --sidebar-accent: 35 20% 85%;
+    --sidebar-accent-foreground: 30 10% 12%;
+    --sidebar-border: 36 17% 79%;
 
-    /* Accent used by custom utilities (glow, grid, rail) — follows the theme */
-    --signal: 47.9 95.8% 53.1%;
-    --grid-line: 0 0% 90%;
+    /* Sinal usado por utilitários próprios (grid, trilho, foco) */
+    --signal: 44.1 100% 58.6%;
+    --grid-line: 36 20% 85%;
 
-    --chart-1: 47.9 95.8% 53.1%;
-    --chart-2: 32 95% 44%;
-    --chart-3: 0 0% 45%;
-    --chart-4: 160 84% 39%;
-    --chart-5: 199 89% 48%;
+    --chart-1: 44 100% 50%;             /* âmbar mais fechado p/ ler em fundo claro */
+    --chart-2: 28 90% 45%;
+    --chart-3: 34 8% 45%;               /* greige neutro */
+    --chart-4: 160 84% 33%;
+    --chart-5: 199 89% 42%;
   }
 
   .dark {
-    /* Dark — elevated neutral panel floating on a near-black shell */
+    /* ---- Escuro: GRAFITE NEUTRO (zinc), o tema original — painel elevado
+       flutuando sobre um shell quase preto. Só o sinal âmbar acompanha o novo
+       primário; os neutros voltaram ao que eram. */
     --background: 0 0% 7%;
     --foreground: 0 0% 98%;
 
@@ -70,7 +98,7 @@
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 47.9 95.8% 53.1%;        /* yellow */
+    --primary: 44.1 100% 58.6%;         /* #FFC72C — sinal do sistema */
     --primary-foreground: 26 83.3% 14.1%;
 
     --secondary: 0 0% 15%;
@@ -87,7 +115,7 @@
 
     --border: 0 0% 16.5%;
     --input: 0 0% 18%;
-    --ring: 47.9 95.8% 53.1%;
+    --ring: 44.1 100% 58.6%;
 
     --sidebar: 0 0% 4%;
     --sidebar-foreground: 0 0% 82%;
@@ -95,10 +123,10 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 0 0% 13%;
 
-    --signal: 47.9 95.8% 53.1%;
+    --signal: 44.1 100% 58.6%;
     --grid-line: 0 0% 13%;
 
-    --chart-1: 47.9 95.8% 53.1%;
+    --chart-1: 44.1 100% 58.6%;
     --chart-2: 32 95% 55%;
     --chart-3: 0 0% 64%;
     --chart-4: 160 84% 45%;
@@ -208,3 +236,50 @@
 #qr-shaded-region {
   border-color: hsl(var(--signal) / 0.5) !important;
 }
+
+/* =========================================================================
+   TEMA ANTERIOR (Graphite/zinc + amarelo #FACC15)
+   Para voltar: substitua os blocos :root e .dark do topo por estes valores.
+   -------------------------------------------------------------------------
+   :root {
+     --background: 0 0% 100%;        --foreground: 0 0% 3.9%;
+     --card: 0 0% 100%;              --card-foreground: 0 0% 3.9%;
+     --popover: 0 0% 100%;           --popover-foreground: 0 0% 3.9%;
+     --primary: 47.9 95.8% 53.1%;    --primary-foreground: 26 83.3% 14.1%;
+     --secondary: 0 0% 96.1%;        --secondary-foreground: 0 0% 9%;
+     --muted: 0 0% 96.1%;            --muted-foreground: 0 0% 40%;
+     --accent: 0 0% 94.5%;           --accent-foreground: 0 0% 9%;
+     --destructive: 0 84.2% 55%;     --destructive-foreground: 0 0% 98%;
+     --border: 0 0% 89.8%;           --input: 0 0% 89.8%;
+     --ring: 47.9 95.8% 53.1%;       --radius: 0.75rem;
+     --sidebar: 0 0% 96.5%;          --sidebar-foreground: 0 0% 25%;
+     --sidebar-accent: 0 0% 92%;     --sidebar-accent-foreground: 0 0% 9%;
+     --sidebar-border: 0 0% 89.8%;
+     --signal: 47.9 95.8% 53.1%;     --grid-line: 0 0% 90%;
+     --chart-1: 47.9 95.8% 53.1%;    --chart-2: 32 95% 44%;
+     --chart-3: 0 0% 45%;            --chart-4: 160 84% 39%;
+     --chart-5: 199 89% 48%;
+   }
+   .dark {
+     --background: 0 0% 7%;          --foreground: 0 0% 98%;
+     --card: 0 0% 10%;               --card-foreground: 0 0% 98%;
+     --popover: 0 0% 10%;            --popover-foreground: 0 0% 98%;
+     --primary: 47.9 95.8% 53.1%;    --primary-foreground: 26 83.3% 14.1%;
+     --secondary: 0 0% 15%;          --secondary-foreground: 0 0% 98%;
+     --muted: 0 0% 15%;              --muted-foreground: 0 0% 64%;
+     --accent: 0 0% 16.5%;           --accent-foreground: 0 0% 98%;
+     --destructive: 0 72% 51%;       --destructive-foreground: 0 0% 98%;
+     --border: 0 0% 16.5%;           --input: 0 0% 18%;
+     --ring: 47.9 95.8% 53.1%;
+     --sidebar: 0 0% 4%;             --sidebar-foreground: 0 0% 82%;
+     --sidebar-accent: 0 0% 13%;     --sidebar-accent-foreground: 0 0% 98%;
+     --sidebar-border: 0 0% 13%;
+     --signal: 47.9 95.8% 53.1%;     --grid-line: 0 0% 13%;
+     --chart-1: 47.9 95.8% 53.1%;    --chart-2: 32 95% 55%;
+     --chart-3: 0 0% 64%;            --chart-4: 160 84% 45%;
+     --chart-5: 199 89% 55%;
+   }
+   Também reverter: `bg-background` → `bg-transparent` no Input
+   (web/src/components/ui/input.tsx) e a escala primary-50..950 do
+   tailwind.config.js (amarelo padrão do Tailwind).
+   ========================================================================= */

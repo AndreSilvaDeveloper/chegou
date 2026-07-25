@@ -13,7 +13,7 @@ sessão.
 | `POST /whatsapp/connection/connect` | — | ✅ | ✅ | — |
 | `GET /whatsapp/connection/qr` | — | ✅ | ✅ | — |
 | `POST /whatsapp/connection/restart` \| `/disconnect` | — | ✅ | ✅ | — |
-| `POST /webhooks/openwa/:tenantId` | `@Public()` (o gateway chama) | | | |
+| `POST /webhooks/openwa/:tenantId` | `@Public()` — vive no módulo **WhatsApp** | | | |
 
 Visão consolidada da plataforma fica em `/admin/whatsapp` (módulo Admin).
 
@@ -31,7 +31,9 @@ Guardados no próprio `tenants`: `whatsapp_session_id`, `whatsapp_session_name`,
    `disconnected` · `error`.
 3. **QR é efêmero** — a tela busca sob demanda, nunca guarda.
 4. **Webhook por condomínio**: a URL carrega o `tenantId`, então o status chega
-   já atribuído.
+   já atribuído. O controller mora no módulo **WhatsApp** (`webhook-openwa.controller.ts`)
+   porque também trata as mensagens recebidas — assim a dependência fica em um
+   sentido só: `whatsapp → openwa`.
 5. `OpenWaNotConnectedError` e `WhatsappNumberNotFoundError` existem para a UI
    dizer o que fazer, em vez de "erro inesperado".
 

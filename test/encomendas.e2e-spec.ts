@@ -2,19 +2,6 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { SmsGateway } from '../src/modules/whatsapp/gateway/sms.gateway';
-import { WHATSAPP_GATEWAY } from '../src/modules/whatsapp/gateway/whatsapp.gateway';
-
-const noopGateway = {
-  provider: 'twilio',
-  sendText: jest.fn().mockResolvedValue({ providerMessageId: 'SMnoop', rawResponse: {} }),
-  sendTemplate: jest.fn().mockResolvedValue({ providerMessageId: 'SMnoop', rawResponse: {} }),
-  verifyInboundSignature: jest.fn().mockReturnValue(true),
-  parseInboundMessage: jest.fn().mockReturnValue(null),
-  parseStatusUpdate: jest.fn().mockReturnValue(null),
-};
-
-const noopSms = { isConfigured: false, sendSms: jest.fn() };
 
 describe('Encomendas (e2e)', () => {
   let app: INestApplication;
@@ -23,8 +10,6 @@ describe('Encomendas (e2e)', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(WHATSAPP_GATEWAY).useValue(noopGateway)
-      .overrideProvider(SmsGateway).useValue(noopSms)
       .compile();
 
     app = moduleRef.createNestApplication();

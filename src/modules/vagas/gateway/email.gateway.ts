@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 /**
  * Envio de e-mail — MAPEADO, NÃO IMPLEMENTADO.
  *
- * O projeto não tem provedor de e-mail (só Twilio/OpenWA para WhatsApp). A
+ * O projeto não tem provedor de e-mail (só o OpenWA, para WhatsApp). A
  * interface existe para que o serviço de cobrança já fale nos dois canais.
  *
  * Ao implementar, atenção a um detalhe do schema: `notificacoes.destinatario_telefone`

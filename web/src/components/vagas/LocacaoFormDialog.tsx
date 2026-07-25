@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SimpleSelect } from '@/components/ui/simple-select';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Car, Info, Loader2, UserCheck, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -305,11 +306,10 @@ export function LocacaoFormDialog({
                   <Label htmlFor="loc-tel" className="text-base">
                     Telefone (WhatsApp)
                   </Label>
-                  <Input
+                  <PhoneInput
                     id="loc-tel"
                     value={form.locatarioTelefoneE164}
-                    onChange={(e) => setForm({ ...form, locatarioTelefoneE164: e.target.value })}
-                    placeholder="+5511999999999"
+                    onChange={(e164) => setForm({ ...form, locatarioTelefoneE164: e164 })}
                   />
                 </div>
                 <div className="space-y-2">

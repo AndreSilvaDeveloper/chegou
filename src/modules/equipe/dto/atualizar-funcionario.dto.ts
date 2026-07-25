@@ -1,4 +1,13 @@
-import { IsBoolean, IsDateString, IsEmail, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateIf,
+} from 'class-validator';
+import { TelefoneE164 } from '../../../common/telefone';
 
 export class AtualizarFuncionarioDto {
   @IsString()
@@ -9,8 +18,10 @@ export class AtualizarFuncionarioDto {
   @IsOptional()
   cargo?: string;
 
-  @IsString()
+  // `null` limpa o campo; texto passa pela normalização de telefone.
   @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @TelefoneE164()
   telefone?: string | null;
 
   @IsString()

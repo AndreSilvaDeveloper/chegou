@@ -13,17 +13,38 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ImportDialog } from './ImportDialog';
+import { mensagemErro } from '@/lib/erros';
+import {
+  VagasDoApartamento,
+  VAGAS_VAZIO,
+  type VagasSelecionadas,
+} from './apartamentos/VagasDoApartamento';
 
-export function ApartamentosManager({ basePath = '' }: { basePath?: string }) {
+/** Como o condomínio organiza as unidades (vem de `config_json`). */
+type EstruturaBlocos = 'unico' | 'multiplos';
+
+export function ApartamentosManager({
+  basePath = '',
+  permiteVagas = false,
+}: {
+  basePath?: string;
+  /** Mostra as vagas da unidade — exige módulo Vagas e perfil que gerencia vagas. */
+  permiteVagas?: boolean;
+}) {
   const [list, setList] = useState<Apartamento[]>([]);
   const [, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  
+
+  // Estrutura do condomínio decide se o campo bloco existe e se é obrigatório.
+  const [estrutura, setEstrutura] = useState<EstruturaBlocos>('multiplos');
+  const usaBloco = estrutura === 'multiplos';
+
   // Dialog de Criação/Edição
   const [openForm, setOpenForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ bloco: '', numero: '', observacoes: '' });
+  const [vagas, setVagas] = useState<VagasSelecionadas>(VAGAS_VAZIO);
 
   // Dialog de Exclusão
   const [openDelete, setOpenDelete] = useState(false);
@@ -43,17 +64,29 @@ export function ApartamentosManager({ basePath = '' }: { basePath?: string }) {
     }
   };
 
-  useEffect(() => { load(); }, [basePath]);
+  const carregarEstrutura = async () => {
+    try {
+      const r = await api.get<{ estruturaBlocos: EstruturaBlocos }>(url('/estrutura'));
+      setEstrutura(r.estruturaBlocos);
+    } catch {
+      // Sem a config, o formulário segue no modo mais permissivo (com bloco).
+      setEstrutura('multiplos');
+    }
+  };
+
+  useEffect(() => { load(); carregarEstrutura(); }, [basePath]);
 
   const openCreate = () => {
     setEditId(null);
     setForm({ bloco: '', numero: '', observacoes: '' });
+    setVagas(VAGAS_VAZIO);
     setOpenForm(true);
   };
 
   const openEdit = (a: Apartamento) => {
     setEditId(a.id);
     setForm({ bloco: a.bloco ?? '', numero: a.numero, observacoes: a.observacoes ?? '' });
+    setVagas(VAGAS_VAZIO);
     setOpenForm(true);
   };
 
@@ -68,28 +101,39 @@ export function ApartamentosManager({ basePath = '' }: { basePath?: string }) {
       toast.error('O número é obrigatório');
       return;
     }
-    
+    if (usaBloco && !form.bloco.trim()) {
+      toast.error('Informe o bloco da unidade');
+      return;
+    }
+
+    // Bloco só viaja quando o condomínio tem blocos. Na edição de dado legado
+    // (condomínio virou bloco único depois), o valor atual segue junto para o
+    // backend saber que não é um bloco novo.
+    const bloco = usaBloco ? form.bloco.trim() : form.bloco.trim() || null;
+
     setSaving(true);
     try {
       if (editId) {
         await api.patch(url(`/${editId}`), {
-          bloco: form.bloco || null,
+          bloco,
           numero: form.numero,
           observacoes: form.observacoes || null,
         });
         toast.success('Apartamento atualizado!');
       } else {
-        await api.post(url(''), { 
-          bloco: form.bloco || undefined, 
-          numero: form.numero, 
-          observacoes: form.observacoes || undefined 
+        const temVagas = vagas.novasVagas.length > 0 || vagas.vagasExistentesIds.length > 0;
+        await api.post(url(''), {
+          bloco: bloco || undefined,
+          numero: form.numero,
+          observacoes: form.observacoes || undefined,
+          ...(permiteVagas && temVagas ? { vagas } : {}),
         });
-        toast.success('Apartamento adicionado!');
+        toast.success(temVagas ? 'Apartamento e vagas cadastrados!' : 'Apartamento adicionado!');
       }
       setOpenForm(false);
       load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar apartamento');
+      toast.error(mensagemErro(err, 'Erro ao salvar apartamento'));
     } finally {
       setSaving(false);
     }
@@ -213,21 +257,32 @@ export function ApartamentosManager({ basePath = '' }: { basePath?: string }) {
           </DialogHeader>
           
           <form onSubmit={submitForm} className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className={usaBloco ? 'grid grid-cols-1 gap-4 sm:grid-cols-2' : 'space-y-2'}>
+              {/* Condomínio de bloco único não tem bloco para informar. */}
+              {usaBloco && (
+                <div className="space-y-2">
+                  <Label htmlFor="bloco" className="text-base">Bloco *</Label>
+                  <Input id="bloco" placeholder="Ex: A" value={form.bloco} onChange={e => setForm({...form, bloco: e.target.value})} required />
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="bloco">Bloco (Opcional)</Label>
-                <Input id="bloco" placeholder="Ex: A" value={form.bloco} onChange={e => setForm({...form, bloco: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="numero">Número *</Label>
+                <Label htmlFor="numero" className="text-base">Número *</Label>
                 <Input id="numero" placeholder="Ex: 101" value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} autoFocus required />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="observacoes">Observações (Opcional)</Label>
+              <Label htmlFor="observacoes" className="text-base">Observações (Opcional)</Label>
               <Input id="observacoes" placeholder="Informações adicionais" value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})} />
             </div>
-            
+
+            {permiteVagas && (
+              <VagasDoApartamento
+                apartamentoId={editId}
+                valor={editId ? undefined : vagas}
+                onChange={setVagas}
+              />
+            )}
+
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setOpenForm(false)}>Cancelar</Button>
               <Button type="submit" disabled={saving}>

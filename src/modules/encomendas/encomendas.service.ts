@@ -9,8 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, Repository } from 'typeorm';
 import { Apartamento, Encomenda, EncomendaStatus, Morador, Tenant, WhatsappMessage } from '../../database/entities';
 import { TipoNotificacao } from '../../database/entities/notificacao.entity';
-import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { NotificationService } from '../notificacoes/notification.service';
+import { renderTemplate as renderTemplateWhatsapp } from '../whatsapp/templates';
 import {
   buildEncomendaVars,
   renderTemplate,
@@ -41,7 +41,6 @@ export class EncomendasService {
     @InjectRepository(Morador) private readonly moradorRepo: Repository<Morador>,
     @InjectRepository(WhatsappMessage) private readonly waRepo: Repository<WhatsappMessage>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
-    private readonly whatsapp: WhatsappService,
     private readonly notifications: NotificationService,
   ) {}
 
@@ -194,6 +193,63 @@ export class EncomendasService {
     }
   }
 
+  /**
+   * Avisa o morador de que a encomenda foi entregue.
+   *
+   * Vai pela mesma fila da notificação de chegada, então herda janela de
+   * horário e ritmo anti-bloqueio. `referenciaTipo` é `encomenda_retirada` de
+   * propósito: o efeito colateral do dispatcher só age em `encomenda`, e marcar
+   * como "notificado" uma encomenda já retirada seria voltar o status.
+   */
+  private async enfileirarConfirmacaoRetirada(
+    tenantId: string,
+    encomenda: Encomenda,
+  ): Promise<void> {
+    try {
+      const morador =
+        (encomenda.retiradaPorMoradorId
+          ? await this.moradorRepo.findOne({
+              where: { id: encomenda.retiradaPorMoradorId, tenantId, ativo: true },
+            })
+          : null) ??
+        (await this.moradorRepo.findOne({
+          where: { tenantId, apartamentoId: encomenda.apartamentoId, principal: true, ativo: true },
+        }));
+
+      if (!morador?.telefoneE164 || !morador.receberWhatsapp) return;
+
+      const [apartamento, tenant] = await Promise.all([
+        this.aptoRepo.findOneOrFail({ where: { id: encomenda.apartamentoId, tenantId } }),
+        this.tenantRepo.findOneOrFail({ where: { id: tenantId } }),
+      ]);
+
+      const vars = {
+        nome: morador.nome.split(' ')[0],
+        apartamento: apartamento.identificador,
+        condominio: tenant.nome,
+      };
+
+      await this.notifications.agendarNotificacao({
+        tenantId,
+        tipo: TipoNotificacao.ENCOMENDA,
+        referenciaTipo: 'encomenda_retirada',
+        referenciaId: encomenda.id,
+        destinatarioTelefone: morador.telefoneE164,
+        destinatarioNome: morador.nome,
+        moradorId: morador.id,
+        conteudo: renderTemplateWhatsapp('retirada_confirmada', vars),
+        variaveisJson: vars,
+        prioridade: 7,
+      });
+    } catch (err) {
+      // Confirmação é cortesia: nunca pode derrubar a retirada, que já aconteceu.
+      this.logger.error(
+        `Falha ao enfileirar confirmação de retirada da encomenda ${encomenda.id}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+    }
+  }
+
   async retirar(
     tenantId: string,
     userId: string,
@@ -231,7 +287,7 @@ export class EncomendasService {
     encomenda.retiradaObservacoes = dto.observacoes ?? null;
     await this.repo.save(encomenda);
 
-    await this.whatsapp.enqueueConfirmarRetirada({ encomendaId: encomenda.id, tenantId });
+    await this.enfileirarConfirmacaoRetirada(tenantId, encomenda);
 
     return this.obter(tenantId, encomenda.id);
   }

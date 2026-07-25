@@ -43,8 +43,14 @@ Tabela `encomendas` (`tenant_id NOT NULL`). Campos que importam:
 4. **Só encomenda ativa** (`aguardando`, `notificado`) pode ser retirada ou
    cancelada.
 5. **Notificação nunca é enviada direto** — vai para a fila (módulo
-   Notificações), que aplica janela de horário e ritmo anti-bloqueio.
-6. Cancelamento **exige motivo** e fica registrado.
+   Notificações), que aplica janela de horário e ritmo anti-bloqueio. Vale para
+   as duas: chegada (`referenciaTipo: 'encomenda'`) e confirmação de retirada
+   (`referenciaTipo: 'encomenda_retirada'`). Os tipos são diferentes de
+   propósito — o efeito colateral do dispatcher só age em `encomenda`, e marcar
+   "notificado" numa encomenda já retirada seria voltar o status.
+6. **Confirmação de retirada é cortesia**: falha nela é logada, nunca derruba a
+   retirada, que já aconteceu.
+7. Cancelamento **exige motivo** e fica registrado.
 
 ## Depende de
 

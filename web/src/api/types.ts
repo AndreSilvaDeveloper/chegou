@@ -235,6 +235,24 @@ export interface RelatorioVagas {
     receitaMensal: number;
     receitaEmRisco: number;
   };
+  /** Histórico financeiro acumulado — todas as competências já geradas. */
+  financeiro: {
+    cobrancas: number;
+    valorCobrado: number;
+    valorRecebido: number;
+    valorEmAberto: number;
+    valorVencido: number;
+    cobrancasVencidas: number;
+  };
+  /** O que cada vaga já rendeu, incluindo contratos encerrados. */
+  historicoPorVaga: {
+    numero: string;
+    tipo: TipoVaga;
+    contratos: number;
+    desde: string | null;
+    recebido: number;
+    emAberto: number;
+  }[];
   porTipo: { tipo: TipoVaga; total: number; ocupadas: number; livres: number }[];
   serie: { label: string; data: string; novas: number; valor: number }[];
   contratos: {
@@ -403,6 +421,21 @@ export interface VagaCobranca {
   observacoes: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TotaisCobranca {
+  cobrancas: number;
+  valorCobrado: number;
+  valorRecebido: number;
+  valorEmAberto: number;
+  valorVencido: number;
+}
+
+/** Histórico completo de uma vaga: contratos, cobranças e pagamentos. */
+export interface HistoricoVaga {
+  vaga: Vaga;
+  locacoes: (VagaLocacao & { cobrancas: VagaCobranca[]; totais: TotaisCobranca })[];
+  resumo: TotaisCobranca & { totalContratos: number; contratosVigentes: number };
 }
 
 export interface ResultadoGeracaoCobrancas {

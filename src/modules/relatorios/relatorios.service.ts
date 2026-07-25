@@ -711,7 +711,8 @@ export class RelatoriosService {
       return this.toYmd(hoje);
     })();
 
-    const [[vagasRow], [locRow], porTipoRows, serieRows, contratos] = await Promise.all([
+    const [[vagasRow], [locRow], porTipoRows, serieRows, contratos, [financeiroRow], historicoRows] =
+      await Promise.all([
       this.query(
         `SELECT COUNT(*)::int                                          AS total,
                 COUNT(*) FILTER (WHERE apartamento_id IS NOT NULL)::int AS vinculadas
@@ -767,6 +768,36 @@ export class RelatoriosService {
           LIMIT 20`,
         [tenantId],
       ),
+      // Dinheiro do módulo, olhando TODAS as cobranças já geradas — inclusive as
+      // de contrato encerrado, porque dívida não some quando o contrato acaba.
+      // Cancelada fica de fora: não foi cobrada nem é dívida.
+      this.query(
+        `SELECT COUNT(*)::int                                                            AS total,
+                COALESCE(SUM(valor), 0)::float                                            AS cobrado,
+                COALESCE(SUM(COALESCE(valor_pago, valor)) FILTER (WHERE status = 'paga'), 0)::float AS recebido,
+                COALESCE(SUM(valor) FILTER (WHERE status <> 'paga'), 0)::float            AS em_aberto,
+                COALESCE(SUM(valor) FILTER (WHERE status = 'vencida'), 0)::float          AS vencido,
+                COUNT(*) FILTER (WHERE status = 'vencida')::int                           AS qtd_vencidas
+           FROM vagas_cobrancas
+          WHERE tenant_id = $1 AND status <> 'cancelada'`,
+        [tenantId],
+      ),
+      // Histórico por vaga: o que cada uma já rendeu e o que ficou para trás.
+      this.query(
+        `SELECT v.numero, v.tipo,
+                COUNT(DISTINCT l.id)::int                                                 AS contratos,
+                MIN(to_char(l.data_inicio, 'YYYY-MM-DD'))                                 AS desde,
+                COALESCE(SUM(c.valor) FILTER (WHERE c.status = 'paga'), 0)::float         AS recebido,
+                COALESCE(SUM(c.valor) FILTER (WHERE c.status NOT IN ('paga','cancelada')), 0)::float AS em_aberto
+           FROM vagas v
+           JOIN vagas_locacao l  ON l.vaga_id = v.id
+           LEFT JOIN vagas_cobrancas c ON c.locacao_id = l.id
+          WHERE v.tenant_id = $1
+          GROUP BY v.id, v.numero, v.tipo
+          ORDER BY recebido DESC, v.numero ASC
+          LIMIT 20`,
+        [tenantId],
+      ),
     ]);
 
     const totalVagas = num(vagasRow?.total);
@@ -803,6 +834,23 @@ export class RelatoriosService {
         receitaMensal: num(locRow?.receita_ativa),
         receitaEmRisco: num(locRow?.receita_risco),
       },
+      // Histórico financeiro acumulado (todas as competências já geradas).
+      financeiro: {
+        cobrancas: num(financeiroRow?.total),
+        valorCobrado: num(financeiroRow?.cobrado),
+        valorRecebido: num(financeiroRow?.recebido),
+        valorEmAberto: num(financeiroRow?.em_aberto),
+        valorVencido: num(financeiroRow?.vencido),
+        cobrancasVencidas: num(financeiroRow?.qtd_vencidas),
+      },
+      historicoPorVaga: historicoRows.map((r) => ({
+        numero: String(r.numero),
+        tipo: String(r.tipo),
+        contratos: num(r.contratos),
+        desde: (r.desde as string | null) ?? null,
+        recebido: num(r.recebido),
+        emAberto: num(r.em_aberto),
+      })),
       porTipo: porTipoRows.map((r) => ({
         tipo: String(r.tipo),
         total: num(r.total),

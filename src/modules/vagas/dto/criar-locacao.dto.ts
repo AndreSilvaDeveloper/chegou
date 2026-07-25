@@ -14,6 +14,7 @@ import {
   Min,
 } from 'class-validator';
 import { LocatarioTipo } from '../../../database/entities/vaga-locacao.entity';
+import { TelefoneE164 } from '../../../common/telefone';
 
 /**
  * A coerência entre `locatarioTipo` e os campos do locatário é validada no
@@ -45,10 +46,8 @@ export class CriarLocacaoDto {
   @IsOptional()
   locatarioDocumento?: string;
 
-  @Matches(/^\+[1-9]\d{1,14}$/, {
-    message: 'Telefone deve estar em formato E.164 (ex.: +5511999999999)',
-  })
   @IsOptional()
+  @TelefoneE164()
   locatarioTelefoneE164?: string;
 
   @IsEmail({}, { message: 'E-mail inválido' })

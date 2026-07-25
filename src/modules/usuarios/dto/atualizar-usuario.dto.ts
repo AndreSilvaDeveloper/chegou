@@ -1,6 +1,7 @@
 import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { UserRole } from '../../../database/entities';
 import { ROLES_GERENCIAVEIS } from './criar-usuario.dto';
+import { TelefoneE164 } from '../../../common/telefone';
 
 export class AtualizarUsuarioDto {
   @IsOptional()
@@ -22,7 +23,7 @@ export class AtualizarUsuarioDto {
   role?: UserRole;
 
   @IsOptional()
-  @Matches(/^\+?[0-9 ()-]{6,20}$/, { message: 'Telefone inválido' })
+  @TelefoneE164()
   telefone?: string;
 
   @IsOptional()

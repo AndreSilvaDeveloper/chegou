@@ -14,10 +14,17 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Roles, TenantId } from '../../common/decorators';
+import { CurrentUser, RequiresModule, Roles, TenantId } from '../../common/decorators';
+import { AuthenticatedUser } from '../auth/types';
 import { ApartamentosService } from './apartamentos.service';
 import { AtualizarApartamentoDto } from './dto/atualizar-apartamento.dto';
 import { CriarApartamentoDto } from './dto/criar-apartamento.dto';
+import { VagasDoApartamentoDto } from './dto/vagas-do-apartamento.dto';
+
+/** Quem gerencia vaga aqui é quem gerencia vaga no módulo Vagas. */
+function gerenciaVagas(user: AuthenticatedUser): boolean {
+  return user.role === 'admin' || user.role === 'sindico' || user.role === 'superadmin';
+}
 
 @Controller('apartamentos')
 export class ApartamentosController {
@@ -34,6 +41,13 @@ export class ApartamentosController {
   @Roles('porteiro', 'admin', 'sindico')
   listarBlocos(@TenantId() tenantId: string) {
     return this.service.listarBlocos(tenantId);
+  }
+
+  /** Como o condomínio organiza as unidades — o formulário se adapta a isso. */
+  @Get('estrutura')
+  @Roles('porteiro', 'admin', 'sindico')
+  async estrutura(@TenantId() tenantId: string) {
+    return { estruturaBlocos: await this.service.estruturaBlocos(tenantId) };
   }
 
   @Get('lookup')
@@ -64,8 +78,52 @@ export class ApartamentosController {
 
   @Post()
   @Roles('porteiro', 'admin', 'sindico')
-  criar(@TenantId() tenantId: string, @Body() dto: CriarApartamentoDto) {
-    return this.service.criar(tenantId, dto);
+  criar(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CriarApartamentoDto,
+  ) {
+    // O porteiro cadastra a unidade, mas não as vagas dela — o service recusa
+    // o payload de vagas para quem não gerencia vagas.
+    return this.service.criar(tenantId, dto, { podeGerenciarVagas: gerenciaVagas(user) });
+  }
+
+  // ---------------- vagas da unidade (exigem o módulo Vagas) ----------------
+
+  @Get(':id/vagas')
+  @Roles('porteiro', 'admin', 'sindico')
+  @RequiresModule('vagas')
+  listarVagas(@TenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.listarVagas(tenantId, id);
+  }
+
+  @Post(':id/vagas')
+  @Roles('admin', 'sindico')
+  @RequiresModule('vagas')
+  adicionarVagas(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: VagasDoApartamentoDto,
+  ) {
+    return this.service.adicionarVagas(tenantId, id, dto, {
+      podeGerenciarVagas: gerenciaVagas(user),
+    });
+  }
+
+  @Delete(':id/vagas/:vagaId')
+  @Roles('admin', 'sindico')
+  @RequiresModule('vagas')
+  @HttpCode(200)
+  desvincularVaga(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('vagaId', ParseUUIDPipe) vagaId: string,
+  ) {
+    return this.service.desvincularVaga(tenantId, id, vagaId, {
+      podeGerenciarVagas: gerenciaVagas(user),
+    });
   }
 
   @Patch(':id')

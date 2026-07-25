@@ -13,6 +13,14 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ImportDialog } from './ImportDialog';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { SearchSelect } from '@/components/ui/search-select';
+import { apenasDigitos, formatarTelefone } from '@/lib/telefone';
+import { mensagemErro } from '@/lib/erros';
+import { useDebounce } from '@/hooks';
+
+/** Mesmo teto do backend: acima disso a lista vem cortada e a busca resolve. */
+const LIMITE_APTOS = 50;
 
 interface MoradorForm {
   apartamentoId: string;
@@ -37,6 +45,8 @@ const emptyForm: MoradorForm = {
 export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
   const [list, setList] = useState<Morador[]>([]);
   const [aptos, setAptos] = useState<Apartamento[]>([]);
+  const [buscaApto, setBuscaApto] = useState('');
+  const [aptoDoEditado, setAptoDoEditado] = useState<{ value: string; label: string } | null>(null);
   const [, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   
@@ -51,16 +61,11 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const mUrl = (p: string) => `${basePath}/moradores${p}`;
-  
+
   const load = async () => {
     setLoading(true);
     try {
-      const [mData, aData] = await Promise.all([
-        api.get<Morador[]>(mUrl('')),
-        api.get<Apartamento[]>(`${basePath}/apartamentos`)
-      ]);
-      setList(mData);
-      setAptos(aData);
+      setList(await api.get<Morador[]>(mUrl('')));
     } catch (err) {
       toast.error('Erro ao carregar dados');
     } finally {
@@ -70,14 +75,47 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
 
   useEffect(() => { load(); }, [basePath]);
 
+  // A lista de apartamentos é buscada no servidor conforme se digita: num
+  // condomínio grande ela não cabe de uma vez (o backend corta em 50).
+  const buscaDebounced = useDebounce(buscaApto, 250);
+  useEffect(() => {
+    const termo = buscaDebounced.trim();
+    const query = termo ? `?q=${encodeURIComponent(termo)}` : '';
+    api
+      .get<Apartamento[]>(`${basePath}/apartamentos${query}`)
+      .then(setAptos)
+      .catch(() => toast.error('Erro ao carregar apartamentos'));
+  }, [buscaDebounced, basePath]);
+
   const openCreate = () => {
     setEditId(null);
     setForm(emptyForm);
+    setAptoDoEditado(null);
     setOpenForm(true);
   };
 
+  /** Opções do select: o que veio da busca + o apartamento atual do morador. */
+  const opcoesApartamento = useMemo(() => {
+    const daBusca = aptos.map((a) => ({
+      value: a.id,
+      label: a.identificador,
+      hint: a.bloco ? `Bloco ${a.bloco}` : undefined,
+      // Casa a busca com o bloco sem depender do texto da dica.
+      busca: a.bloco ?? undefined,
+    }));
+    if (aptoDoEditado && !daBusca.some((o) => o.value === aptoDoEditado.value)) {
+      return [aptoDoEditado, ...daBusca];
+    }
+    return daBusca;
+  }, [aptos, aptoDoEditado]);
+
   const openEdit = (m: Morador) => {
     setEditId(m.id);
+    // A lista de apartamentos vem cortada/filtrada; o apartamento atual do
+    // morador precisa aparecer no select mesmo que não esteja nela.
+    setAptoDoEditado(
+      m.apartamento ? { value: m.apartamentoId, label: m.apartamento.identificador } : null,
+    );
     setForm({
       apartamentoId: m.apartamentoId,
       nome: m.nome,
@@ -98,7 +136,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
   const toPayload = (f: MoradorForm) => ({
     apartamentoId: f.apartamentoId,
     nome: f.nome,
-    telefoneE164: f.telefoneE164 || null,
+    telefoneE164: f.telefoneE164,
     documento: f.documento || null,
     email: f.email || null,
     principal: f.principal,
@@ -107,11 +145,22 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
 
   const submitForm = async (e: FormEvent) => {
     e.preventDefault();
-    if (!form.nome.trim() || !form.apartamentoId) {
-      toast.error('Preencha os campos obrigatórios');
+    // Nome, apartamento e telefone são obrigatórios: sem telefone o morador não
+    // fica sabendo que a encomenda chegou, que é o produto inteiro.
+    if (!form.nome.trim()) {
+      toast.error('Informe o nome do morador');
       return;
     }
-    
+    if (!form.apartamentoId) {
+      toast.error('Escolha o apartamento');
+      return;
+    }
+    if (!form.telefoneE164 || apenasDigitos(form.telefoneE164).length < 12) {
+      toast.error('Informe o telefone com DDD, ex: (32) 99999-9999');
+      return;
+    }
+
+
     setSaving(true);
     try {
       const payload = toPayload(form);
@@ -125,7 +174,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
       setOpenForm(false);
       load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar morador');
+      toast.error(mensagemErro(err, 'Erro ao salvar morador'));
     } finally {
       setSaving(false);
     }
@@ -152,7 +201,8 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
     return list.filter(m => 
       m.nome.toLowerCase().includes(q) || 
       (m.apartamento?.identificador.toLowerCase().includes(q)) ||
-      (m.telefoneE164 && m.telefoneE164.includes(q))
+      // Compara só dígitos: quem busca digita "32999" ou "(32) 99999".
+      (m.telefoneE164 && apenasDigitos(m.telefoneE164).includes(apenasDigitos(q)) && !!apenasDigitos(q))
     );
   }, [list, search]);
 
@@ -189,7 +239,11 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
     {
       accessorKey: "telefoneE164",
       header: "Telefone",
-      cell: ({ row }) => row.original.telefoneE164 ? <span className="font-mono text-muted-foreground">{row.original.telefoneE164}</span> : <span className="text-muted-foreground">—</span>,
+      cell: ({ row }) => (
+        <span className="font-mono text-muted-foreground">
+          {formatarTelefone(row.original.telefoneE164)}
+        </span>
+      ),
     },
     {
       accessorKey: "receberWhatsapp",
@@ -259,34 +313,43 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
           </DialogHeader>
           
           <form onSubmit={submitForm} className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome *</Label>
+                <Label htmlFor="nome" className="text-base">Nome *</Label>
                 <Input id="nome" placeholder="Nome completo" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} autoFocus required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="apartamento">Apartamento *</Label>
-                <select 
+                <Label htmlFor="apartamento" className="text-base">Apartamento *</Label>
+                <SearchSelect
                   id="apartamento"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={form.apartamentoId} 
-                  onChange={e => setForm({...form, apartamentoId: e.target.value})} 
-                  required
-                >
-                  <option value="">— Selecione —</option>
-                  {aptos.map((a) => <option key={a.id} value={a.id}>{a.identificador}</option>)}
-                </select>
+                  value={form.apartamentoId}
+                  onValueChange={(v) => setForm({ ...form, apartamentoId: v })}
+                  onSearchChange={setBuscaApto}
+                  carregando={buscaApto.trim() !== buscaDebounced.trim()}
+                  options={opcoesApartamento}
+                  placeholder="— Selecione —"
+                  searchPlaceholder="Digite o bloco ou o número"
+                  rodape={
+                    aptos.length >= LIMITE_APTOS
+                      ? `Mostrando as ${LIMITE_APTOS} primeiras — digite para filtrar`
+                      : undefined
+                  }
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone WhatsApp</Label>
-                <Input id="telefone" className="font-mono text-sm" placeholder="+5511988887777" value={form.telefoneE164} onChange={e => setForm({...form, telefoneE164: e.target.value})} />
-                <p className="text-[11px] text-muted-foreground">Formato internacional (Ex: +55...)</p>
+                <Label htmlFor="telefone" className="text-base">Telefone WhatsApp *</Label>
+                <PhoneInput
+                  id="telefone"
+                  value={form.telefoneE164}
+                  onChange={(e164) => setForm({ ...form, telefoneE164: e164 })}
+                />
+                <p className="text-sm text-muted-foreground">É por aqui que ele recebe o aviso da encomenda.</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="documento">Documento (Opcional)</Label>
+                <Label htmlFor="documento" className="text-base">Documento (Opcional)</Label>
                 <Input id="documento" placeholder="CPF ou RG" value={form.documento} onChange={e => setForm({...form, documento: e.target.value})} />
               </div>
             </div>

@@ -201,7 +201,7 @@ export function DetalheEncomenda() {
           </div>
           <p>A mensagem não foi entregue ao morador{enc.notificacao.errorMessage ? ` (${enc.notificacao.errorMessage})` : ''}.</p>
           <p className="mt-2 text-xs opacity-80">
-            Dica: Se estiver usando o Sandbox da Twilio, o morador precisa enviar a mensagem de adesão para o número antes de receber notificações.
+            Dica: confira em WhatsApp se a conexão do condomínio está ativa e se o número do morador tem WhatsApp.
           </p>
         </div>
       )}

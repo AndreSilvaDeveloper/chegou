@@ -32,6 +32,18 @@ export class VagasController {
     return this.service.listarDisponiveis(tenantId);
   }
 
+  /**
+   * Histórico da vaga: contratos, cobranças e pagamentos.
+   *
+   * Só gestão: o porteiro consulta de quem é a vaga, mas valor de contrato e
+   * inadimplência de morador não são informação de portaria.
+   */
+  @Get(':id/historico')
+  @Roles('admin', 'sindico')
+  historico(@TenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.historico(tenantId, id);
+  }
+
   // Depois de 'disponiveis' — rota curinga não pode capturar o path fixo.
   @Get(':id')
   @Roles('admin', 'sindico', 'porteiro')

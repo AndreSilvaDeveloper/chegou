@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import {
   Car,
   FileText,
+  History,
   KeyRound,
   Pencil,
   Plus,
@@ -26,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import { CobrancasPanel } from '@/components/vagas/CobrancasPanel';
 import { ContratoDialog } from '@/components/vagas/ContratoDialog';
+import { HistoricoVagaDialog } from '@/components/vagas/HistoricoVagaDialog';
 import { LocacaoFormDialog } from '@/components/vagas/LocacaoFormDialog';
 import { PrecosDialog } from '@/components/vagas/PrecosDialog';
 import { VagaFormDialog } from '@/components/vagas/VagaFormDialog';
@@ -60,6 +62,7 @@ export function Vagas() {
     locacao: null,
   });
   const [contrato, setContrato] = useState<VagaLocacao | null>(null);
+  const [historicoVaga, setHistoricoVaga] = useState<Vaga | null>(null);
   const [encerrando, setEncerrando] = useState<VagaLocacao | null>(null);
   const [filtroLocacoes, setFiltroLocacoes] = useState('vigentes');
   const queryClient = useQueryClient();
@@ -191,14 +194,24 @@ export function Vagas() {
                         </div>
                       </dl>
 
-                      <Button
-                        variant="outline"
-                        onClick={() => setVagaForm({ aberto: true, vaga })}
-                        className="min-h-[48px] w-full"
-                      >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Editar vaga
-                      </Button>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          variant="outline"
+                          onClick={() => setVagaForm({ aberto: true, vaga })}
+                          className="min-h-[48px] w-full"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar vaga
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setHistoricoVaga(vaga)}
+                          className="min-h-[48px] w-full"
+                        >
+                          <History className="mr-2 h-4 w-4" />
+                          Histórico
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -352,6 +365,11 @@ export function Vagas() {
       </Tabs>
 
       <PrecosDialog open={precosAberto} onOpenChange={setPrecosAberto} />
+
+      <HistoricoVagaDialog
+        vaga={historicoVaga}
+        onOpenChange={(aberto) => !aberto && setHistoricoVaga(null)}
+      />
 
       <VagaFormDialog
         open={vagaForm.aberto}

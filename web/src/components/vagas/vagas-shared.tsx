@@ -1,5 +1,6 @@
 import { Bike, Car, Accessibility, Truck, type LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { formatarTelefone } from '@/lib/telefone';
 import type {
   SituacaoVaga,
   StatusCobranca,
@@ -89,10 +90,15 @@ export function nomeLocatario(locacao: VagaLocacao): string {
 }
 
 export function contatoLocatario(locacao: VagaLocacao): string | null {
-  if (locacao.locatarioTipo === 'externo') {
-    return locacao.locatarioTelefoneE164 || locacao.locatarioEmail;
-  }
-  return locacao.morador?.telefoneE164 || locacao.morador?.email || null;
+  const telefone =
+    locacao.locatarioTipo === 'externo'
+      ? locacao.locatarioTelefoneE164
+      : locacao.morador?.telefoneE164;
+  if (telefone) return formatarTelefone(telefone);
+
+  return locacao.locatarioTipo === 'externo'
+    ? locacao.locatarioEmail
+    : locacao.morador?.email || null;
 }
 
 export function SituacaoBadge({ situacao }: { situacao: SituacaoVaga }) {

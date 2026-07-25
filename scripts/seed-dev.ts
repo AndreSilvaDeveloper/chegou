@@ -83,6 +83,9 @@ async function main() {
         estado: 'SP',
         plano: 'basico',
         ativo: true,
+        // Os apartamentos do seed têm bloco (A-101, B-201), então a estrutura
+        // precisa dizer o mesmo — senão o cadastro esconde o campo bloco.
+        configJson: { tipo: 'residencial', estruturaBlocos: 'multiplos' },
       }),
     );
     console.log(`[ok] condomínio criado: ${tenant.nome}`);

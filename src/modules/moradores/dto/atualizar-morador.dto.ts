@@ -1,4 +1,5 @@
-import { IsBoolean, IsEmail, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { TelefoneE164 } from '../../../common/telefone';
 
 export class AtualizarMoradorDto {
   @IsOptional()
@@ -10,8 +11,10 @@ export class AtualizarMoradorDto {
   @MaxLength(200)
   nome?: string;
 
+  // Opcional aqui significa "não mandou o campo" — mandar vazio é recusado,
+  // porque morador sem telefone não recebe aviso de encomenda.
   @IsOptional()
-  @Matches(/^\+[1-9]\d{1,14}$/, { message: 'Telefone deve estar em formato E.164' })
+  @TelefoneE164()
   telefoneE164?: string;
 
   @IsOptional()

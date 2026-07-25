@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Apartamento, Morador } from '../../database/entities';
+import { normalizarTelefone, TELEFONE_E164_REGEX } from '../../common/telefone';
 import { AtualizarMoradorDto } from './dto/atualizar-morador.dto';
 import { CriarMoradorDto } from './dto/criar-morador.dto';
 import { ListarMoradoresQuery } from './dto/listar-moradores.query';
@@ -129,8 +130,23 @@ export class MoradoresService {
         const principal = row.principal === 'true' || row.principal === '1';
         const receberWhatsapp = row.receber_whatsapp !== 'false' && row.receber_whatsapp !== '0';
 
-        if (!apartamentoIdentificador || !nome) {
-          errors.push({ line, error: 'apartamento_identificador e nome são obrigatórios' });
+        if (!apartamentoIdentificador || !nome || !telefone) {
+          errors.push({
+            line,
+            error: 'apartamento_identificador, nome e telefone são obrigatórios',
+          });
+          errorCount++;
+          continue;
+        }
+
+        // A planilha vem com telefone escrito de qualquer jeito. Normalizar aqui
+        // evita que o formato solto estoure o CHECK do banco com erro técnico.
+        const telefoneE164 = normalizarTelefone(telefone);
+        if (!telefoneE164 || !TELEFONE_E164_REGEX.test(telefoneE164)) {
+          errors.push({
+            line,
+            error: `Telefone inválido: "${telefone}". Use DDD + número, ex: (32) 99999-9999`,
+          });
           errorCount++;
           continue;
         }
@@ -183,7 +199,7 @@ export class MoradoresService {
             tenantId,
             apartamentoId: apto.id,
             nome,
-            telefoneE164: telefone,
+            telefoneE164,
             documento,
             email,
             principal,

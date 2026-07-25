@@ -1,4 +1,5 @@
 import { IsEmail, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { TelefoneE164 } from '../../../common/telefone';
 
 /**
  * Campos do condomínio que a administradora pode editar.
@@ -31,7 +32,7 @@ export class AtualizarCondominioDto {
   endereco?: string;
 
   @IsOptional()
-  @Matches(/^\+?[0-9 ()-]{6,20}$/, { message: 'Telefone inválido' })
+  @TelefoneE164()
   telefoneContato?: string;
 
   @IsOptional()

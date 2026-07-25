@@ -11,8 +11,10 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { LocatarioTipo, StatusLocacao } from '../../../database/entities/vaga-locacao.entity';
+import { TelefoneE164 } from '../../../common/telefone';
 
 /**
  * `vagaId` ficou de fora de propósito: trocar a vaga de um contrato vigente
@@ -38,10 +40,9 @@ export class AtualizarLocacaoDto {
   @IsOptional()
   locatarioDocumento?: string | null;
 
-  @Matches(/^\+[1-9]\d{1,14}$/, {
-    message: 'Telefone deve estar em formato E.164 (ex.: +5511999999999)',
-  })
   @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @TelefoneE164()
   locatarioTelefoneE164?: string | null;
 
   @IsEmail({}, { message: 'E-mail inválido' })

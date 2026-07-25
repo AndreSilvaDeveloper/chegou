@@ -2,8 +2,6 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 
-export const QUEUE_NOTIFY_MORADOR = 'notify-morador';
-export const QUEUE_CONFIRMAR_RETIRADA = 'confirmar-retirada';
 export const QUEUE_NOTIFICATION_DISPATCH = 'notification-dispatch';
 
 @Global()
@@ -24,11 +22,7 @@ export const QUEUE_NOTIFICATION_DISPATCH = 'notification-dispatch';
         },
       }),
     }),
-    BullModule.registerQueue(
-      { name: QUEUE_NOTIFY_MORADOR },
-      { name: QUEUE_CONFIRMAR_RETIRADA },
-      { name: QUEUE_NOTIFICATION_DISPATCH },
-    ),
+    BullModule.registerQueue({ name: QUEUE_NOTIFICATION_DISPATCH }),
   ],
   exports: [BullModule],
 })

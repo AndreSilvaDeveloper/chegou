@@ -1,4 +1,5 @@
 import { IsDateString, IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { TelefoneE164 } from '../../../common/telefone';
 
 export class CriarFuncionarioDto {
   @IsString()
@@ -9,8 +10,8 @@ export class CriarFuncionarioDto {
   @IsNotEmpty()
   cargo!: string;
 
-  @IsString()
   @IsOptional()
+  @TelefoneE164()
   telefone?: string;
 
   @IsString()

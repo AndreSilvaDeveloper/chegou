@@ -65,8 +65,8 @@ openssl rand -hex 24   # POSTGRES_PASSWORD
 openssl rand -hex 20   # MINIO_ROOT_PASSWORD
 ```
 
-Obrigatórios: `DOMAIN`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `MINIO_ROOT_PASSWORD`,
-`SUPERADMIN_PASSWORD`, `WHATSAPP_FROM_NUMBER` (E.164). Se a porta **8090** já estiver em uso,
+Obrigatórios: `DOMAIN`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `MINIO_ROOT_PASSWORD` e
+`SUPERADMIN_PASSWORD`. Se a porta **8090** já estiver em uso,
 troque `APP_PORT` no `.env`.
 
 Confira que subiu e está escutando na porta local:
@@ -160,16 +160,30 @@ atualizam juntos. Não precisa mexer no proxy do host de novo.
 
 ---
 
-## Parte 5 — WhatsApp (Twilio)
+## Parte 5 — WhatsApp (OpenWA)
 
-Webhook de entrada no Twilio:
+Cada condomínio tem a **própria sessão** no gateway — não existe número global
+nem provedor terceirizado. No `.env`:
 
 ```
-https://chegou.bellory.com.br/api/webhooks/whatsapp/twilio
+OPENWA_BASE_URL=https://seu-gateway
+OPENWA_API_KEY=...
+OPENWA_SESSION_PREFIX=chegou
+WEBHOOK_BASE_URL=https://${DOMAIN}
 ```
 
-Preencha `TWILIO_*` no `.env`, mantenha `WHATSAPP_WEBHOOK_VERIFY=true` e rode
-`docker compose up -d api`.
+O webhook é registrado pela própria API ao provisionar a sessão do condomínio:
+
+```
+https://chegou.bellory.com.br/api/webhooks/openwa/<tenantId>
+```
+
+Por ele chegam o status da conexão (QR lido, conectado, caiu) e as mensagens que
+o morador manda. Sem `OPENWA_BASE_URL` o envio fica desligado e as notificações
+falham com "Integração OpenWA não configurada" — o resto do sistema funciona
+normalmente.
+
+Depois de preencher: `docker compose up -d api`.
 
 ---
 
@@ -213,6 +227,6 @@ gunzip -c backups/chegou-AAAAMMDD-HHMMSS.sql.gz | docker compose exec -T postgre
 | `bind: address already in use` (80/443) | Modelo antigo. Esta versão **não** usa 80/443 — só `127.0.0.1:${APP_PORT}`. Rode `git pull && ./deploy.sh`. |
 | `APP_PORT` já em uso | Troque `APP_PORT` no `.env` e no vhost do host; `docker compose up -d`. |
 | 502 no domínio | `curl -I http://127.0.0.1:8090` no servidor. Se falhar, veja `docker compose logs proxy api`. Se responder, o problema é o vhost do host. |
-| `api` não sobe | `docker compose logs api`. Falta variável no `.env` (ex.: `WHATSAPP_FROM_NUMBER` em E.164). |
+| `api` não sobe | `docker compose logs api`. Em geral falta variável obrigatória no `.env`. |
 | Foto não abre | `docker compose logs minio-init` e confira `STORAGE_PUBLIC_URL` no `.env`. |
 | Upload falha por tamanho | Aumente `client_max_body_size` no vhost do host (nginx) — o interno já está em 20m. |

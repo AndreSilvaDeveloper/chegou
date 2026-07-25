@@ -1,43 +1,23 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Encomenda, Morador, WhatsappMessage } from '../../database/entities';
-import { TwilioAdapter } from './gateway/twilio.adapter';
-import { WhatsappProvider } from './gateway/types';
-import { WHATSAPP_GATEWAY, WhatsappGateway } from './gateway/whatsapp.gateway';
-import { ZApiAdapter } from './gateway/zapi.adapter';
-import { SmsGateway } from './gateway/sms.gateway';
-import { ConfirmarRetiradaProcessor } from './processors/confirmar-retirada.processor';
-import { NotifyMoradorProcessor } from './processors/notify-morador.processor';
-import { WhatsappWebhookController } from './whatsapp.controller';
+import { OpenwaModule } from '../openwa/openwa.module';
+import { OpenwaWebhookController } from './webhook-openwa.controller';
 import { WhatsappService } from './whatsapp.service';
 
-const gatewayFactory = (config: ConfigService): WhatsappGateway => {
-  const provider = config.getOrThrow<WhatsappProvider>('WHATSAPP_PROVIDER');
-  switch (provider) {
-    case 'twilio':
-      return new TwilioAdapter(config);
-    case 'zapi':
-      return new ZApiAdapter();
-    default:
-      throw new Error(`Provider WhatsApp não suportado: ${provider}`);
-  }
-};
-
+/**
+ * Histórico de mensagens e resposta automática ao morador.
+ *
+ * Não há mais adapter de provedor: o envio é do OpenWA (gateway próprio, uma
+ * sessão por condomínio) e o disparo em massa passa pela fila de notificações.
+ *
+ * O webhook do OpenWA mora AQUI, e não no módulo dele, para a dependência ter
+ * um sentido só: whatsapp → openwa. Ao contrário, os dois se importariam.
+ */
 @Module({
-  imports: [TypeOrmModule.forFeature([WhatsappMessage, Encomenda, Morador])],
-  controllers: [WhatsappWebhookController],
-  providers: [
-    {
-      provide: WHATSAPP_GATEWAY,
-      useFactory: gatewayFactory,
-      inject: [ConfigService],
-    },
-    WhatsappService,
-    SmsGateway,
-    NotifyMoradorProcessor,
-    ConfirmarRetiradaProcessor,
-  ],
+  imports: [TypeOrmModule.forFeature([WhatsappMessage, Encomenda, Morador]), OpenwaModule],
+  controllers: [OpenwaWebhookController],
+  providers: [WhatsappService],
   exports: [WhatsappService],
 })
 export class WhatsappModule {}

@@ -23,18 +23,20 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        FRONTEND (Web)                           │
 │  React 18 + Vite + TailwindCSS + shadcn/ui + Motion             │
-│  Deploy: Vercel                                                 │
 └────────────────────────┬────────────────────────────────────────┘
                          │ HTTPS (REST API)
 ┌────────────────────────▼────────────────────────────────────────┐
 │                     BACKEND (API)                               │
 │  NestJS + TypeORM + Passport JWT                                │
-│  Deploy: Render / Railway (Docker)                              │
 ├─────────────┬──────────────┬──────────────┬─────────────────────┤
-│  PostgreSQL │    Redis     │   S3/MinIO   │  WhatsApp API       │
-│  (dados)    │  (BullMQ)    │  (fotos)     │  (não-oficial)      │
+│  PostgreSQL │    Redis     │   S3/MinIO   │  OpenWA             │
+│  (dados)    │  (BullMQ)    │  (fotos)     │  (1 sessão/condom.) │
 └─────────────┴──────────────┴──────────────┴─────────────────────┘
 ```
+
+**Tudo roda em Docker**: em dev pelo `docker-compose.yml` da raiz; em produção,
+no servidor próprio, pelo `deploy/` (ver `deploy/README.md`). Não há provedor
+gerenciado nem WhatsApp de terceiro no caminho.
 
 ### Multitenancy
 - **Modelo**: Database compartilhado, schema compartilhado
@@ -102,10 +104,11 @@ três condomínios). Rode `npm run test:e2e` ao mexer em guard, role ou rota nov
 ### Infraestrutura
 | Serviço | Uso |
 |---|---|
-| Vercel | Deploy do frontend |
-| Render / Railway | Deploy do backend (Docker) |
-| Cloudflare R2 / MinIO | Storage de fotos |
-| Redis (Render Key-Value) | Filas BullMQ |
+| Docker Compose (dev) | Postgres, Redis, MinIO, Adminer, API e web |
+| Servidor próprio (prod) | Mesma stack via `deploy/` — `git pull` + `./deploy.sh`, atrás do reverse proxy |
+| MinIO / Cloudflare R2 | Storage de fotos e contratos |
+| Redis | Filas BullMQ |
+| OpenWA | Gateway WhatsApp, uma sessão por condomínio |
 
 ---
 
@@ -217,10 +220,13 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Encomendas: cancelar, exportar, estatísticas | — | ✅ | ✅ | — |
 | Apartamentos e moradores: consultar | — | ✅ | ✅ | ✅ |
 | Apartamentos e moradores: editar/remover/importar | — | ✅ | ✅ | — |
+| Cadastrar unidade | — | ✅ | ✅ | ✅ |
+| Vincular/desvincular vaga da unidade | — | ✅ | ✅ | — |
 | Equipe (funcionários) | — | ✅ | ✅ | — |
 | Usuários do condomínio (criar síndico/porteiro) | ✅¹ | ✅ | ✅ | — |
 | Vagas: consultar | — | ✅ | ✅ | ✅ |
 | Vagas: cadastrar, alugar, preços, cobranças | — | ✅ | ✅ | — |
+| Vagas: histórico financeiro (contratos, pagamentos) | — | ✅ | ✅ | — |
 | Avisos: ler | — | ✅ | ✅ | ✅ |
 | Avisos: publicar/remover | — | ✅ | ✅ | — |
 | Filas de notificação e WhatsApp do condomínio | — | ✅ | ✅ | — |
@@ -273,7 +279,7 @@ naquela pasta.
 | Administradoras | [src/modules/administradoras](src/modules/administradoras/CLAUDE.md) | Carteira de condomínios da administradora |
 | Admin | [src/modules/admin](src/modules/admin/CLAUDE.md) | Rotas de plataforma do superadmin |
 | Notificações | [src/modules/notificacoes](src/modules/notificacoes/CLAUDE.md) | Fila unificada com as regras anti-bloqueio |
-| WhatsApp | [src/modules/whatsapp](src/modules/whatsapp/CLAUDE.md) | Gateway, templates e webhooks de entrada |
+| WhatsApp | [src/modules/whatsapp](src/modules/whatsapp/CLAUDE.md) | Histórico de mensagens, respostas ao morador e webhook de entrada |
 | OpenWA | [src/modules/openwa](src/modules/openwa/CLAUDE.md) | Sessão não-oficial por condomínio (QR, status) |
 | Relatórios | [src/modules/relatorios](src/modules/relatorios/CLAUDE.md) | Consultas agregadas para as telas de relatório |
 | Storage | [src/modules/storage](src/modules/storage/CLAUDE.md) | Upload de fotos e contratos (S3/MinIO/R2) |
@@ -374,15 +380,48 @@ mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a do
 4. **Consistência**: Todos os componentes via shadcn/ui
 5. **Acessibilidade**: ARIA labels, contraste adequado, foco visível
 
-### Paleta de Cores
-```
-Primary:    Azul profundo (#2563EB → #1D4ED8)
-Secondary:  Slate (#64748B)
-Success:    Emerald (#10B981)
-Warning:    Amber (#F59E0B)
-Danger:     Red (#EF4444)
-Background: Slate-50 (light) / Slate-950 (dark)
-```
+### Paleta de Cores — claro **papel quente** (em teste) · escuro **grafite** (original)
+
+> Todas as cores vivem em tokens CSS (`web/src/styles.css`). **Nenhum componente
+> tem cor fixa** — trocar o tema é trocar os tokens. Para voltar ao tema
+> anterior (Graphite/zinc), os valores estão no bloco comentado
+> "TEMA ANTERIOR" no fim daquele arquivo.
+
+**Sinal**: `#FFC72C` (âmbar) — reservado para ação e foco. Texto sobre ele:
+`#3A2003` (10:1).
+
+**Hierarquia de superfícies** — 4 níveis. No claro o painel *afunda* no papel;
+no escuro ele *sobe* do breu. Cada nível se distingue do vizinho sem depender de
+sombra (o porteiro usa no sol da portaria, onde sombra some):
+
+| Nível | Token | Claro | Escuro | Papel |
+|---|---|---|---|---|
+| Shell | `--sidebar` | `#E8E4DE` | `#0A0A0A` | Menu e topo — moldura de tudo |
+| Folha | `--background` | `#FBF9F6` | `#121212` | Área de trabalho **e campos de formulário** |
+| Card | `--card` | `#F7F5F1` | `#1A1A1A` | O conteúdo |
+| Flutuante | `--popover` | `#FFFFFF` | `#1A1A1A` | Diálogo, gaveta, menu suspenso |
+
+No claro os neutros são **greige** (matiz 36°, a 8° do âmbar): neutro quente sem
+puxar para o rosa, e o sinal amarelo pertence à cena em vez de brigar com ela.
+Saturação baixa de propósito — o tom só aparece nas áreas grandes.
+
+**Blocos dentro do card** (`--muted` / `--secondary`, claro `#F5F2EE`) ficam a um
+passo curto do card, não a um degrau inteiro: quem os delimita é a borda. Bloco
+interno muito distante do card vira um segundo card competindo com o primeiro.
+
+No escuro, card e flutuante dividem o mesmo tom (é o tema original); no claro o
+flutuante sobe para branco.
+
+Regra prática: **campo de formulário usa a folha**. No claro ele fica mais claro
+que o card (convida a escrever); no escuro, mais escuro (afunda). Nos dois casos
+se separa do card sozinho.
+
+| Papel | Claro | Escuro |
+|---|---|---|
+| Texto principal | `#1A1714` (16.4:1 no card) | `#FAFAFA` (15:1) |
+| Texto secundário | `#625A50` (6.2:1) | `#A3A3A3` (7:1) |
+| Borda | `#D7D0C6` | `#2A2A2A` |
+| Sucesso / Aviso / Erro | Emerald / Amber / Red (mantidos) | idem |
 
 ### Componentes shadcn/ui Utilizados
 - Button, Input, Label, Select, Textarea
@@ -488,12 +527,16 @@ Background: Slate-50 (light) / Slate-950 (dark)
 | Peça | Onde | Para quê |
 |---|---|---|
 | `assertRefDoTenant()` | `src/common/tenant-scope/tenant-ref.ts` | Validar que um id do corpo é do condomínio da request |
+| `@TelefoneE164()` | `src/common/telefone.ts` | Campo de telefone: aceita `(32) 99999-9999`, grava E.164 |
 | `@TenantId()` | `src/common/decorators` | Condomínio da request, já validado |
 | `@TenantScope()` | `src/common/decorators` | Igual, mas aceita "sem condomínio" (`null`) |
 | `@AdministradoraId()` | `src/common/decorators` | Carteira do usuário logado |
 | `@Roles(...)` / `@RequiresModule(...)` | `src/common/decorators` | Perfis e módulo opcional da rota |
 | `TenantConfigService` | `src/common/tenant-config` | Ler `config_json` do condomínio com cache |
 | `FormDialog` | `web/src/components/ui/form-dialog.tsx` | Casca de formulário em diálogo (rolagem, 48px, salvando) |
+| `PhoneInput` | `web/src/components/ui/phone-input.tsx` | Telefone mascarado `(32) 99999-9999` → E.164 |
+| `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
+| `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
 | `EmptyState` / `StatCard` / `ConfirmDialog` / `SimpleSelect` | `web/src/components/ui/` | Estado vazio, indicador, confirmação e select |
 | `useAuthMe` / `useCondominioAtivo` / `useModuleEnabled` | `web/src/hooks/use-tenant-config.ts` | Usuário, condomínio ativo e módulos contratados |
@@ -542,11 +585,16 @@ peça e registrar aqui — é assim que esta tabela cresce.
     `tenantId` vem **depois** do spread do DTO
 26. **SEMPRE** rodar `npm run test:e2e` ao mexer em guard, role, rota nova ou escopo
 
+### Dados de contato
+27. **NUNCA** pedir `+55` ao usuário — telefone se digita `(32) 99999-9999`.
+    No DTO, `@TelefoneE164()`; na tela, `PhoneInput`; na listagem,
+    `formatarTelefone()`. O banco guarda **sempre** E.164
+
 ### Documentação viva
-27. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
+28. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
     regras, campos). Doc desatualizada é pior que doc inexistente
-28. **SEMPRE** atualizar a tabela "O que cada perfil faz" ao mudar um `@Roles`
-29. **SEMPRE** criar o `CLAUDE.md` junto com o módulo novo — nunca "depois"
+29. **SEMPRE** atualizar a tabela "O que cada perfil faz" ao mudar um `@Roles`
+30. **SEMPRE** criar o `CLAUDE.md` junto com o módulo novo — nunca "depois"
 
 ---
 
@@ -585,6 +633,10 @@ Veja `.env.example` para lista completa. As mais críticas:
 | `DATABASE_URL` | String de conexão PostgreSQL |
 | `REDIS_URL` | String de conexão Redis |
 | `JWT_SECRET` | Segredo para assinar tokens JWT (min 16 chars) |
-| `WHATSAPP_PROVIDER` | Provedor: `twilio`, `zapi`, `evolution` |
-| `WHATSAPP_FROM_NUMBER` | Número remetente E.164 |
-| `VITE_API_URL` | URL da API para o frontend (Vercel) |
+| `OPENWA_BASE_URL` | URL do gateway WhatsApp (vazio = envio desligado) |
+| `OPENWA_API_KEY` | Chave do gateway |
+| `WEBHOOK_BASE_URL` | URL pública da API, usada para registrar o webhook no gateway |
+| `VITE_API_URL` | URL da API para o frontend |
+
+> Não existe número remetente global: **o número é o da sessão do condomínio** no
+> OpenWA. Também não há variável de provedor — o gateway é um só.

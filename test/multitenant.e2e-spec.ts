@@ -3,8 +3,6 @@ import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { SmsGateway } from '../src/modules/whatsapp/gateway/sms.gateway';
-import { WHATSAPP_GATEWAY } from '../src/modules/whatsapp/gateway/whatsapp.gateway';
 
 /**
  * Prova de isolamento do multitenant.
@@ -18,17 +16,6 @@ import { WHATSAPP_GATEWAY } from '../src/modules/whatsapp/gateway/whatsapp.gatew
  *                     └─ Condomínio A2
  *   Administradora B ─── Condomínio B1
  */
-
-const noopGateway = {
-  provider: 'twilio',
-  sendText: jest.fn().mockResolvedValue({ providerMessageId: 'SMnoop', rawResponse: {} }),
-  sendTemplate: jest.fn().mockResolvedValue({ providerMessageId: 'SMnoop', rawResponse: {} }),
-  verifyInboundSignature: jest.fn().mockReturnValue(true),
-  parseInboundMessage: jest.fn().mockReturnValue(null),
-  parseStatusUpdate: jest.fn().mockReturnValue(null),
-};
-
-const noopSms = { isConfigured: false, sendSms: jest.fn() };
 
 const SENHA = 'senha123';
 const UUID_INEXISTENTE = '00000000-0000-4000-8000-000000000000';
@@ -86,10 +73,6 @@ describe('Multitenant (e2e)', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(WHATSAPP_GATEWAY)
-      .useValue(noopGateway)
-      .overrideProvider(SmsGateway)
-      .useValue(noopSms)
       .compile();
 
     app = moduleRef.createNestApplication();

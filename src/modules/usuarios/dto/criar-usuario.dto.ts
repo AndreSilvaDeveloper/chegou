@@ -1,5 +1,6 @@
 import { IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { UserRole } from '../../../database/entities';
+import { TelefoneE164 } from '../../../common/telefone';
 
 /**
  * Papéis criáveis dentro de um condomínio.
@@ -26,6 +27,6 @@ export class CriarUsuarioDto {
   role!: UserRole;
 
   @IsOptional()
-  @Matches(/^\+?[0-9 ()-]{6,20}$/, { message: 'Telefone inválido' })
+  @TelefoneE164()
   telefone?: string;
 }

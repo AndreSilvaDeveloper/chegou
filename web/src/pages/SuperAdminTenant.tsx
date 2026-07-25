@@ -175,6 +175,20 @@ export function SuperAdminTenant() {
     }
   };
 
+  /**
+   * Escolher o tipo já sugere a estrutura de blocos, que é quem realmente
+   * manda no cadastro de unidades. Comercial costuma ser bloco único;
+   * residencial e misto, múltiplos. O superadmin pode trocar depois — prédio
+   * residencial de torre única existe.
+   */
+  const escolherTipo = (tipo: Required<TenantConfig>['tipo']) => {
+    setConfig({
+      ...config,
+      tipo,
+      estruturaBlocos: tipo === 'comercial' ? 'unico' : 'multiplos',
+    });
+  };
+
   const salvarConfig = async (e: FormEvent) => {
     e.preventDefault();
     setSavingConfig(true);
@@ -374,9 +388,9 @@ export function SuperAdminTenant() {
                     <p className="text-sm text-muted-foreground">Define a nomenclatura das unidades e os recursos disponíveis.</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <OptionCard active={config.tipo === 'residencial'} onClick={() => setConfig({ ...config, tipo: 'residencial' })} icon={Home} title="Residencial" description="Prédio ou casas de moradia." />
-                    <OptionCard active={config.tipo === 'comercial'} onClick={() => setConfig({ ...config, tipo: 'comercial' })} icon={Store} title="Comercial" description="Salas, lojas e escritórios." />
-                    <OptionCard active={config.tipo === 'misto'} onClick={() => setConfig({ ...config, tipo: 'misto' })} icon={Blend} title="Misto" description="Residencial e comercial juntos." />
+                    <OptionCard active={config.tipo === 'residencial'} onClick={() => escolherTipo('residencial')} icon={Home} title="Residencial" description="Prédio ou casas de moradia." />
+                    <OptionCard active={config.tipo === 'comercial'} onClick={() => escolherTipo('comercial')} icon={Store} title="Comercial" description="Salas, lojas e escritórios." />
+                    <OptionCard active={config.tipo === 'misto'} onClick={() => escolherTipo('misto')} icon={Blend} title="Misto" description="Residencial e comercial juntos." />
                   </div>
                 </section>
 

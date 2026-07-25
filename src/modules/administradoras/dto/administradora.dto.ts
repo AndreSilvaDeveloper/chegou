@@ -8,6 +8,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { TelefoneE164 } from '../../../common/telefone';
 
 export class CriarAdministradoraDto {
   @IsString()
@@ -23,7 +24,7 @@ export class CriarAdministradoraDto {
   emailContato?: string;
 
   @IsOptional()
-  @Matches(/^\+?[0-9 ()-]{6,20}$/, { message: 'Telefone inválido' })
+  @TelefoneE164()
   telefoneContato?: string;
 }
 
@@ -42,7 +43,7 @@ export class AtualizarAdministradoraDto {
   emailContato?: string;
 
   @IsOptional()
-  @Matches(/^\+?[0-9 ()-]{6,20}$/, { message: 'Telefone inválido' })
+  @TelefoneE164()
   telefoneContato?: string;
 
   @IsOptional()
@@ -67,7 +68,7 @@ export class CriarUsuarioAdminDto {
   senha!: string;
 
   @IsOptional()
-  @Matches(/^\+?[0-9 ()-]{6,20}$/, { message: 'Telefone inválido' })
+  @TelefoneE164()
   telefone?: string;
 }
 
