@@ -269,14 +269,59 @@ export interface Tenant {
   cnpj: string | null;
   cidade: string | null;
   estado: string | null;
+  endereco?: string | null;
+  telefoneContato?: string | null;
+  emailContato?: string | null;
   plano: string;
   ativo: boolean;
+  /** Carteira a que o condomínio pertence — null = direto com o superadmin. */
+  administradoraId?: string | null;
   configJson?: TenantConfig;
   createdAt: string;
   updatedAt: string;
 }
 
+/** Empresa que administra uma carteira de condomínios. */
+export interface Administradora {
+  id: string;
+  nome: string;
+  cnpj: string | null;
+  emailContato: string | null;
+  telefoneContato: string | null;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdministradoraComResumo extends Administradora {
+  qtdCondominios: number;
+  qtdUsuarios: number;
+}
+
+export interface AdministradoraDetalhe extends Administradora {
+  condominios: Tenant[];
+  usuarios: UsuarioAdministradora[];
+}
+
+export interface UsuarioAdministradora {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  ativo: boolean;
+  role: 'admin';
+  createdAt: string;
+}
+
 export type TipoVaga = 'carro' | 'moto' | 'grande' | 'pcd';
+
+/**
+ * Situação derivada pelo backend:
+ * - `vinculada`: pertence a um apartamento, fora do pool de locação
+ * - `livre`: pode ser alugada
+ * - `alugada`: tem contrato vigente
+ */
+export type SituacaoVaga = 'livre' | 'vinculada' | 'alugada' | 'inativa';
 
 export interface Vaga {
   id: string;
@@ -288,27 +333,103 @@ export interface Vaga {
   apartamento?: Apartamento | null;
   observacoes: string | null;
   ativo: boolean;
+  situacao: SituacaoVaga;
+  alugavel: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export type StatusLocacao = 'ativa' | 'encerrada' | 'inadimplente';
+export type LocatarioTipo = 'morador' | 'externo';
 
 export interface VagaLocacao {
   id: string;
   tenantId: string;
   vagaId: string;
   vaga?: Vaga;
+
+  locatarioTipo: LocatarioTipo;
   moradorId: string | null;
   morador?: Morador | null;
-  valorMensal: number | string;
+  locatarioNome: string | null;
+  locatarioDocumento: string | null;
+  locatarioTelefoneE164: string | null;
+  locatarioEmail: string | null;
+
+  valorMensal: number;
   diaVencimento: number;
   dataInicio: string;
   dataFim: string | null;
   status: StatusLocacao;
+
+  contratoUrl: string | null;
+  contratoNomeArquivo: string | null;
+  contratoEnviadoAt: string | null;
+
   observacoes: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface VagaPreco {
+  tenantId: string;
+  tipo: TipoVaga;
+  valorMensal: number;
+}
+
+export type StatusCobranca = 'pendente' | 'enviada' | 'paga' | 'vencida' | 'cancelada';
+export type CobrancaProvider = 'manual' | 'asaas';
+
+export interface VagaCobranca {
+  id: string;
+  tenantId: string;
+  locacaoId: string;
+  locacao?: VagaLocacao;
+  /** Mês de referência, sempre no dia 1 (YYYY-MM-01). */
+  competencia: string;
+  valor: number;
+  vencimento: string;
+  status: StatusCobranca;
+  notificacaoId: string | null;
+  enviadaWhatsappAt: string | null;
+  enviadaEmailAt: string | null;
+  pagoAt: string | null;
+  valorPago: number | null;
+  /** `manual` = controle interno; `asaas` ainda não emite boleto. */
+  provider: CobrancaProvider;
+  boletoUrl: string | null;
+  linhaDigitavel: string | null;
+  pixCopiaCola: string | null;
+  observacoes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ResultadoGeracaoCobrancas {
+  competencia: string;
+  criadas: number;
+  jaExistiam: number;
+  ignoradas: { locacaoId: string; vaga: string; motivo: string }[];
+  cobrancas: VagaCobranca[];
+}
+
+export interface ResumoCobrancas {
+  competencia: string | null;
+  totalCobrancas: number;
+  emAberto: number;
+  valorEmAberto: number;
+  vencidas: number;
+  valorVencido: number;
+  pagas: number;
+  valorRecebido: number;
+}
+
+export interface ResultadoEnvioCobranca {
+  cobranca: VagaCobranca;
+  envio: {
+    whatsapp: 'enviado' | 'sem_telefone' | 'opt_out';
+    email: 'enviado' | 'sem_email' | 'indisponivel';
+  };
 }
 
 export type TipoAviso = 'geral' | 'urgente' | 'manutencao' | 'evento' | 'financeiro';

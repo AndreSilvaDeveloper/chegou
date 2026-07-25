@@ -45,6 +45,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useModuleEnabled } from '@/hooks/use-tenant-config';
 
 /**
  * Relatórios operacionais do condomínio: portaria (/relatorios/encomendas),
@@ -279,6 +280,11 @@ export function Relatorios() {
   const [preset, setPreset] = useState<PresetKey>('30d');
   const [bloco, setBloco] = useState('');
 
+  // A aba de garagem só existe se o condomínio contratou o módulo. Se ela for
+  // desligada com a aba aberta, cai de volta para encomendas.
+  const vagasAtivo = useModuleEnabled('vagas') === true;
+  const tabAtiva: TabKey = tab === 'vagas' && !vagasAtivo ? 'encomendas' : tab;
+
   const hoje = useMemo(() => hojeLocal(), []);
   const [customDesde, setCustomDesde] = useState(() => addDias(hoje, -29));
   const [customAte, setCustomAte] = useState(hoje);
@@ -302,23 +308,31 @@ export function Relatorios() {
   const whatsappQuery = useQuery({
     queryKey: ['relatorio-whatsapp', desde, ate],
     queryFn: () => api.get<RelatorioWhatsapp>(`/relatorios/whatsapp${periodoQuery}`),
-    enabled: tab === 'whatsapp',
+    enabled: tabAtiva === 'whatsapp',
   });
 
   const vagasQuery = useQuery({
     queryKey: ['relatorio-vagas'],
     queryFn: () => api.get<RelatorioVagas>('/relatorios/vagas'),
-    enabled: tab === 'vagas',
+    enabled: tabAtiva === 'vagas',
   });
 
   const carregando =
-    tab === 'encomendas' ? encomendasQuery.isLoading : tab === 'whatsapp' ? whatsappQuery.isLoading : vagasQuery.isLoading;
+    tabAtiva === 'encomendas'
+      ? encomendasQuery.isLoading
+      : tabAtiva === 'whatsapp'
+        ? whatsappQuery.isLoading
+        : vagasQuery.isLoading;
   const atualizando =
-    tab === 'encomendas' ? encomendasQuery.isFetching : tab === 'whatsapp' ? whatsappQuery.isFetching : vagasQuery.isFetching;
+    tabAtiva === 'encomendas'
+      ? encomendasQuery.isFetching
+      : tabAtiva === 'whatsapp'
+        ? whatsappQuery.isFetching
+        : vagasQuery.isFetching;
 
   const recarregar = () => {
-    if (tab === 'encomendas') encomendasQuery.refetch();
-    else if (tab === 'whatsapp') whatsappQuery.refetch();
+    if (tabAtiva === 'encomendas') encomendasQuery.refetch();
+    else if (tabAtiva === 'whatsapp') whatsappQuery.refetch();
     else vagasQuery.refetch();
   };
 
@@ -331,7 +345,7 @@ export function Relatorios() {
     [encomendasQuery.data?.blocos],
   );
 
-  const mostrarFiltros = tab !== 'vagas';
+  const mostrarFiltros = tabAtiva !== 'vagas';
 
   return (
     <div className="space-y-6 pb-10">
@@ -351,7 +365,7 @@ export function Relatorios() {
         </Button>
       </PageHeader>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-6">
+      <Tabs value={tabAtiva} onValueChange={(v) => setTab(v as TabKey)} className="space-y-6">
         <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 sm:w-auto">
           <TabsTrigger value="encomendas" className="min-h-[48px] flex-1 gap-2 px-4 sm:flex-none">
             <Package className="h-4 w-4" /> Encomendas
@@ -359,9 +373,11 @@ export function Relatorios() {
           <TabsTrigger value="whatsapp" className="min-h-[48px] flex-1 gap-2 px-4 sm:flex-none">
             <MessageSquare className="h-4 w-4" /> WhatsApp
           </TabsTrigger>
-          <TabsTrigger value="vagas" className="min-h-[48px] flex-1 gap-2 px-4 sm:flex-none">
-            <Car className="h-4 w-4" /> Vagas
-          </TabsTrigger>
+          {vagasAtivo && (
+            <TabsTrigger value="vagas" className="min-h-[48px] flex-1 gap-2 px-4 sm:flex-none">
+              <Car className="h-4 w-4" /> Vagas
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Filtros de período — não se aplicam ao snapshot de vagas */}

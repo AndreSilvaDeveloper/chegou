@@ -10,7 +10,7 @@ export class AuditInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
-    const req = ctx.getRequest<Request & { user?: any }>();
+    const req = ctx.getRequest<Request & { user?: any; tenantScope?: string | null }>();
     const { method, url, ip, headers, body, params } = req;
     
     // Filtra métodos que modificam estado
@@ -29,7 +29,9 @@ export class AuditInterceptor implements NestInterceptor {
 
     const userAgent = headers['user-agent'] as string;
     const userId = req.user?.id || null;
-    const tenantId = req.user?.tenantId || null;
+    // Condomínio efetivo da request: para a administradora é o que ela escolheu,
+    // e é esse que precisa constar no log — não o vínculo (nulo) do usuário.
+    const tenantId = req.tenantScope ?? req.user?.tenantId ?? null;
 
     // A resposta
     return next.handle().pipe(

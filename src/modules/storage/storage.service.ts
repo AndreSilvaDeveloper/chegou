@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
@@ -49,13 +49,18 @@ export class StorageService {
     return this._s3;
   }
 
-  async uploadEncomendaFoto(
+  /** Nome do arquivo é do usuário — só a extensão é aproveitada, e sanitizada. */
+  private extensaoSegura(originalname: string): string {
+    const ext = originalname.split('.').pop()?.toLowerCase() ?? 'bin';
+    return /^[a-z0-9]{1,5}$/.test(ext) ? ext : 'bin';
+  }
+
+  private async upload(
+    prefixo: string,
     tenantId: string,
     file: { buffer: Buffer; mimetype: string; originalname: string },
   ): Promise<{ url: string; key: string }> {
-    const ext = file.originalname.split('.').pop()?.toLowerCase() ?? 'bin';
-    const safeExt = /^[a-z0-9]{1,5}$/.test(ext) ? ext : 'bin';
-    const key = `encomendas/${tenantId}/${randomUUID()}.${safeExt}`;
+    const key = `${prefixo}/${tenantId}/${randomUUID()}.${this.extensaoSegura(file.originalname)}`;
     await this.s3.send(
       new PutObjectCommand({
         Bucket: this.bucket,
@@ -65,5 +70,33 @@ export class StorageService {
       }),
     );
     return { url: `${this.publicBaseUrl}/${key}`, key };
+  }
+
+  async uploadEncomendaFoto(
+    tenantId: string,
+    file: { buffer: Buffer; mimetype: string; originalname: string },
+  ): Promise<{ url: string; key: string }> {
+    return this.upload('encomendas', tenantId, file);
+  }
+
+  /** Contrato de locação de vaga (PDF ou foto do documento assinado). */
+  async uploadContratoVaga(
+    tenantId: string,
+    file: { buffer: Buffer; mimetype: string; originalname: string },
+  ): Promise<{ url: string; key: string }> {
+    return this.upload('contratos-vagas', tenantId, file);
+  }
+
+  /**
+   * Remove um objeto. Falha aqui não deve derrubar a operação de negócio: o
+   * arquivo órfão custa storage, mas perder a troca do contrato custa mais.
+   */
+  async remover(key: string): Promise<void> {
+    if (!this.isConfigured) return;
+    try {
+      await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    } catch (err) {
+      this.logger.warn(`Falha ao remover ${key} do storage: ${err}`);
+    }
   }
 }

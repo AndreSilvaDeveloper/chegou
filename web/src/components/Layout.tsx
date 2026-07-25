@@ -1,15 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { api, AuthenticatedUser, clearToken, getUser, setUser } from '../api/client';
+import { clearToken } from '../api/client';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Package, PackagePlus, Building2, Users, HardHat, Building,
   Menu, LogOut, Sun, Moon, Laptop, BarChart3, Car, Megaphone, ListChecks,
   PanelLeftClose, PanelLeftOpen, Download, MessageCircle, LayoutDashboard,
+  Briefcase, ArrowLeftRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
+import {
+  useAuthMe,
+  useCondominioAtivo,
+  useModuleEnabled,
+  useTrocarCondominio,
+  type TenantModule,
+} from '@/hooks/use-tenant-config';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import {
@@ -32,7 +40,7 @@ const COLLAPSE_KEY = 'chegou.sidebar.collapsed';
 const ROLE_LABEL: Record<string, string> = {
   superadmin: 'Super Admin',
   sindico: 'Síndico',
-  admin: 'Administrador',
+  admin: 'Administradora',
   porteiro: 'Porteiro',
 };
 
@@ -43,6 +51,10 @@ type NavItem = {
   roles: string[];
   end?: boolean;
   group: string;
+  /** Só aparece se o superadmin habilitou este módulo no condomínio. */
+  modulo?: TenantModule;
+  /** Funciona sem condomínio escolhido — vale para a carteira da administradora. */
+  semCondominio?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -52,12 +64,14 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/apartamentos', label: 'Apartamentos', icon: Building2, roles: ['sindico', 'admin'], group: 'Condomínio' },
   { path: '/moradores', label: 'Moradores', icon: Users, roles: ['sindico', 'admin'], group: 'Condomínio' },
   { path: '/equipe', label: 'Equipe', icon: HardHat, roles: ['sindico', 'admin'], group: 'Condomínio' },
-  { path: '/vagas', label: 'Vagas', icon: Car, roles: ['sindico', 'admin'], group: 'Condomínio' },
-  { path: '/avisos', label: 'Avisos', icon: Megaphone, roles: ['sindico', 'admin'], group: 'Comunicação' },
+  { path: '/vagas', label: 'Vagas', icon: Car, roles: ['sindico', 'admin'], group: 'Condomínio', modulo: 'vagas' },
+  { path: '/avisos', label: 'Avisos', icon: Megaphone, roles: ['sindico', 'admin'], group: 'Comunicação', modulo: 'avisos' },
   { path: '/notificacoes', label: 'Filas', icon: ListChecks, roles: ['sindico', 'admin'], group: 'Comunicação' },
   { path: '/whatsapp', label: 'WhatsApp', icon: MessageCircle, roles: ['sindico', 'admin'], group: 'Comunicação' },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3, roles: ['sindico', 'admin'], group: 'Comunicação' },
+  { path: '/meus-condominios', label: 'Meus condomínios', icon: Briefcase, roles: ['admin'], group: 'Carteira', semCondominio: true },
   { path: '/admin', label: 'Condomínios', icon: Building, roles: ['superadmin'], end: true, group: 'Plataforma' },
+  { path: '/admin/administradoras', label: 'Administradoras', icon: Briefcase, roles: ['superadmin'], group: 'Plataforma' },
   { path: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle, roles: ['superadmin'], group: 'Plataforma' },
 ];
 
@@ -78,7 +92,7 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
 }
 
 export function Layout() {
-  const [user, setUserState] = useState<AuthenticatedUser | null>(getUser());
+  const { data: user } = useAuthMe();
   const nav = useNavigate();
   const location = useLocation();
   const { setTheme } = useTheme();
@@ -86,11 +100,16 @@ export function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1');
 
-  useEffect(() => {
-    api.get<AuthenticatedUser>('/auth/me')
-      .then((u) => { setUser(u); setUserState(u); })
-      .catch(() => {});
-  }, []);
+  const condominioAtivo = useCondominioAtivo();
+  const trocarCondominio = useTrocarCondominio();
+
+  // Módulos opcionais: mesma query do /auth/me, sem request extra.
+  const vagasAtivo = useModuleEnabled('vagas');
+  const avisosAtivo = useModuleEnabled('avisos');
+  const modulosAtivos: Record<TenantModule, boolean | undefined> = {
+    vagas: vagasAtivo,
+    avisos: avisosAtivo,
+  };
 
   const toggleCollapsed = () => {
     setCollapsed((c) => {
@@ -117,7 +136,17 @@ export function Layout() {
   };
 
   const userRole = user?.role || '';
-  const filteredNavItems = NAV_ITEMS.filter(item => item.roles.includes(userRole));
+  // Módulo com estado desconhecido fica escondido: melhor aparecer depois do
+  // que oferecer uma tela que o condomínio não contratou.
+  // Administradora que ainda não escolheu condomínio só vê a carteira: as
+  // outras telas não teriam de onde carregar dado.
+  const semCondominioEscolhido = userRole === 'admin' && !condominioAtivo.id;
+  const filteredNavItems = NAV_ITEMS.filter(
+    (item) =>
+      item.roles.includes(userRole) &&
+      (!item.modulo || modulosAtivos[item.modulo] === true) &&
+      (!semCondominioEscolhido || item.semCondominio),
+  );
   const groups = filteredNavItems.reduce<Record<string, NavItem[]>>((acc, item) => {
     (acc[item.group] ??= []).push(item);
     return acc;
@@ -125,6 +154,8 @@ export function Layout() {
 
   const initials = user?.nome?.substring(0, 2).toUpperCase() || 'U';
   const showTenant = !user?.role.includes('superadmin');
+  const ehAdministradora = user?.role === 'admin';
+  const nomeCondominio = condominioAtivo.nome ?? user?.tenantNome ?? '—';
 
   // isCollapsed só vale no desktop; no Sheet (mobile) sempre expandido.
   const SidebarBody = ({ onClick, isCollapsed = false }: { onClick?: () => void; isCollapsed?: boolean }) => (
@@ -160,15 +191,31 @@ export function Layout() {
         ))}
       </nav>
 
-      {showTenant && !isCollapsed && (
-        <div className="p-3">
+      {/* Sem condomínio escolhido não há o que rotular nem de onde sair. */}
+      {showTenant && !isCollapsed && (condominioAtivo.id || !ehAdministradora) && (
+        <div className="space-y-2 p-3">
           <div className="flex items-center gap-2.5 rounded-xl bg-sidebar-accent/60 px-3 py-2.5">
             <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className="eyebrow">Condomínio</p>
-              <p className="truncate text-sm font-medium text-foreground">{user?.tenantNome ?? '—'}</p>
+              <p className="truncate text-sm font-medium text-foreground">{nomeCondominio}</p>
             </div>
           </div>
+          {/* A administradora atende vários: precisa saber em qual está e poder sair. */}
+          {ehAdministradora && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                trocarCondominio(null);
+                nav('/meus-condominios');
+                setIsMobileMenuOpen(false);
+              }}
+              className="min-h-[48px] w-full justify-start gap-3"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              Trocar de condomínio
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -230,7 +277,7 @@ export function Layout() {
             {showTenant && (
               <span className="hidden max-w-[200px] items-center gap-1.5 truncate text-sm font-medium text-muted-foreground lg:inline-flex">
                 <Building2 className="h-3.5 w-3.5 shrink-0" />
-                {user?.tenantNome ?? 'Condomínio'}
+                {nomeCondominio}
               </span>
             )}
             <DropdownMenu>
@@ -293,7 +340,7 @@ export function Layout() {
         {showTenant && (
           <div className="flex items-center gap-2 px-4 pb-1 md:hidden">
             <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate text-xs font-medium text-muted-foreground">{user?.tenantNome ?? 'Condomínio'}</span>
+            <span className="truncate text-xs font-medium text-muted-foreground">{nomeCondominio}</span>
           </div>
         )}
 

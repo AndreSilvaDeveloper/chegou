@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { Roles, TenantId } from '../../common/decorators';
+import { RequiresModule, Roles, TenantId } from '../../common/decorators';
 import { RelatorioQuery } from './dto/relatorio.query';
 import { RelatoriosService } from './relatorios.service';
 
@@ -22,6 +22,7 @@ export class RelatoriosController {
 
   /** Ocupação das vagas e receita das locações (snapshot atual). */
   @Get('vagas')
+  @RequiresModule('vagas')
   vagas(@TenantId() tenantId: string) {
     return this.service.vagas(tenantId);
   }

@@ -39,7 +39,24 @@
 ### Multitenancy
 - **Modelo**: Database compartilhado, schema compartilhado
 - **Isolamento**: Toda tabela possui `tenant_id` (FK para `tenants`)
-- **Exceções**: `superadmin` tem `tenant_id = NULL`, audit_log e whatsapp_messages permitem NULL
+- **Exceções**: `superadmin` e `admin` têm `tenant_id = NULL`; audit_log e whatsapp_messages permitem NULL
+- **Hierarquia**: `administradoras` → `tenants` (condomínios) → dados. Um condomínio
+  pertence a no máximo uma administradora (`tenants.administradora_id`, NULL = direto
+  com o superadmin)
+
+#### Escopo da request (X-Tenant-Id)
+O condomínio de cada request é resolvido pelo `TenantScopeGuard` e entregue às rotas
+pelo `@TenantId()`. **Nenhum controller lê o header direto** — é isso que impede uma
+rota nova de "esquecer" de validar:
+
+| Papel | De onde vem o condomínio |
+|---|---|
+| `sindico` / `porteiro` | Do vínculo do usuário. Header divergente → 403 |
+| `admin` | Do header `X-Tenant-Id`, validado contra a carteira. Fora dela → 403 |
+| `superadmin` | Qualquer condomínio, mas as rotas de condomínio não o listam em `@Roles` — o caminho dele é `/admin/tenants/:id/...` |
+
+A prova de isolamento fica em `test/multitenant.e2e-spec.ts` (duas administradoras,
+três condomínios). Rode `npm run test:e2e` ao mexer em guard, role ou rota nova.
 
 ### Autenticação & Autorização
 - JWT Bearer token via Passport
@@ -148,71 +165,159 @@ chegou/
 
 ## 🗃️ Modelo de Dados
 
-### Entidades Existentes
-| Tabela | Descrição |
-|---|---|
-| `tenants` | Condomínios (multi-tenant) |
-| `users` | Usuários do painel (superadmin, síndico, admin, porteiro) |
-| `apartamentos` | Unidades do condomínio (bloco + número → identificador) |
-| `moradores` | Moradores com telefone WhatsApp |
-| `encomendas` | Encomendas recebidas na portaria |
-| `whatsapp_messages` | Histórico de mensagens WhatsApp (in/out) |
-| `audit_log` | Log de auditoria de ações |
+### Tabelas
+| Tabela | `tenant_id`? | Descrição |
+|---|:---:|---|
+| `administradoras` | — | Empresas que administram carteiras de condomínios |
+| `tenants` | — | Condomínios; `administradora_id` liga à carteira |
+| `users` | opcional | Logins do painel (ver escopo por papel abaixo) |
+| `apartamentos` | ✅ | Unidades do condomínio (bloco + número → identificador) |
+| `moradores` | ✅ | Moradores com telefone WhatsApp |
+| `encomendas` | ✅ | Encomendas recebidas na portaria |
+| `funcionarios` | ✅ | Equipe do condomínio (zelador, faxineiro, etc.) |
+| `vagas` | ✅ | Vagas de garagem/estacionamento |
+| `vagas_locacao` | ✅ | Locações de vaga (morador ou pessoa externa) |
+| `vagas_precos` | ✅ | Tabela de preço sugerido por tipo de vaga |
+| `vagas_cobrancas` | ✅ | Cobrança mensal da locação, por competência |
+| `avisos` | ✅ | Comunicados do condomínio para moradores |
+| `notificacoes` | ✅ | Fila unificada de disparos (encomenda, cobrança, aviso) |
+| `whatsapp_messages` | permite NULL | Histórico de mensagens (in/out) |
+| `audit_log` | permite NULL | Log de auditoria de ações |
 
-### Novas Entidades (a implementar)
-| Tabela | Descrição |
-|---|---|
-| `funcionarios` | Equipe do condomínio (zelador, faxineiro, etc.) |
-| `vagas` | Vagas de garagem/estacionamento |
-| `vagas_locacao` | Locações avulsas de vagas com cobrança |
-| `notificacoes` | Fila unificada de notificações (encomenda, cobrança, aviso) |
-| `avisos` | Avisos gerais do condomínio para moradores |
+> Toda tabela nova de dado de condomínio nasce com `tenant_id NOT NULL` +
+> `REFERENCES tenants(id) ON DELETE CASCADE`. As exceções acima são deliberadas:
+> `whatsapp_messages` aceita NULL porque uma mensagem de número desconhecido não
+> tem dono, e `audit_log` registra também ações de plataforma.
 
 ### Roles do Sistema
-| Role | Acesso | tenant_id | Login de Teste (Seed) |
+| Role | Acesso | Escopo no banco | Login de Teste (Seed) |
 |---|---|---|---|
-| `superadmin` | Plataforma inteira | NULL | `admin@portaria.app` / `senha123` |
-| `sindico` | Admin do condomínio | obrigatório | `sindico@bela-vista.app` / `senha123` |
-| `admin` | Gestão do condomínio | obrigatório | N/A |
-| `porteiro` | Operação de portaria | obrigatório | `porteiro@bela-vista.app` / `senha123` |
+| `superadmin` | Plataforma inteira | `tenant_id` e `administradora_id` NULL | `admin@portaria.app` / `senha123` |
+| `admin` | **Administradora**: carteira de condomínios | `tenant_id` NULL + `administradora_id` obrigatório | `admin@central.app` / `senha123` |
+| `sindico` | Gestão de um condomínio | `tenant_id` obrigatório | `sindico@bela-vista.app` / `senha123` |
+| `porteiro` | Operação de portaria | `tenant_id` obrigatório | `porteiro@bela-vista.app` / `senha123` |
+
+> O CHECK `chk_users_escopo` garante essa combinação no banco — não dá para criar
+> uma administradora presa a um condomínio nem um síndico com carteira.
+
+### O que cada perfil faz
+
+Fonte da verdade: os decorators `@Roles(...)` nos controllers. Esta tabela é o
+resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
+
+| Área | superadmin | admin (administradora) | sindico | porteiro |
+|---|:---:|:---:|:---:|:---:|
+| Condomínios da plataforma (criar/editar/ativar) | ✅ | — | — | — |
+| Administradoras (criar, carteira, acessos) | ✅ | — | — | — |
+| Gestão de qualquer condomínio (`/admin/tenants/:id/...`) | ✅ | — | — | — |
+| Módulos contratados e plano do condomínio | ✅ | — | — | — |
+| Carteira própria (listar/criar/editar condomínios) | — | ✅ | — | — |
+| Dashboard e relatórios | — | ✅ | ✅ | — |
+| Encomendas: registrar, listar, dar baixa | — | ✅ | ✅ | ✅ |
+| Encomendas: cancelar, exportar, estatísticas | — | ✅ | ✅ | — |
+| Apartamentos e moradores: consultar | — | ✅ | ✅ | ✅ |
+| Apartamentos e moradores: editar/remover/importar | — | ✅ | ✅ | — |
+| Equipe (funcionários) | — | ✅ | ✅ | — |
+| Usuários do condomínio (criar síndico/porteiro) | ✅¹ | ✅ | ✅ | — |
+| Vagas: consultar | — | ✅ | ✅ | ✅ |
+| Vagas: cadastrar, alugar, preços, cobranças | — | ✅ | ✅ | — |
+| Avisos: ler | — | ✅ | ✅ | ✅ |
+| Avisos: publicar/remover | — | ✅ | ✅ | — |
+| Filas de notificação e WhatsApp do condomínio | — | ✅ | ✅ | — |
+
+¹ O superadmin cria usuários pelas rotas `/admin/tenants/:id/usuarios`, não pela
+rota `/usuarios` (que é do condomínio). Ninguém cria `superadmin` pela API.
+
+**A administradora só enxerga isso dentro dos condomínios da carteira dela**, e
+sempre com o condomínio escolhido no header `X-Tenant-Id`. Ver "Escopo da
+request" acima.
+
+### 🚦 Regra de ouro para funcionalidade nova
+
+> **Antes de escrever a primeira linha de uma funcionalidade nova, PERGUNTE ao
+> usuário quais perfis podem vê-la e usá-la.** Não presuma pelo que parece
+> "óbvio" — porteiro e administradora costumam ser os casos que passam batido.
+
+A pergunta deve cobrir três pontos:
+
+1. **Quem vê** (quais dos quatro perfis), separando leitura de escrita quando
+   fizer diferença — é comum o porteiro poder consultar mas não editar.
+2. **Se é um módulo opcional** (como Vagas e Avisos): entra em `config_json` do
+   condomínio e precisa de `@RequiresModule`, ou vale para todo condomínio?
+3. **Se a administradora opera de fora**: a funcionalidade é do condomínio
+   (precisa de `X-Tenant-Id`) ou da carteira (`/minha-administradora/...`)?
+
+Com a resposta em mãos: aplique `@Roles(...)` no backend, `allowedRoles` na rota
+do frontend, filtre o item no menu (`NAV_ITEMS` em `web/src/components/Layout.tsx`)
+e registre na tabela acima e na doc do módulo.
 
 ---
 
 ## 🔌 Módulos de Domínio
 
-### Encomendas (Core)
-- Registro de recebimento pelo porteiro
-- Geração de código de retirada (4 dígitos, único entre ativas)
-- Notificação automática via WhatsApp
-- Retirada por código ou documento
-- Cancelamento com motivo
-- Status: `aguardando → notificado → retirada | cancelada | devolvida`
+**Cada módulo tem o seu próprio `CLAUDE.md`** com rotas, perfis, regras de
+negócio e o que revisar ao alterar. Este arquivo guarda só a regra geral; o
+detalhe mora ao lado do código e é lido automaticamente quando se trabalha
+naquela pasta.
 
-### WhatsApp Gateway
-- **Interface**: `WhatsappGateway` com adapters por provedor
-- **Adapters implementados**: Twilio (completo), Z-API (stub)
-- **API não-oficial**: Foco em Z-API ou Evolution API
-- **Filas BullMQ**: `notify-morador`, `confirmar-retirada`
-- **Fallback**: SMS via Twilio quando WhatsApp falha
-- **Idempotência**: Chave única por tenant + tipo de notificação
-- **Inbound**: Processamento de respostas do morador ("código", "cheguei")
+| Módulo | Doc | Em uma linha |
+|---|---|---|
+| Encomendas | [src/modules/encomendas](src/modules/encomendas/CLAUDE.md) | Core: receber, notificar, entregar com código |
+| Apartamentos | [src/modules/apartamentos](src/modules/apartamentos/CLAUDE.md) | Unidades do condomínio, blocos e importação |
+| Moradores | [src/modules/moradores](src/modules/moradores/CLAUDE.md) | Quem mora e por onde recebe WhatsApp |
+| Vagas | [src/modules/vagas](src/modules/vagas/CLAUDE.md) | Garagem, locação, preços e cobrança (opcional) |
+| Avisos | [src/modules/avisos](src/modules/avisos/CLAUDE.md) | Comunicados para os moradores (opcional) |
+| Equipe | [src/modules/equipe](src/modules/equipe/CLAUDE.md) | Funcionários do condomínio, sem acesso ao sistema |
+| Usuários | [src/modules/usuarios](src/modules/usuarios/CLAUDE.md) | Logins do condomínio (síndico e porteiro) |
+| Auth | [src/modules/auth](src/modules/auth/CLAUDE.md) | Login, JWT e `/auth/me` |
+| Administradoras | [src/modules/administradoras](src/modules/administradoras/CLAUDE.md) | Carteira de condomínios da administradora |
+| Admin | [src/modules/admin](src/modules/admin/CLAUDE.md) | Rotas de plataforma do superadmin |
+| Notificações | [src/modules/notificacoes](src/modules/notificacoes/CLAUDE.md) | Fila unificada com as regras anti-bloqueio |
+| WhatsApp | [src/modules/whatsapp](src/modules/whatsapp/CLAUDE.md) | Gateway, templates e webhooks de entrada |
+| OpenWA | [src/modules/openwa](src/modules/openwa/CLAUDE.md) | Sessão não-oficial por condomínio (QR, status) |
+| Relatórios | [src/modules/relatorios](src/modules/relatorios/CLAUDE.md) | Consultas agregadas para as telas de relatório |
+| Storage | [src/modules/storage](src/modules/storage/CLAUDE.md) | Upload de fotos e contratos (S3/MinIO/R2) |
+| Common | [src/common](src/common/CLAUDE.md) | Guards, decorators, escopo de tenant e auditoria |
+| Frontend | [web/src](web/src/CLAUDE.md) | Páginas, componentes, hooks e client da API |
 
-### Vagas de Garagem (novo)
-- CRUD de vagas (tipo: carro/moto, número, localização)
-- Vinculação de vaga ao apartamento
-- Locação avulsa com valor e vencimento
-- Disparo de boleto/cobrança via WhatsApp
+---
 
-### Equipe / Funcionários (novo)
-- Registro de funcionários do condomínio
-- Categorias: porteiro, zelador, faxineiro, jardineiro, etc.
-- Escala de trabalho (horários/dias)
-- Sem acesso ao sistema (diferente de User)
+## 📚 Documentação viva
 
-### Fila de Notificações (novo)
-- Fila unificada para todos os tipos de disparo
-- Tipos: encomenda, cobrança, aviso geral
-- Anti-blocking para API não-oficial (ver regras abaixo)
+A documentação é dividida em duas camadas, e cada uma tem um dono claro:
+
+| Camada | Onde | O que guarda |
+|---|---|---|
+| Geral | este arquivo | Arquitetura, perfis de acesso, padrões e regras que valem para o projeto inteiro |
+| Local | `CLAUDE.md` de cada módulo | Rotas + perfis, entidades, regras de negócio e armadilhas daquele módulo |
+
+**Por que `CLAUDE.md` e não `README.md`**: arquivos `CLAUDE.md` em subpastas são
+carregados automaticamente no contexto quando se trabalha naquela pasta. Na
+prática, quem for mexer em `src/modules/vagas/` já chega sabendo as regras da
+vaga vinculada a apartamento, sem precisar procurar.
+
+### Ao alterar um módulo (front ou back), atualize a doc dele
+Não é burocracia: é o que impede a próxima alteração de quebrar uma regra que
+ninguém lembrava. O que precisa estar em dia:
+
+- rota nova/alterada/removida → tabela de rotas e perfis
+- campo novo na entidade → seção de dados
+- regra de negócio nova → seção de regras, **com o porquê**
+- decisão que você levou tempo para tomar → "Decisões e armadilhas"
+
+Cada doc de módulo tem uma seção **"Ao alterar este módulo"** com o checklist
+específico dele.
+
+### Skills do projeto
+Fluxos repetitivos viram skill em `.claude/skills/`, para o passo a passo ser o
+mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a doc):
+
+| Skill | Quando usar |
+|---|---|
+| `funcionalidade-nova` | Qualquer funcionalidade nova — começa perguntando os perfis de acesso |
+| `modulo-backend` | Criar um módulo NestJS novo (controller, service, DTO, entidade, migration, doc) |
+| `tela-frontend` | Criar página ou diálogo no painel, com os padrões de UI e de acesso |
+| `auditar-multitenant` | Revisar isolamento entre condomínios depois de mexer em query, guard ou DTO |
 
 ---
 
@@ -378,6 +483,24 @@ Background: Slate-50 (light) / Slate-950 (dark)
 - **Pastas**: `pages/` para rotas, `components/` para reutilizáveis, `components/ui/` para shadcn
 - **Path aliases**: Usar `@/` para imports (`@/components/ui/button`)
 
+### Peças reutilizáveis (use antes de escrever de novo)
+
+| Peça | Onde | Para quê |
+|---|---|---|
+| `assertRefDoTenant()` | `src/common/tenant-scope/tenant-ref.ts` | Validar que um id do corpo é do condomínio da request |
+| `@TenantId()` | `src/common/decorators` | Condomínio da request, já validado |
+| `@TenantScope()` | `src/common/decorators` | Igual, mas aceita "sem condomínio" (`null`) |
+| `@AdministradoraId()` | `src/common/decorators` | Carteira do usuário logado |
+| `@Roles(...)` / `@RequiresModule(...)` | `src/common/decorators` | Perfis e módulo opcional da rota |
+| `TenantConfigService` | `src/common/tenant-config` | Ler `config_json` do condomínio com cache |
+| `FormDialog` | `web/src/components/ui/form-dialog.tsx` | Casca de formulário em diálogo (rolagem, 48px, salvando) |
+| `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
+| `EmptyState` / `StatCard` / `ConfirmDialog` / `SimpleSelect` | `web/src/components/ui/` | Estado vazio, indicador, confirmação e select |
+| `useAuthMe` / `useCondominioAtivo` / `useModuleEnabled` | `web/src/hooks/use-tenant-config.ts` | Usuário, condomínio ativo e módulos contratados |
+
+Se você está prestes a copiar um trecho de outro arquivo, considere extrair a
+peça e registrar aqui — é assim que esta tabela cresce.
+
 ### Git
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`)
 - **Branch**: `main` (produção), `develop` (desenvolvimento)
@@ -408,6 +531,22 @@ Background: Slate-50 (light) / Slate-950 (dark)
 19. **NUNCA** usar placeholder como substituto de label em formulários
 20. **NUNCA** usar gestos complexos (swipe, long-press) — usar botões explícitos
 21. **SEMPRE** testar responsividade em viewport 375px (menor tela suportada)
+
+### Acesso e multitenant
+22. **SEMPRE** perguntar quais perfis acessam uma funcionalidade nova, antes de
+    implementar (ver "Regra de ouro para funcionalidade nova")
+23. **NUNCA** ler `X-Tenant-Id` fora do `TenantScopeGuard` — nas rotas, só `@TenantId()`
+24. **SEMPRE** validar id de outra entidade que venha no corpo com
+    `assertRefDoTenant()` (`src/common/tenant-scope/tenant-ref.ts`)
+25. **NUNCA** aceitar `tenantId` vindo do corpo da request — em `create()`, o
+    `tenantId` vem **depois** do spread do DTO
+26. **SEMPRE** rodar `npm run test:e2e` ao mexer em guard, role, rota nova ou escopo
+
+### Documentação viva
+27. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
+    regras, campos). Doc desatualizada é pior que doc inexistente
+28. **SEMPRE** atualizar a tabela "O que cada perfil faz" ao mudar um `@Roles`
+29. **SEMPRE** criar o `CLAUDE.md` junto com o módulo novo — nunca "depois"
 
 ---
 

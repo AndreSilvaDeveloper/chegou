@@ -10,6 +10,11 @@ import { WHATSAPP_GATEWAY, WhatsappGateway } from './gateway/whatsapp.gateway';
 import { InboundMessage, StatusUpdate } from './gateway/types';
 import { renderTemplate, TemplateKey, templateToVariables, TemplateVariables } from './templates';
 
+/** Compara números de formatos diferentes ("whatsapp:+55...", "+55 11 ..."). */
+function somenteDigitos(valor: string | null | undefined): string {
+  return (valor ?? '').replace(/\D/g, '');
+}
+
 export interface NotifyMoradorJob {
   encomendaId: string;
   tenantId: string;
@@ -115,18 +120,49 @@ export class WhatsappService {
     }
   }
 
+  /**
+   * De quem é a mensagem que chegou — e, por tabela, de qual condomínio.
+   *
+   * O mesmo telefone pode estar cadastrado em mais de um condomínio (alguém que
+   * mora em dois, ou um síndico). Nesse caso o número de destino desempata,
+   * porque cada condomínio tem o seu no gateway. Se nem assim der para saber, a
+   * mensagem fica sem dono: atribuir ao condomínio errado significaria dar baixa
+   * em encomenda alheia.
+   */
+  private async resolverMoradorInbound(inbound: InboundMessage): Promise<Morador | null> {
+    const candidatos = await this.moradorRepo.find({
+      where: { telefoneE164: inbound.from, ativo: true },
+      relations: { tenant: true },
+    });
+
+    if (candidatos.length === 0) {
+      this.logger.warn(
+        `Inbound de número desconhecido: ${inbound.from} (msg=${inbound.providerMessageId})`,
+      );
+      return null;
+    }
+    if (candidatos.length === 1) return candidatos[0];
+
+    const destino = somenteDigitos(inbound.to);
+    const doDestino = candidatos.filter(
+      (m) => destino && somenteDigitos(m.tenant?.whatsappNumero) === destino,
+    );
+    if (doDestino.length === 1) return doDestino[0];
+
+    this.logger.warn(
+      `Inbound ambíguo: ${inbound.from} está em ${candidatos.length} condomínios e o destino ` +
+        `${inbound.to} não desempatou — mensagem registrada sem condomínio (msg=${inbound.providerMessageId})`,
+    );
+    return null;
+  }
+
   async recordInbound(inbound: InboundMessage): Promise<WhatsappMessage> {
     const existing = await this.msgRepo.findOne({
       where: { provider: this.gateway.provider, providerMessageId: inbound.providerMessageId },
     });
     if (existing) return existing;
 
-    const morador = await this.moradorRepo.findOne({
-      where: { telefoneE164: inbound.from, ativo: true },
-    });
-    if (!morador) {
-      this.logger.warn(`Inbound de número desconhecido: ${inbound.from} (msg=${inbound.providerMessageId})`);
-    }
+    const morador = await this.resolverMoradorInbound(inbound);
 
     return this.msgRepo.save(
       this.msgRepo.create({

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard, RolesGuard } from './common/guards';
+import { JwtAuthGuard, RolesGuard, TenantModuleGuard, TenantScopeGuard } from './common/guards';
 import { envValidationSchema } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { QueuesModule } from './queues/queues.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AdministradorasModule } from './modules/administradoras/administradoras.module';
 import { ApartamentosModule } from './modules/apartamentos/apartamentos.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EncomendasModule } from './modules/encomendas/encomendas.module';
@@ -21,6 +22,8 @@ import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
 import { AvisosModule } from './modules/avisos/avisos.module';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module';
 import { AuditModule } from './common/audit/audit.module';
+import { TenantConfigModule } from './common/tenant-config/tenant-config.module';
+import { TenantScopeModule } from './common/tenant-scope/tenant-scope.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 @Module({
@@ -47,17 +50,25 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
     EncomendasModule,
     StorageModule,
     AdminModule,
+    AdministradorasModule,
     VagasModule,
     EquipeModule,
     NotificacoesModule,
     AvisosModule,
     RelatoriosModule,
     AuditModule,
+    TenantConfigModule,
+    TenantScopeModule,
   ],
   providers: [
     // Auth aplicado globalmente — rotas exigem JWT por padrão; use @Public() pra excecionar
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // Resolve e valida o condomínio da request (X-Tenant-Id) — precisa vir
+    // antes de qualquer guard ou rota que dependa do escopo.
+    { provide: APP_GUARD, useClass: TenantScopeGuard },
+    // Depois do escopo: bloqueia módulos opcionais não contratados (@RequiresModule)
+    { provide: APP_GUARD, useClass: TenantModuleGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

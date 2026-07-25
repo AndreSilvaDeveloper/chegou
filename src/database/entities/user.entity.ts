@@ -7,8 +7,15 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Administradora } from './administradora.entity';
 import { Tenant } from './tenant.entity';
 
+/**
+ * Escopo de cada papel (garantido por CHECK no banco — ver migration 020):
+ * - `superadmin`: plataforma inteira, sem tenant e sem administradora
+ * - `admin`: administradora; opera nos condomínios da carteira dela
+ * - `sindico` / `porteiro`: um único condomínio
+ */
 export type UserRole = 'superadmin' | 'sindico' | 'admin' | 'porteiro';
 
 @Entity({ name: 'users' })
@@ -22,6 +29,14 @@ export class User {
   @ManyToOne(() => Tenant, (t) => t.users, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenant_id' })
   tenant?: Tenant | null;
+
+  /** Preenchido só para `admin` — é a carteira que ele enxerga. */
+  @Column({ name: 'administradora_id', type: 'uuid', nullable: true })
+  administradoraId!: string | null;
+
+  @ManyToOne(() => Administradora, (a) => a.users)
+  @JoinColumn({ name: 'administradora_id' })
+  administradora?: Administradora | null;
 
   @Column({ type: 'varchar', length: 200 })
   nome!: string;

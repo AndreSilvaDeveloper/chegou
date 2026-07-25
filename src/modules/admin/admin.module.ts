@@ -21,5 +21,7 @@ import { AdminWhatsappService } from './admin-whatsapp.service';
   ],
   controllers: [AdminController, AdminTenantManagementController, AdminWhatsappController],
   providers: [AdminService, AdminWhatsappService],
+  // O módulo de administradoras reaproveita a criação de condomínio.
+  exports: [AdminService],
 })
 export class AdminModule {}

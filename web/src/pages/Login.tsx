@@ -1,12 +1,20 @@
 import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { api, AuthenticatedUser, getToken, setToken, setUser } from '../api/client';
+import { api, AuthenticatedUser, clearTenantAtivo, getToken, setToken, setUser } from '../api/client';
 import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff, Loader2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CodigoStrip } from '@/components/ui/codigo-strip';
+
+/** Onde cada papel cai depois de entrar. */
+const DESTINO_POR_PAPEL: Record<AuthenticatedUser['role'], string> = {
+  superadmin: '/admin',
+  admin: '/meus-condominios',
+  sindico: '/',
+  porteiro: '/',
+};
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -29,7 +37,10 @@ export function Login() {
       );
       setToken(res.accessToken);
       setUser(res.user);
-      nav(res.user.role === 'superadmin' ? '/admin' : '/', { replace: true });
+      // A administradora começa pela carteira: ela ainda não está "dentro" de
+      // nenhum condomínio, e é lá que escolhe.
+      clearTenantAtivo();
+      nav(DESTINO_POR_PAPEL[res.user.role] ?? '/', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'E-mail ou senha incorretos.');
     } finally {

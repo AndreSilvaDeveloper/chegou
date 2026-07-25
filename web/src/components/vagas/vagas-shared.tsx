@@ -1,0 +1,116 @@
+import { Bike, Car, Accessibility, Truck, type LucideIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import type {
+  SituacaoVaga,
+  StatusCobranca,
+  StatusLocacao,
+  TipoVaga,
+  VagaLocacao,
+} from '@/api/types';
+
+type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info';
+
+export const TIPO_VAGA_LABEL: Record<TipoVaga, string> = {
+  carro: 'Carro',
+  moto: 'Moto',
+  grande: 'Vaga grande',
+  pcd: 'PCD',
+};
+
+export const TIPO_VAGA_ICON: Record<TipoVaga, LucideIcon> = {
+  carro: Car,
+  moto: Bike,
+  grande: Truck,
+  pcd: Accessibility,
+};
+
+export const SITUACAO_META: Record<SituacaoVaga, { label: string; variant: BadgeVariant; ajuda: string }> = {
+  livre: {
+    label: 'Livre',
+    variant: 'success',
+    ajuda: 'Disponível para locação.',
+  },
+  vinculada: {
+    label: 'Do apartamento',
+    variant: 'info',
+    ajuda: 'Uso próprio da unidade — não entra no pool de locação.',
+  },
+  alugada: {
+    label: 'Alugada',
+    variant: 'warning',
+    ajuda: 'Tem contrato vigente.',
+  },
+  inativa: {
+    label: 'Inativa',
+    variant: 'secondary',
+    ajuda: 'Fora de operação.',
+  },
+};
+
+export const STATUS_LOCACAO_META: Record<StatusLocacao, { label: string; variant: BadgeVariant }> = {
+  ativa: { label: 'Ativa', variant: 'success' },
+  inadimplente: { label: 'Inadimplente', variant: 'destructive' },
+  encerrada: { label: 'Encerrada', variant: 'secondary' },
+};
+
+export const STATUS_COBRANCA_META: Record<StatusCobranca, { label: string; variant: BadgeVariant }> = {
+  pendente: { label: 'A enviar', variant: 'secondary' },
+  enviada: { label: 'Enviada', variant: 'info' },
+  paga: { label: 'Paga', variant: 'success' },
+  vencida: { label: 'Vencida', variant: 'destructive' },
+  cancelada: { label: 'Cancelada', variant: 'outline' },
+};
+
+export const fmtMoeda = (v: number | null | undefined) =>
+  v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+/** YYYY-MM-DD → dd/MM/yyyy, sem passar por Date (que embaralharia o fuso). */
+export function fmtData(ymd: string | null | undefined): string {
+  if (!ymd) return '—';
+  const [y, m, d] = ymd.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+}
+
+const MESES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+/** YYYY-MM-01 → "Agosto de 2026" */
+export function fmtCompetencia(ymd: string): string {
+  const [y, m] = ymd.slice(0, 10).split('-').map(Number);
+  return `${MESES[m - 1]} de ${y}`;
+}
+
+/** Nome do responsável, seja morador cadastrado ou pessoa externa. */
+export function nomeLocatario(locacao: VagaLocacao): string {
+  if (locacao.locatarioTipo === 'externo') return locacao.locatarioNome || 'Locatário externo';
+  return locacao.morador?.nome || 'Morador não informado';
+}
+
+export function contatoLocatario(locacao: VagaLocacao): string | null {
+  if (locacao.locatarioTipo === 'externo') {
+    return locacao.locatarioTelefoneE164 || locacao.locatarioEmail;
+  }
+  return locacao.morador?.telefoneE164 || locacao.morador?.email || null;
+}
+
+export function SituacaoBadge({ situacao }: { situacao: SituacaoVaga }) {
+  const meta = SITUACAO_META[situacao] ?? SITUACAO_META.livre;
+  return <Badge variant={meta.variant}>{meta.label}</Badge>;
+}
+
+/** Data local (fuso do condomínio) no formato YYYY-MM-DD. */
+export function hojeLocal(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+/** Competência atual no formato YYYY-MM. */
+export function competenciaAtual(): string {
+  return hojeLocal().slice(0, 7);
+}

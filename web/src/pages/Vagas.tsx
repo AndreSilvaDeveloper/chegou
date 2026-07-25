@@ -1,18 +1,68 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/api/client';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, ApiError } from '@/api/client';
+import type { Vaga, VagaLocacao } from '@/api/types';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Vaga, VagaLocacao } from '@/api/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Plus, Car, Bike } from 'lucide-react';
-import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { SimpleSelect } from '@/components/ui/simple-select';
+import { Label } from '@/components/ui/label';
+import {
+  Car,
+  FileText,
+  KeyRound,
+  Pencil,
+  Plus,
+  Receipt,
+  SquareParking,
+  Tags,
+  XCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { CobrancasPanel } from '@/components/vagas/CobrancasPanel';
+import { ContratoDialog } from '@/components/vagas/ContratoDialog';
+import { LocacaoFormDialog } from '@/components/vagas/LocacaoFormDialog';
+import { PrecosDialog } from '@/components/vagas/PrecosDialog';
+import { VagaFormDialog } from '@/components/vagas/VagaFormDialog';
+import {
+  contatoLocatario,
+  fmtData,
+  fmtMoeda,
+  nomeLocatario,
+  SituacaoBadge,
+  STATUS_LOCACAO_META,
+  TIPO_VAGA_ICON,
+  TIPO_VAGA_LABEL,
+} from '@/components/vagas/vagas-shared';
+
+type Aba = 'vagas' | 'locacoes' | 'cobrancas';
+
+const FILTRO_LOCACOES = [
+  { value: 'vigentes', label: 'Vigentes' },
+  { value: 'encerradas', label: 'Encerradas' },
+  { value: 'todas', label: 'Todas' },
+];
 
 export function Vagas() {
-  const [activeTab, setActiveTab] = useState('vagas');
+  const [aba, setAba] = useState<Aba>('vagas');
+  const [precosAberto, setPrecosAberto] = useState(false);
+  const [vagaForm, setVagaForm] = useState<{ aberto: boolean; vaga: Vaga | null }>({
+    aberto: false,
+    vaga: null,
+  });
+  const [locacaoForm, setLocacaoForm] = useState<{ aberto: boolean; locacao: VagaLocacao | null }>({
+    aberto: false,
+    locacao: null,
+  });
+  const [contrato, setContrato] = useState<VagaLocacao | null>(null);
+  const [encerrando, setEncerrando] = useState<VagaLocacao | null>(null);
+  const [filtroLocacoes, setFiltroLocacoes] = useState('vigentes');
+  const queryClient = useQueryClient();
 
   const vagasQuery = useQuery({
     queryKey: ['vagas'],
@@ -24,131 +74,318 @@ export function Vagas() {
     queryFn: () => api.get<VagaLocacao[]>('/vagas-locacao'),
   });
 
-  const getTipoIcon = (tipo: string) => {
-    switch (tipo) {
-      case 'carro': return <Car className="h-5 w-5" />;
-      case 'moto': return <Bike className="h-5 w-5" />;
-      default: return <Car className="h-5 w-5" />;
-    }
-  };
+  const encerrar = useMutation({
+    mutationFn: (id: string) => api.post<VagaLocacao>(`/vagas-locacao/${id}/encerrar`),
+    onSuccess: () => {
+      toast.success('Locação encerrada. A vaga voltou a ficar livre.');
+      queryClient.invalidateQueries({ queryKey: ['vagas'] });
+      queryClient.invalidateQueries({ queryKey: ['vagas-locacao'] });
+      queryClient.invalidateQueries({ queryKey: ['vagas-disponiveis'] });
+      setEncerrando(null);
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof ApiError ? err.message : 'Não foi possível encerrar a locação');
+    },
+  });
 
-  const locacoesColumns = [
-    {
-      accessorKey: 'vaga.numero',
-      header: 'Vaga',
-    },
-    {
-      accessorKey: 'morador.nome',
-      header: 'Locatário',
-      cell: ({ row }: any) => {
-        return row.original.morador ? row.original.morador.nome : 'Sem morador';
-      }
-    },
-    {
-      accessorKey: 'valorMensal',
-      header: 'Valor Mensal',
-      cell: ({ row }: any) => `R$ ${Number(row.original.valorMensal).toFixed(2).replace('.', ',')}`
-    },
-    {
-      accessorKey: 'diaVencimento',
-      header: 'Vencimento',
-      cell: ({ row }: any) => `Dia ${row.original.diaVencimento}`
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }: any) => {
-        const status = row.original.status;
-        let variant: 'default' | 'destructive' | 'outline' | 'secondary' = 'default';
-        
-        if (status === 'ativa') variant = 'default';
-        else if (status === 'encerrada') variant = 'secondary';
-        else if (status === 'inadimplente') variant = 'destructive';
+  const vagas = vagasQuery.data ?? [];
+  const locacoes = useMemo(() => {
+    const todas = locacoesQuery.data ?? [];
+    if (filtroLocacoes === 'encerradas') return todas.filter((l) => l.status === 'encerrada');
+    if (filtroLocacoes === 'vigentes') return todas.filter((l) => l.status !== 'encerrada');
+    return todas;
+  }, [locacoesQuery.data, filtroLocacoes]);
 
-        return <Badge variant={variant}>{status.toUpperCase()}</Badge>;
-      }
-    }
-  ];
+  const vigentes = (locacoesQuery.data ?? []).filter((l) => l.status !== 'encerrada').length;
+  const livres = vagas.filter((v) => v.alugavel).length;
 
   return (
     <div className="space-y-6 pb-10">
-      <PageHeader 
-        title="Gestão de Vagas" 
-        description="Gerencie as vagas de garagem e as locações avulsas."
+      <PageHeader
+        icon={SquareParking}
+        eyebrow="Garagem"
+        title="Vagas"
+        description={`${vagas.length} vaga(s) cadastrada(s) · ${livres} livre(s) para locação`}
       >
-        <div className="flex space-x-2">
-          {activeTab === 'vagas' ? (
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Nova Vaga
-            </Button>
-          ) : (
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Nova Locação
-            </Button>
-          )}
-        </div>
+        <Button
+          variant="outline"
+          onClick={() => setPrecosAberto(true)}
+          className="min-h-[48px] w-full sm:w-auto"
+        >
+          <Tags className="mr-2 h-4 w-4" />
+          Tabela de preços
+        </Button>
       </PageHeader>
-      
-      <Tabs defaultValue="vagas" onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="vagas">Vagas ({vagasQuery.data?.length || 0})</TabsTrigger>
-          <TabsTrigger value="locacoes">Locações Ativas ({locacoesQuery.data?.length || 0})</TabsTrigger>
+
+      <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="space-y-4">
+        <TabsList className="grid h-auto w-full grid-cols-3">
+          <TabsTrigger value="vagas" className="min-h-[44px] text-sm">
+            Vagas ({vagas.length})
+          </TabsTrigger>
+          <TabsTrigger value="locacoes" className="min-h-[44px] text-sm">
+            Locações ({vigentes})
+          </TabsTrigger>
+          <TabsTrigger value="cobrancas" className="min-h-[44px] text-sm">
+            Cobranças
+          </TabsTrigger>
         </TabsList>
 
+        {/* --------------------------------------------------------- vagas */}
         <TabsContent value="vagas" className="space-y-4">
+          <Button
+            onClick={() => setVagaForm({ aberto: true, vaga: null })}
+            className="min-h-[48px] w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nova vaga
+          </Button>
+
           {vagasQuery.isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-xl" />)}
-            </div>
-          ) : vagasQuery.data?.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground min-h-[300px]">
-              <Car className="h-12 w-12 mb-4 text-muted" />
-              <p>Nenhuma vaga cadastrada neste condomínio.</p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {vagasQuery.data?.map(vaga => (
-                <Card key={vaga.id} className="overflow-hidden">
-                  <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-xl font-bold flex items-center space-x-2">
-                      <div className="bg-primary/10 p-2 rounded-full text-primary">
-                        {getTipoIcon(vaga.tipo)}
-                      </div>
-                      <span>Vaga {vaga.numero}</span>
-                    </CardTitle>
-                    <Badge variant={vaga.ativo ? 'outline' : 'secondary'}>
-                      {vaga.ativo ? 'Ativa' : 'Inativa'}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent className="pt-0 md:pt-0">
-                    <div className="text-sm text-muted-foreground mt-2 space-y-1">
-                      <p><span className="font-medium text-foreground">Localização:</span> {vaga.localizacao || 'Não informada'}</p>
-                      <p><span className="font-medium text-foreground">Apartamento:</span> {vaga.apartamento ? `${vaga.apartamento.bloco ? vaga.apartamento.bloco + '-' : ''}${vaga.apartamento.numero}` : 'Vaga solta / Locação'}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-[168px] rounded-xl" />
               ))}
+            </div>
+          ) : vagas.length === 0 ? (
+            <EmptyState
+              icon={Car}
+              title="Nenhuma vaga cadastrada"
+              description="Cadastre as vagas da garagem para vincular a apartamentos ou alugar."
+              actionLabel="Cadastrar primeira vaga"
+              onAction={() => setVagaForm({ aberto: true, vaga: null })}
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {vagas.map((vaga) => {
+                const Icone = TIPO_VAGA_ICON[vaga.tipo] ?? Car;
+                return (
+                  <Card key={vaga.id}>
+                    <CardContent className="space-y-4 p-4 md:p-5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-muted text-primary">
+                            <Icone className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-lg font-semibold text-foreground">
+                              Vaga {vaga.numero}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {TIPO_VAGA_LABEL[vaga.tipo]}
+                            </p>
+                          </div>
+                        </div>
+                        <SituacaoBadge situacao={vaga.situacao} />
+                      </div>
+
+                      <dl className="space-y-1 text-sm">
+                        <div className="flex gap-2">
+                          <dt className="text-muted-foreground">Local:</dt>
+                          <dd className="text-foreground">{vaga.localizacao || 'Não informado'}</dd>
+                        </div>
+                        <div className="flex gap-2">
+                          <dt className="text-muted-foreground">Apartamento:</dt>
+                          <dd className="text-foreground">
+                            {vaga.apartamento?.identificador ?? 'Nenhum — vaga do pool'}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => setVagaForm({ aberto: true, vaga })}
+                        className="min-h-[48px] w-full"
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar vaga
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>
 
+        {/* ------------------------------------------------------ locações */}
         <TabsContent value="locacoes" className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2 sm:max-w-xs sm:flex-1">
+              <Label htmlFor="loc-filtro" className="text-base">
+                Mostrar
+              </Label>
+              <SimpleSelect
+                id="loc-filtro"
+                value={filtroLocacoes}
+                onValueChange={setFiltroLocacoes}
+                options={FILTRO_LOCACOES}
+              />
+            </div>
+            <Button
+              onClick={() => setLocacaoForm({ aberto: true, locacao: null })}
+              className="min-h-[48px] w-full sm:w-auto"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nova locação
+            </Button>
+          </div>
+
           {locacoesQuery.isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-[220px] rounded-xl" />
+              ))}
+            </div>
+          ) : locacoes.length === 0 ? (
+            <EmptyState
+              icon={KeyRound}
+              title="Nenhuma locação por aqui"
+              description="Alugue uma vaga livre para um morador ou para alguém de fora do condomínio."
+              actionLabel="Criar locação"
+              onAction={() => setLocacaoForm({ aberto: true, locacao: null })}
+            />
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <DataTable 
-                  columns={locacoesColumns} 
-                  data={locacoesQuery.data || []} 
-                  searchKey="morador.nome"
-                  searchPlaceholder="Buscar por locatário..."
-                />
-              </CardContent>
-            </Card>
+            <div className="space-y-3">
+              {locacoes.map((locacao) => {
+                const meta = STATUS_LOCACAO_META[locacao.status];
+                const encerrada = locacao.status === 'encerrada';
+                return (
+                  <Card key={locacao.id}>
+                    <CardContent className="space-y-4 p-4 md:p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-base font-semibold text-foreground">
+                            Vaga {locacao.vaga?.numero ?? '—'} · {nomeLocatario(locacao)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {locacao.locatarioTipo === 'externo' ? 'Pessoa externa' : 'Morador'}
+                            {contatoLocatario(locacao) ? ` · ${contatoLocatario(locacao)}` : ''}
+                          </p>
+                        </div>
+                        <Badge variant={meta.variant}>{meta.label}</Badge>
+                      </div>
+
+                      <dl className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <dt className="text-muted-foreground">Valor mensal</dt>
+                          <dd className="font-mono text-base font-semibold text-foreground">
+                            {fmtMoeda(locacao.valorMensal)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Vencimento</dt>
+                          <dd className="font-mono text-base text-foreground">
+                            Todo dia {locacao.diaVencimento}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Início</dt>
+                          <dd className="font-mono text-base text-foreground">
+                            {fmtData(locacao.dataInicio)}
+                          </dd>
+                        </div>
+                        {encerrada && (
+                          <div>
+                            <dt className="text-muted-foreground">Encerrada em</dt>
+                            <dd className="font-mono text-base text-foreground">
+                              {fmtData(locacao.dataFim)}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          variant="outline"
+                          onClick={() => setContrato(locacao)}
+                          className="min-h-[48px] w-full sm:w-auto"
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          {locacao.contratoUrl ? 'Ver contrato' : 'Anexar contrato'}
+                        </Button>
+                        {!encerrada && (
+                          <>
+                            <Button
+                              variant="outline"
+                              onClick={() => setLocacaoForm({ aberto: true, locacao })}
+                              className="min-h-[48px] w-full sm:w-auto"
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setEncerrando(locacao)}
+                              className="min-h-[48px] w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Encerrar
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ----------------------------------------------------- cobranças */}
+        <TabsContent value="cobrancas" className="space-y-4">
+          {vigentes === 0 && !locacoesQuery.isLoading ? (
+            <EmptyState
+              icon={Receipt}
+              title="Sem locações para cobrar"
+              description="As cobranças são geradas a partir das locações vigentes. Crie uma locação primeiro."
+              actionLabel="Criar locação"
+              onAction={() => {
+                setAba('locacoes');
+                setLocacaoForm({ aberto: true, locacao: null });
+              }}
+            />
+          ) : (
+            <CobrancasPanel />
           )}
         </TabsContent>
       </Tabs>
+
+      <PrecosDialog open={precosAberto} onOpenChange={setPrecosAberto} />
+
+      <VagaFormDialog
+        open={vagaForm.aberto}
+        onOpenChange={(aberto) => setVagaForm((f) => ({ ...f, aberto }))}
+        vaga={vagaForm.vaga}
+      />
+
+      <LocacaoFormDialog
+        open={locacaoForm.aberto}
+        onOpenChange={(aberto) => setLocacaoForm((f) => ({ ...f, aberto }))}
+        locacao={locacaoForm.locacao}
+      />
+
+      <ContratoDialog
+        open={!!contrato}
+        onOpenChange={(aberto) => !aberto && setContrato(null)}
+        locacao={contrato}
+      />
+
+      <ConfirmDialog
+        open={!!encerrando}
+        onOpenChange={(aberto) => !aberto && setEncerrando(null)}
+        title="Encerrar esta locação?"
+        description={
+          encerrando
+            ? `Vaga ${encerrando.vaga?.numero ?? '—'} de ${nomeLocatario(encerrando)}. A vaga volta para o pool de locação e não são geradas novas cobranças.`
+            : ''
+        }
+        confirmLabel="Encerrar locação"
+        cancelLabel="Voltar"
+        variant="destructive"
+        loading={encerrar.isPending}
+        onConfirm={() => encerrando && encerrar.mutate(encerrando.id)}
+      />
     </div>
   );
 }

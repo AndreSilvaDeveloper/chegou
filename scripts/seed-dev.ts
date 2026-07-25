@@ -1,8 +1,9 @@
 import 'reflect-metadata';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import {
+  Administradora,
   Apartamento,
   AuditLog,
   Encomenda,
@@ -20,7 +21,7 @@ async function main() {
   const ds = new DataSource({
     type: 'postgres',
     url: process.env.DATABASE_URL,
-    entities: [Tenant, User, Apartamento, Morador, Encomenda, WhatsappMessage, AuditLog],
+    entities: [Administradora, Tenant, User, Apartamento, Morador, Encomenda, WhatsappMessage, AuditLog],
     synchronize: false,
   });
 
@@ -32,7 +33,10 @@ async function main() {
 
   // 1. Superadmin
   const userRepo = ds.getRepository(User);
-  let superadmin = await userRepo.findOne({ where: { email: 'admin@portaria.app', tenantId: undefined } });
+  // IsNull() e não `undefined`: o TypeORM recusa undefined em where.
+  let superadmin = await userRepo.findOne({
+    where: { email: 'admin@portaria.app', tenantId: IsNull() },
+  });
   if (!superadmin) {
     superadmin = await userRepo.save(
       userRepo.create({
@@ -49,12 +53,30 @@ async function main() {
     console.log(`[skip] superadmin já existe: ${superadmin.email}`);
   }
 
-  // 2. Condomínio de teste
+  // 2. Administradora de teste (dona da carteira)
+  const administradoraRepo = ds.getRepository(Administradora);
+  let administradora = await administradoraRepo.findOne({ where: { cnpj: '11222333000181' } });
+  if (!administradora) {
+    administradora = await administradoraRepo.save(
+      administradoraRepo.create({
+        nome: 'Administradora Central',
+        cnpj: '11222333000181',
+        emailContato: 'contato@central.app',
+        ativo: true,
+      }),
+    );
+    console.log(`[ok] administradora criada: ${administradora.nome}`);
+  } else {
+    console.log(`[skip] administradora já existe: ${administradora.nome}`);
+  }
+
+  // 3. Condomínio de teste, já na carteira da administradora
   const tenantRepo = ds.getRepository(Tenant);
   let tenant = await tenantRepo.findOne({ where: { slug: 'residencial-bela-vista' } });
   if (!tenant) {
     tenant = await tenantRepo.save(
       tenantRepo.create({
+        administradoraId: administradora.id,
         nome: 'Residencial Bela Vista',
         slug: 'residencial-bela-vista',
         cidade: 'São Paulo',
@@ -64,11 +86,34 @@ async function main() {
       }),
     );
     console.log(`[ok] condomínio criado: ${tenant.nome}`);
+  } else if (!tenant.administradoraId) {
+    tenant.administradoraId = administradora.id;
+    await tenantRepo.save(tenant);
+    console.log(`[ok] condomínio vinculado à carteira: ${tenant.nome}`);
   } else {
     console.log(`[skip] condomínio já existe: ${tenant.nome}`);
   }
 
-  // 3. Síndico
+  // 3.1 Acesso da administradora
+  const adminAdministradora = await userRepo.findOne({ where: { email: 'admin@central.app' } });
+  if (!adminAdministradora) {
+    const criado = await userRepo.save(
+      userRepo.create({
+        tenantId: null,
+        administradoraId: administradora.id,
+        nome: 'Ana Administradora',
+        email: 'admin@central.app',
+        senhaHash,
+        role: 'admin',
+        ativo: true,
+      }),
+    );
+    console.log(`[ok] acesso da administradora criado: ${criado.email}`);
+  } else {
+    console.log(`[skip] acesso da administradora já existe: ${adminAdministradora.email}`);
+  }
+
+  // 4. Síndico
   let sindico = await userRepo.findOne({ where: { email: 'sindico@bela-vista.app', tenantId: tenant.id } });
   if (!sindico) {
     sindico = await userRepo.save(
@@ -86,7 +131,7 @@ async function main() {
     console.log(`[skip] síndico já existe: ${sindico.email}`);
   }
 
-  // 4. Porteiro
+  // 5. Porteiro
   let porteiro = await userRepo.findOne({ where: { email: 'porteiro@bela-vista.app', tenantId: tenant.id } });
   if (!porteiro) {
     porteiro = await userRepo.save(
@@ -104,7 +149,7 @@ async function main() {
     console.log(`[skip] porteiro já existe: ${porteiro.email}`);
   }
 
-  // 5. Apartamentos + moradores
+  // 6. Apartamentos + moradores
   const aptoRepo = ds.getRepository(Apartamento);
   const moradorRepo = ds.getRepository(Morador);
 
@@ -147,9 +192,10 @@ async function main() {
   console.log('\n=== seed concluído ===');
   console.log('Senha padrão de todos os usuários: ' + DEFAULT_PASSWORD);
   console.log('Logins:');
-  console.log('  superadmin → admin@portaria.app');
-  console.log('  síndico    → sindico@bela-vista.app');
-  console.log('  porteiro   → porteiro@bela-vista.app');
+  console.log('  superadmin     → admin@portaria.app');
+  console.log('  administradora → admin@central.app');
+  console.log('  síndico        → sindico@bela-vista.app');
+  console.log('  porteiro       → porteiro@bela-vista.app');
 }
 
 main().catch((err) => {

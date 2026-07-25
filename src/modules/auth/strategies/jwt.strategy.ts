@@ -21,10 +21,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
     const user = await this.authService.findActiveUserById(payload.sub);
     if (!user) throw new UnauthorizedException('Sessão inválida');
+    // Carregado do banco a cada request: desativar o usuário ou tirá-lo da
+    // carteira vale na hora, sem esperar o token expirar.
     return {
       id: user.id,
       tenantId: user.tenantId,
       tenantNome: user.tenant?.nome ?? null,
+      administradoraId: user.administradoraId,
+      administradoraNome: user.administradora?.nome ?? null,
       role: user.role,
       nome: user.nome,
       email: user.email,

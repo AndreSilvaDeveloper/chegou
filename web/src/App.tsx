@@ -13,6 +13,8 @@ const Moradores = React.lazy(() => import('./pages/Moradores').then(m => ({ defa
 const Equipe = React.lazy(() => import('./pages/Equipe').then(m => ({ default: m.Equipe })));
 const SuperAdmin = React.lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })));
 const SuperAdminTenant = React.lazy(() => import('./pages/SuperAdminTenant').then(m => ({ default: m.SuperAdminTenant })));
+const SuperAdminAdministradoras = React.lazy(() => import('./pages/SuperAdminAdministradoras').then(m => ({ default: m.SuperAdminAdministradoras })));
+const MeusCondominios = React.lazy(() => import('./pages/MeusCondominios').then(m => ({ default: m.MeusCondominios })));
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Relatorios = React.lazy(() => import('./pages/Relatorios').then(m => ({ default: m.Relatorios })));
 const Vagas = React.lazy(() => import('./pages/Vagas').then(m => ({ default: m.Vagas })));
@@ -26,20 +28,25 @@ export default function App() {
     <Suspense fallback={<div className="flex h-screen items-center justify-center text-muted-foreground">Carregando...</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route path="/" element={<Encomendas />} />
+        {/* O wrapper do Layout só exige login: a regra de "escolha um condomínio"
+            fica em cada rota, senão a própria tela da carteira cairia nela. */}
+        <Route element={<ProtectedRoute semCondominio><Layout /></ProtectedRoute>}>
+          <Route path="/" element={<ProtectedRoute><Encomendas /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Dashboard /></ProtectedRoute>} />
-          <Route path="/encomendas/nova" element={<NovaEncomenda />} />
-          <Route path="/encomendas/:id" element={<DetalheEncomenda />} />
+          <Route path="/encomendas/nova" element={<ProtectedRoute><NovaEncomenda /></ProtectedRoute>} />
+          <Route path="/encomendas/:id" element={<ProtectedRoute><DetalheEncomenda /></ProtectedRoute>} />
           <Route path="/apartamentos" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Apartamentos /></ProtectedRoute>} />
           <Route path="/moradores" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Moradores /></ProtectedRoute>} />
           <Route path="/equipe" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Equipe /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdmin /></ProtectedRoute>} />
           <Route path="/admin/whatsapp" element={<ProtectedRoute allowedRoles={['superadmin']}><AdminWhatsapp /></ProtectedRoute>} />
           <Route path="/admin/condominios/:id" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminTenant /></ProtectedRoute>} />
+          <Route path="/admin/administradoras" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminAdministradoras /></ProtectedRoute>} />
+          {/* Carteira da administradora: única tela dela que roda sem condomínio escolhido. */}
+          <Route path="/meus-condominios" element={<ProtectedRoute allowedRoles={['admin']} semCondominio><MeusCondominios /></ProtectedRoute>} />
           <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Relatorios /></ProtectedRoute>} />
-          <Route path="/vagas" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Vagas /></ProtectedRoute>} />
-          <Route path="/avisos" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Avisos /></ProtectedRoute>} />
+          <Route path="/vagas" element={<ProtectedRoute allowedRoles={['admin', 'sindico']} requiresModule="vagas"><Vagas /></ProtectedRoute>} />
+          <Route path="/avisos" element={<ProtectedRoute allowedRoles={['admin', 'sindico']} requiresModule="avisos"><Avisos /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Notificacoes /></ProtectedRoute>} />
           <Route path="/whatsapp" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Whatsapp /></ProtectedRoute>} />
         </Route>

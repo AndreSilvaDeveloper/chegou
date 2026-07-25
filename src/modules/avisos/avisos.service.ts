@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Aviso, Morador } from '../../database/entities';
+import { Apartamento, Aviso, Morador } from '../../database/entities';
+import { assertRefDoTenant } from '../../common/tenant-scope/tenant-ref';
 import { DestinatarioAviso } from '../../database/entities/aviso.entity';
 import { TipoNotificacao } from '../../database/entities/notificacao.entity';
 import { CriarAvisoDto } from './dto/criar-aviso.dto';
@@ -14,6 +15,8 @@ export class AvisosService {
     private avisoRepo: Repository<Aviso>,
     @InjectRepository(Morador)
     private moradorRepo: Repository<Morador>,
+    @InjectRepository(Apartamento)
+    private apartamentoRepo: Repository<Apartamento>,
     private notificationService: NotificationService,
   ) {}
 
@@ -35,8 +38,10 @@ export class AvisosService {
   }
 
   async criar(tenantId: string, userId: string, dto: CriarAvisoDto) {
+    await this.assertDestinatarioDoTenant(tenantId, dto);
     const aviso = this.avisoRepo.create({
       ...dto,
+      // Depois do spread de propósito: o corpo da request não escolhe o dono.
       tenantId,
       criadoPorId: userId,
     });
@@ -50,6 +55,25 @@ export class AvisosService {
     }
 
     return aviso;
+  }
+
+  /**
+   * O apartamento do filtro precisa ser deste condomínio.
+   *
+   * A busca de moradores já é filtrada por tenant, então um id de fora não
+   * vazaria dado — mas viraria um aviso "enviado" para ninguém, sem erro. Falha
+   * explícita é melhor que silêncio.
+   */
+  private async assertDestinatarioDoTenant(tenantId: string, dto: CriarAvisoDto): Promise<void> {
+    const apartamentoId = dto.destinatarioFiltro?.apartamentoId;
+    if (dto.destinatario !== DestinatarioAviso.APARTAMENTO || !apartamentoId) return;
+
+    await assertRefDoTenant(
+      this.apartamentoRepo,
+      tenantId,
+      apartamentoId,
+      'Apartamento não encontrado neste condomínio',
+    );
   }
 
   private async dispararNotificacoes(aviso: Aviso) {

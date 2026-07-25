@@ -2,10 +2,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Administradora } from './administradora.entity';
 import { User } from './user.entity';
 import { Apartamento } from './apartamento.entity';
 import { Morador } from './morador.entity';
@@ -15,6 +18,14 @@ import { Encomenda } from './encomenda.entity';
 export class Tenant {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  /** NULL = condomínio sem administradora, gerido direto pelo superadmin. */
+  @Column({ name: 'administradora_id', type: 'uuid', nullable: true })
+  administradoraId!: string | null;
+
+  @ManyToOne(() => Administradora, (a) => a.tenants)
+  @JoinColumn({ name: 'administradora_id' })
+  administradora?: Administradora | null;
 
   @Column({ type: 'varchar', length: 200 })
   nome!: string;

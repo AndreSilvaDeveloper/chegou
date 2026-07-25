@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
-import { CurrentUser, Public } from '../../common/decorators';
+import { CurrentUser, Public, TenantScope } from '../../common/decorators';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthenticatedUser } from './types';
@@ -24,7 +24,7 @@ export class AuthController {
   }
 
   @Get('me')
-  me(@CurrentUser() user: AuthenticatedUser) {
-    return this.authService.me(user);
+  me(@CurrentUser() user: AuthenticatedUser, @TenantScope() tenantEscopo: string | null) {
+    return this.authService.me(user, tenantEscopo);
   }
 }

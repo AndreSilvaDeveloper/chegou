@@ -9,12 +9,13 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { Roles, TenantId } from '../../common/decorators';
+import { RequiresModule, Roles, TenantId } from '../../common/decorators';
 import { VagasService } from './vagas.service';
 import { CriarVagaDto } from './dto/criar-vaga.dto';
 import { AtualizarVagaDto } from './dto/atualizar-vaga.dto';
 
 @Controller('vagas')
+@RequiresModule('vagas')
 export class VagasController {
   constructor(private readonly service: VagasService) {}
 
@@ -24,6 +25,14 @@ export class VagasController {
     return this.service.listar(tenantId);
   }
 
+  /** Pool de locação: vagas ativas, sem apartamento e sem contrato vigente. */
+  @Get('disponiveis')
+  @Roles('admin', 'sindico')
+  listarDisponiveis(@TenantId() tenantId: string) {
+    return this.service.listarDisponiveis(tenantId);
+  }
+
+  // Depois de 'disponiveis' — rota curinga não pode capturar o path fixo.
   @Get(':id')
   @Roles('admin', 'sindico', 'porteiro')
   obter(@TenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {

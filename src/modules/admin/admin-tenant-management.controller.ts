@@ -24,8 +24,13 @@ import { CriarUsuarioDto } from '../usuarios/dto/criar-usuario.dto';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { AdminService } from './admin.service';
 
-/** Papéis que o superadmin pode criar/atribuir dentro de um condomínio. */
-const ROLES_SUPERADMIN: UserRole[] = ['porteiro', 'sindico', 'admin'];
+/**
+ * Papéis que o superadmin pode criar/atribuir DENTRO de um condomínio.
+ *
+ * `admin` não entra: administradora não pertence a condomínio (o banco recusa),
+ * e é criada em /admin/administradoras/:id/usuarios.
+ */
+const ROLES_SUPERADMIN: UserRole[] = ['porteiro', 'sindico'];
 
 /**
  * Permite ao superadmin gerenciar os recursos de um condomínio específico

@@ -12,6 +12,8 @@ import { OpenwaService } from '../openwa/openwa.service';
 import { AtualizarTenantDto } from './dto/atualizar-tenant.dto';
 import { CriarTenantDto } from './dto/criar-tenant.dto';
 import { DEFAULT_TENANT_CONFIG } from './dto/config-tenant.dto';
+import { TenantConfigService } from '../../common/tenant-config/tenant-config.service';
+import { TenantScopeService } from '../../common/tenant-scope/tenant-scope.service';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -22,6 +24,8 @@ export class AdminService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly config: ConfigService,
     private readonly openwa: OpenwaService,
+    private readonly tenantConfig: TenantConfigService,
+    private readonly tenantScope: TenantScopeService,
   ) {}
 
   async listarTenants(): Promise<Array<Tenant & { qtdUsuarios: number }>> {
@@ -47,13 +51,21 @@ export class AdminService {
     return { ...tenant, usuarios };
   }
 
-  async criarTenant(dto: CriarTenantDto): Promise<Tenant> {
+  /**
+   * Cria o condomínio e o primeiro síndico.
+   *
+   * `administradoraId` vem de quem chama, nunca do corpo da request: o
+   * superadmin escolhe a carteira, e a administradora só consegue criar dentro
+   * da própria.
+   */
+  async criarTenant(dto: CriarTenantDto, administradoraId: string | null = null): Promise<Tenant> {
     const rounds = this.config.get<number>('BCRYPT_ROUNDS', 12);
     const senhaHash = await bcrypt.hash(dto.sindicoSenha, rounds);
 
     try {
       const tenant = await this.tenantRepo.save(
         this.tenantRepo.create({
+          administradoraId,
           nome: dto.nome,
           slug: dto.slug,
           cnpj: dto.cnpj ?? null,
@@ -99,14 +111,27 @@ export class AdminService {
     if (dto.plano !== undefined) tenant.plano = dto.plano;
     if (dto.ativo !== undefined) tenant.ativo = dto.ativo;
     if (dto.configJson !== undefined) {
+      // O class-transformer materializa TODO campo declarado no ConfigTenantDto,
+      // inclusive os que não vieram no corpo, com valor `undefined`. Espalhar o
+      // DTO cru sobrescreveria a config existente com undefined — e o JSONB
+      // descarta essas chaves, apagando o que já estava salvo. Só o que veio
+      // de fato pode entrar no merge.
+      const alteracoes = Object.fromEntries(
+        Object.entries(dto.configJson).filter(([, valor]) => valor !== undefined),
+      );
       tenant.configJson = {
         ...DEFAULT_TENANT_CONFIG,
         ...(tenant.configJson ?? {}),
-        ...dto.configJson,
+        ...alteracoes,
       };
     }
     try {
-      return await this.tenantRepo.save(tenant);
+      const salvo = await this.tenantRepo.save(tenant);
+      // Ligar/desligar um módulo precisa valer na próxima request, não depois do TTL.
+      this.tenantConfig.invalidate(id);
+      // Idem para desativar o condomínio: o escopo por request também é cacheado.
+      this.tenantScope.invalidate(id);
+      return salvo;
     } catch (err) {
       if (err instanceof QueryFailedError && (err as { code?: string }).code === PG_UNIQUE_VIOLATION) {
         throw new ConflictException('Slug ou CNPJ já em uso por outro condomínio');

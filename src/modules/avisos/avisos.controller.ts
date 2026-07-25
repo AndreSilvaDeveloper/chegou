@@ -8,11 +8,12 @@ import {
   ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
-import { Roles, TenantId, CurrentUser } from '../../common/decorators';
+import { Roles, TenantId, CurrentUser, RequiresModule } from '../../common/decorators';
 import { AvisosService } from './avisos.service';
 import { CriarAvisoDto } from './dto/criar-aviso.dto';
 
 @Controller('avisos')
+@RequiresModule('avisos')
 export class AvisosController {
   constructor(private readonly service: AvisosService) {}
 
