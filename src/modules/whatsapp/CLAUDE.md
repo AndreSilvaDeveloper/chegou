@@ -30,9 +30,11 @@ aberta justamente porque ele escreveu.
 ## Estrutura
 
 - `whatsapp.service.ts` — histórico, resolução do remetente e intenções
-- `templates.ts` — textos: `retirada_confirmada`, `lembrete_codigo`,
-  `sem_encomenda_pendente` (o texto de chegada é do módulo Notificações, porque
-  o condomínio pode personalizar)
+- `templates.ts` — só os textos **fixos** do sistema: `lembrete_codigo`,
+  `sem_encomenda_pendente` (e `encomenda_chegou`, usado no envio direto). Os
+  textos que o condomínio personaliza — **chegada e retirada da encomenda** —
+  vivem em `notificacoes/message-template.ts`; duplicá-los aqui faria a tela do
+  síndico editar um lado e o envio usar o outro
 - `webhook-openwa.controller.ts` — entrada de eventos do gateway
 - `inbound-openwa.parser.ts` — traduz o payload do gateway para o histórico
 

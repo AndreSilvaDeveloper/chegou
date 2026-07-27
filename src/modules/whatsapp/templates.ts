@@ -1,15 +1,14 @@
-export type TemplateKey = 'encomenda_chegou' | 'retirada_confirmada' | 'lembrete_codigo' | 'sem_encomenda_pendente';
+// Aqui ficam só os textos FIXOS do sistema. Os que o condomínio personaliza —
+// chegada da encomenda e confirmação de retirada — vivem em
+// `notificacoes/message-template.ts`, com as variáveis {{...}} e o padrão.
+// Duplicar o texto da retirada aqui faria a tela do síndico editar um lado e o
+// envio usar o outro.
+export type TemplateKey = 'encomenda_chegou' | 'lembrete_codigo' | 'sem_encomenda_pendente';
 
 interface EncomendaChegouVars {
   nome: string;
   apartamento: string;
   codigo: string;
-  condominio: string;
-}
-
-interface RetiradaConfirmadaVars {
-  nome: string;
-  apartamento: string;
   condominio: string;
 }
 
@@ -25,7 +24,6 @@ interface SemEncomendaVars {
 
 export type TemplateVariables = {
   encomenda_chegou: EncomendaChegouVars;
-  retirada_confirmada: RetiradaConfirmadaVars;
   lembrete_codigo: LembreteCodigoVars;
   sem_encomenda_pendente: SemEncomendaVars;
 };
@@ -41,15 +39,6 @@ export function renderTemplate<K extends TemplateKey>(key: K, vars: TemplateVari
         ``,
         `Seu código de retirada é *${v.codigo}*.`,
         `Apresente este código ao porteiro para retirar.`,
-      ].join('\n');
-    }
-    case 'retirada_confirmada': {
-      const v = vars as RetiradaConfirmadaVars;
-      return [
-        `Olá, ${v.nome}!`,
-        ``,
-        `Confirmamos a retirada da sua encomenda do ${v.apartamento} no *${v.condominio}*.`,
-        `Obrigado!`,
       ].join('\n');
     }
     case 'lembrete_codigo': {

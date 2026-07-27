@@ -72,6 +72,28 @@ faz o seu `max-h` vencer o da base, e `vh` no celular inclui a barra do
 navegador — é exatamente o que fazia o diálogo ser cortado em cima e embaixo.
 Altura de diálogo se mede em `dvh`.
 
+### Nunca declare um componente dentro de outro
+
+```tsx
+// ❌ ERRADO: função nova a cada render → o React desmonta e remonta tudo
+export function Layout() {
+  const SidebarBody = () => <nav>…</nav>;
+  return <SidebarBody />;
+}
+
+// ✅ CORRETO: componente no escopo do módulo, recebendo o que precisa por prop
+function SidebarBody({ groups }: Props) { return <nav>…</nav>; }
+```
+
+O React identifica componente pela **função**. Recriada a cada render, ela vira
+"outro componente": o DOM é destruído e refeito, o estado interno some, a
+rolagem volta ao topo e a tela pisca. Foi exatamente o que fazia a sidebar
+"recarregar" a cada troca de rota (o `Layout` re-renderiza por causa do
+`useLocation`). Re-render é barato e esperado; **remontar não é**.
+
+Para conferir se um pedaço está remontando: marque o nó no DevTools
+(`$0.dataset.marcador = '1'`), navegue e veja se o marcador sobreviveu.
+
 ### Cor: use o token, nunca o hex
 
 A paleta inteira está em `styles.css` (tema **Warm Sand**, âmbar `#FFC72C`).

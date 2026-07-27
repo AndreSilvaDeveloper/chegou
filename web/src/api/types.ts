@@ -514,16 +514,28 @@ export interface TemplateVariavel {
   exemplo: string;
 }
 
-/** Config de disparo/template do próprio condomínio (endpoint do síndico). */
+/** Config de disparo/modelos de mensagem do próprio condomínio (endpoint do síndico). */
 export interface WhatsappTenantConfig {
+  /** Texto salvo pelo condomínio; vazio = está usando o padrão do sistema. */
   templateEncomenda: string;
   templatePadrao: string;
   variaveis: TemplateVariavel[];
+  templateRetirada: string;
+  templatePadraoRetirada: string;
+  variaveisRetirada: TemplateVariavel[];
   intervaloSegundos: number;
   jitterSegundos: number;
   limiteDiario: number;
   horarioEnvioInicio: string;
   horarioEnvioFim: string;
+  /** Faixas que o condomínio pode escolher; vêm do backend, não replique aqui. */
+  limites: {
+    intervaloMinimoSegundos: number;
+    janelaMinima: string;
+    janelaMaxima: string;
+    limiteDiarioMinimo: number;
+    limiteDiarioMaximo: number;
+  };
 }
 
 /** Linha do painel WhatsApp do super admin (por condomínio). */
@@ -544,11 +556,14 @@ export interface AdminWhatsappCondominio {
   horarioEnvioInicio: string;
   horarioEnvioFim: string;
   templateEncomenda: string;
+  templateRetirada: string;
 }
 
 export interface AdminWhatsappResponse {
   variaveis: TemplateVariavel[];
   templatePadrao: string;
+  variaveisRetirada: TemplateVariavel[];
+  templatePadraoRetirada: string;
   condominios: AdminWhatsappCondominio[];
 }
 

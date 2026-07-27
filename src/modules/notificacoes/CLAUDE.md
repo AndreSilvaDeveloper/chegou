@@ -33,6 +33,31 @@ A configuração vem do `config_json` do condomínio (`DEFAULT_TENANT_CONFIG` co
 base): `horarioEnvioInicio` / `horarioEnvioFim`, `whatsappIntervaloSegundos`,
 `whatsappJitterSegundos`, `whatsappLimiteDiario`.
 
+**Quem edita isso**: o síndico, em `/whatsapp`, dentro de faixas seguras
+(intervalo ≥ 60s, janela dentro de 08:00–21:00, limite de 20 a 300/dia); o
+superadmin, sem essas amarras, em `/admin/whatsapp`. As faixas e o porquê estão
+no [módulo OpenWA](../openwa/CLAUDE.md). A leitura é sempre direta do banco, sem
+cache — mudou, vale no próximo disparo.
+
+### `message-template.ts` — os textos que o condomínio edita
+
+Aqui moram os dois modelos personalizáveis, com padrão, variáveis `{{token}}` e
+renderizador:
+
+| Modelo | Padrão | Variáveis | Config do tenant |
+|---|---|---|---|
+| Chegada | `DEFAULT_TEMPLATE_ENCOMENDA` | `VARIAVEIS_ENCOMENDA` | `whatsappTemplateEncomenda` |
+| Retirada | `DEFAULT_TEMPLATE_RETIRADA` | `VARIAVEIS_RETIRADA` | `whatsappTemplateRetirada` |
+
+`resolveTemplate*()` decide entre o texto do condomínio e o padrão (vazio =
+padrão), e `renderTemplate()` troca os tokens — **token desconhecido vira string
+vazia**, para nunca vazar `{{...}}` na mensagem do morador.
+
+A retirada não tem `{{codigo}}`: o código já foi usado. E as variáveis `data` /
+`hora` dela são as **da retirada**, não as do recebimento.
+
+A edição é pela tela `/whatsapp` (módulo OpenWA) e por `/admin/whatsapp`.
+
 ## Regras de negócio
 
 1. **Fora da janela de horário, agenda para a próxima abertura** — não descarta e
@@ -56,6 +81,8 @@ base): `horarioEnvioInicio` / `horarioEnvioFim`, `whatsappIntervaloSegundos`,
 ## Ao alterar este módulo
 
 - [ ] Tipo novo de notificação → registre o enum, o template e quem consome.
+- [ ] Mexeu num modelo personalizável → `message-template.spec.ts` cobre
+      resolução e renderização; rode.
 - [ ] Mexeu em ritmo/janela/limite → confirme que continua respeitando as regras
       anti-bloqueio e atualize os padrões em `config-tenant.dto.ts`.
 - [ ] Origem nova de disparo → chame `agendarNotificacao`, **nunca** o gateway

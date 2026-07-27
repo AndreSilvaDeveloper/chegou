@@ -12,6 +12,11 @@ interface Props {
   variaveis: TemplateVariavel[];
   templatePadrao: string;
   disabled?: boolean;
+  /** Precisa ser único na tela — há mais de um editor por página. */
+  id?: string;
+  titulo?: string;
+  /** Uma linha explicando quando essa mensagem sai. */
+  ajuda?: string;
 }
 
 /** Renderização de preview no cliente (espelha o renderer do backend, com exemplos). */
@@ -22,7 +27,16 @@ function renderPreview(template: string, variaveis: TemplateVariavel[]): string 
   return base.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, raw: string) => exemplos[raw.toLowerCase()] ?? '');
 }
 
-export function TemplateEditor({ value, onChange, variaveis, templatePadrao, disabled }: Props) {
+export function TemplateEditor({
+  value,
+  onChange,
+  variaveis,
+  templatePadrao,
+  disabled,
+  id = 'template',
+  titulo = 'Mensagem enviada ao morador',
+  ajuda,
+}: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   const inserirToken = (token: string) => {
@@ -50,9 +64,10 @@ export function TemplateEditor({ value, onChange, variaveis, templatePadrao, dis
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="template" className="text-base">Mensagem enviada ao morador</Label>
+        <Label htmlFor={id} className="text-base">{titulo}</Label>
+        {ajuda && <p className="text-sm text-muted-foreground">{ajuda}</p>}
         <Textarea
-          id="template"
+          id={id}
           ref={ref}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -61,9 +76,9 @@ export function TemplateEditor({ value, onChange, variaveis, templatePadrao, dis
           placeholder="Deixe em branco para usar o modelo padrão do sistema."
           className="font-mono text-sm leading-relaxed"
         />
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            Vazio = usa o modelo padrão. Toque numa variável para inseri-la no texto.
+            Toque numa variável para inseri-la no texto. Apagar tudo volta ao modelo padrão.
           </p>
           <Button
             type="button"

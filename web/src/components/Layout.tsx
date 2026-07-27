@@ -92,6 +92,110 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
+interface SidebarBodyProps {
+  groups: Record<string, NavItem[]>;
+  /** Fecha o menu do celular ao navegar. No desktop não existe. */
+  onNavigate?: () => void;
+  /** Só vale no desktop; no Sheet (mobile) a sidebar é sempre expandida. */
+  isCollapsed?: boolean;
+  showTenant: boolean;
+  ehAdministradora: boolean;
+  nomeCondominio: string;
+  temCondominio: boolean;
+  onTrocarCondominio: () => void;
+}
+
+/**
+ * Miolo da sidebar: menu, condomínio ativo e versão.
+ *
+ * **Fica no escopo do módulo de propósito.** Declarado dentro do `Layout`, ele
+ * virava uma função nova a cada render — e o React trata função diferente como
+ * componente diferente, desmontando e remontando a sidebar inteira a cada troca
+ * de rota (o `Layout` re-renderiza por causa do `useLocation`). Na prática: a
+ * sidebar "recarregava", perdia a posição de rolagem do menu e piscava, quando
+ * só o conteúdo principal deveria mudar.
+ */
+function SidebarBody({
+  groups,
+  onNavigate,
+  isCollapsed = false,
+  showTenant,
+  ehAdministradora,
+  nomeCondominio,
+  temCondominio,
+  onTrocarCondominio,
+}: SidebarBodyProps) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <nav className={cn('flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto py-4', isCollapsed ? 'px-2 items-center' : 'px-3')}>
+        {Object.entries(groups).map(([group, items]) => (
+          <div key={group} className={cn('flex w-full flex-col gap-1', isCollapsed && 'items-center')}>
+            {isCollapsed
+              ? <div className="mx-auto mb-1 h-px w-6 bg-sidebar-border" aria-hidden />
+              : <p className="eyebrow px-3 pb-1">{group}</p>}
+            {items.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.end}
+                onClick={onNavigate}
+                title={isCollapsed ? item.label : undefined}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center rounded-xl font-medium transition-colors',
+                    isCollapsed ? 'h-11 w-11 justify-center' : 'min-h-[44px] gap-3 px-3 py-2.5 text-[15px]',
+                    isActive
+                      ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  )
+                }
+              >
+                <item.icon className="h-5 w-5 shrink-0" />
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      {/* Sem condomínio escolhido não há o que rotular nem de onde sair. */}
+      {showTenant && !isCollapsed && temCondominio && (
+        <div className="space-y-2 px-3 pt-3">
+          <div className="flex items-center gap-2.5 rounded-xl bg-sidebar-accent/60 px-3 py-2.5">
+            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0">
+              <p className="eyebrow">Condomínio</p>
+              <p className="truncate text-sm font-medium text-foreground">{nomeCondominio}</p>
+            </div>
+          </div>
+          {/* A administradora atende vários: precisa saber em qual está e poder sair. */}
+          {ehAdministradora && (
+            <Button
+              variant="outline"
+              onClick={onTrocarCondominio}
+              className="min-h-[48px] w-full justify-start gap-3"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              Trocar de condomínio
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Versão do build que está rodando — junto do condomínio de propósito:
+          é o que o suporte pergunta primeiro quando algo não bate. */}
+      <div className={cn('p-3', isCollapsed && 'flex justify-center')}>
+        <p
+          className="font-mono text-[11px] text-muted-foreground"
+          title={`Chegou versão ${APP_VERSION}`}
+        >
+          v{APP_VERSION}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function Layout() {
   const { data: user } = useAuthMe();
   const nav = useNavigate();
@@ -158,80 +262,20 @@ export function Layout() {
   const ehAdministradora = user?.role === 'admin';
   const nomeCondominio = condominioAtivo.nome ?? user?.tenantNome ?? '—';
 
-  // isCollapsed só vale no desktop; no Sheet (mobile) sempre expandido.
-  const SidebarBody = ({ onClick, isCollapsed = false }: { onClick?: () => void; isCollapsed?: boolean }) => (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <nav className={cn('flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto py-4', isCollapsed ? 'px-2 items-center' : 'px-3')}>
-        {Object.entries(groups).map(([group, items]) => (
-          <div key={group} className={cn('flex w-full flex-col gap-1', isCollapsed && 'items-center')}>
-            {isCollapsed
-              ? <div className="mx-auto mb-1 h-px w-6 bg-sidebar-border" aria-hidden />
-              : <p className="eyebrow px-3 pb-1">{group}</p>}
-            {items.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.end}
-                onClick={onClick}
-                title={isCollapsed ? item.label : undefined}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center rounded-xl font-medium transition-colors',
-                    isCollapsed ? 'h-11 w-11 justify-center' : 'min-h-[44px] gap-3 px-3 py-2.5 text-[15px]',
-                    isActive
-                      ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  )
-                }
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
-              </NavLink>
-            ))}
-          </div>
-        ))}
-      </nav>
-
-      {/* Sem condomínio escolhido não há o que rotular nem de onde sair. */}
-      {showTenant && !isCollapsed && (condominioAtivo.id || !ehAdministradora) && (
-        <div className="space-y-2 px-3 pt-3">
-          <div className="flex items-center gap-2.5 rounded-xl bg-sidebar-accent/60 px-3 py-2.5">
-            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <div className="min-w-0">
-              <p className="eyebrow">Condomínio</p>
-              <p className="truncate text-sm font-medium text-foreground">{nomeCondominio}</p>
-            </div>
-          </div>
-          {/* A administradora atende vários: precisa saber em qual está e poder sair. */}
-          {ehAdministradora && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                trocarCondominio(null);
-                nav('/meus-condominios');
-                setIsMobileMenuOpen(false);
-              }}
-              className="min-h-[48px] w-full justify-start gap-3"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-              Trocar de condomínio
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Versão do build que está rodando — junto do condomínio de propósito:
-          é o que o suporte pergunta primeiro quando algo não bate. */}
-      <div className={cn('p-3', isCollapsed && 'flex justify-center')}>
-        <p
-          className="font-mono text-[11px] text-muted-foreground"
-          title={`Chegou versão ${APP_VERSION}`}
-        >
-          v{APP_VERSION}
-        </p>
-      </div>
-    </div>
-  );
+  // O que a sidebar precisa saber, montado uma vez para as duas cópias
+  // (desktop e gaveta do celular).
+  const sidebarProps = {
+    groups,
+    showTenant,
+    ehAdministradora,
+    nomeCondominio,
+    temCondominio: Boolean(condominioAtivo.id) || !ehAdministradora,
+    onTrocarCondominio: () => {
+      trocarCondominio(null);
+      nav('/meus-condominios');
+      setIsMobileMenuOpen(false);
+    },
+  };
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-sidebar text-sidebar-foreground">
@@ -247,7 +291,7 @@ export function Layout() {
           <div className="relative"><BrandMark compact={collapsed} /></div>
         </div>
 
-        <SidebarBody isCollapsed={collapsed} />
+        <SidebarBody {...sidebarProps} isCollapsed={collapsed} />
 
         {/* Botão recolher/expandir */}
         <div className={cn('shrink-0 border-t border-sidebar-border p-2', collapsed && 'flex justify-center')}>
@@ -279,7 +323,7 @@ export function Layout() {
                     <div><BrandMark /></div>
                   </SheetTitle>
                 </SheetHeader>
-                <SidebarBody onClick={() => setIsMobileMenuOpen(false)} />
+                <SidebarBody {...sidebarProps} onNavigate={() => setIsMobileMenuOpen(false)} />
               </SheetContent>
             </Sheet>
             <BrandMark compact />

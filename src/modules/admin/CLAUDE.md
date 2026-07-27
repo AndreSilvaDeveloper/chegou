@@ -17,7 +17,9 @@ o superadmin enxerga dado de condomínio** — ele não entra pelas rotas normai
 (`/apartamentos` e afins não o listam em `@Roles`).
 
 ### `AdminWhatsappController` — `/admin/whatsapp`
-Panorama das sessões, provisionamento em lote e ajuste por condomínio.
+Panorama das sessões, provisionamento em lote e ajuste por condomínio (ritmo de
+envio + os dois modelos de mensagem, chegada e retirada). **É o mesmo dado que o
+síndico edita em `/whatsapp`** — modelo novo precisa aparecer nas duas telas.
 
 ## Regras de negócio
 

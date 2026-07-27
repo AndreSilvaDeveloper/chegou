@@ -5,7 +5,10 @@ import { Notificacao, Tenant } from '../../database/entities';
 import { StatusNotificacao, TipoNotificacao } from '../../database/entities/notificacao.entity';
 import {
   DEFAULT_TEMPLATE_ENCOMENDA,
+  DEFAULT_TEMPLATE_RETIRADA,
+  TemplateVariavel,
   VARIAVEIS_ENCOMENDA,
+  VARIAVEIS_RETIRADA,
 } from '../notificacoes/message-template';
 import { DEFAULT_TENANT_CONFIG } from './dto/config-tenant.dto';
 import { AtualizarWhatsappConfigDto } from './dto/atualizar-whatsapp-config.dto';
@@ -27,6 +30,7 @@ export interface WhatsappCondominioResumo {
   horarioEnvioInicio: string;
   horarioEnvioFim: string;
   templateEncomenda: string;
+  templateRetirada: string;
 }
 
 function mergedConfig(tenant: Tenant) {
@@ -61,7 +65,13 @@ export class AdminWhatsappService {
     return map;
   }
 
-  async listar(): Promise<{ variaveis: typeof VARIAVEIS_ENCOMENDA; templatePadrao: string; condominios: WhatsappCondominioResumo[] }> {
+  async listar(): Promise<{
+    variaveis: TemplateVariavel[];
+    templatePadrao: string;
+    variaveisRetirada: TemplateVariavel[];
+    templatePadraoRetirada: string;
+    condominios: WhatsappCondominioResumo[];
+  }> {
     const [tenants, counts] = await Promise.all([
       this.tenantRepo.find({ order: { nome: 'ASC' } }),
       this.contadores(),
@@ -87,10 +97,17 @@ export class AdminWhatsappService {
         horarioEnvioInicio: cfg.horarioEnvioInicio,
         horarioEnvioFim: cfg.horarioEnvioFim,
         templateEncomenda: cfg.whatsappTemplateEncomenda || '',
+        templateRetirada: cfg.whatsappTemplateRetirada || '',
       };
     });
 
-    return { variaveis: VARIAVEIS_ENCOMENDA, templatePadrao: DEFAULT_TEMPLATE_ENCOMENDA, condominios };
+    return {
+      variaveis: VARIAVEIS_ENCOMENDA,
+      templatePadrao: DEFAULT_TEMPLATE_ENCOMENDA,
+      variaveisRetirada: VARIAVEIS_RETIRADA,
+      templatePadraoRetirada: DEFAULT_TEMPLATE_RETIRADA,
+      condominios,
+    };
   }
 
   async atualizar(tenantId: string, dto: AtualizarWhatsappConfigDto): Promise<WhatsappCondominioResumo> {
@@ -104,6 +121,7 @@ export class AdminWhatsappService {
     if (dto.horarioEnvioInicio !== undefined) cfg.horarioEnvioInicio = dto.horarioEnvioInicio;
     if (dto.horarioEnvioFim !== undefined) cfg.horarioEnvioFim = dto.horarioEnvioFim;
     if (dto.templateEncomenda !== undefined) cfg.whatsappTemplateEncomenda = dto.templateEncomenda;
+    if (dto.templateRetirada !== undefined) cfg.whatsappTemplateRetirada = dto.templateRetirada;
 
     tenant.configJson = { ...(tenant.configJson ?? {}), ...cfg };
     await this.tenantRepo.save(tenant);

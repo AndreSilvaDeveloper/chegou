@@ -11,6 +11,37 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.10.0 — 2026-07-27
+
+### Adicionado
+- **Mensagem de retirada personalizável**: em `/whatsapp`, o síndico (e a
+  administradora) agora edita dois modelos — o de chegada da encomenda e o novo
+  de confirmação de retirada — com variáveis, prévia e restauração do padrão.
+- Os mesmos dois modelos ficam editáveis em `/admin/whatsapp` (superadmin).
+- **Regras de envio editáveis pelo síndico** (card novo em `/whatsapp`): espera
+  entre mensagens (mínimo 60s, só para cima), janela de envio (dentro de
+  08:00–21:00) e limite diário (20 a 300). Os limites vêm do backend e a tela
+  mostra quantas mensagens cabem por dia no ritmo escolhido. Acima dessas
+  faixas, só o superadmin em `/admin/whatsapp`.
+
+### Corrigido
+- **A sidebar era desmontada e remontada a cada troca de rota** — piscava e
+  perdia a rolagem do menu, quando só o conteúdo principal deveria mudar. Causa:
+  `SidebarBody` era declarado dentro do `Layout`, virando uma função nova a cada
+  render; o React trata isso como outro componente e refaz o DOM inteiro. Mesmo
+  problema corrigido no `TabButton` de `DetalheEncomenda`.
+
+### Alterado
+- Os campos de mensagem **abrem preenchidos com o texto que o morador recebe
+  hoje** (o do condomínio, ou o padrão do sistema). Antes abriam em branco, e
+  mudar uma palavra exigia reescrever a mensagem inteira. Campo vazio continua
+  significando "usar o padrão".
+- O texto de retirada saiu de `whatsapp/templates.ts` (fixo) para
+  `notificacoes/message-template.ts` (personalizável). As variáveis `{{data}}` e
+  `{{hora}}` dele são as da retirada, não as do recebimento.
+
+---
+
 ## 0.9.0 — 2026-07-27
 
 ### Adicionado

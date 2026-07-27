@@ -78,7 +78,9 @@ com leitor de código de barras em `components/ScannerModal.tsx`),
 - [ ] Mudou status ou transição? Atualize a lista de status aqui e confira quem
       depende dele (relatórios, dashboard, filtros do frontend).
 - [ ] Campo novo no DTO que referencia outra entidade → `assertRefDoTenant()`.
-- [ ] Mudou o texto da notificação? O template vive em
-      `src/modules/whatsapp/templates.ts` (module WhatsApp).
+- [ ] Mudou o texto de chegada ou de retirada? Eles são **personalizáveis pelo
+      condomínio**: padrão e variáveis em
+      `src/modules/notificacoes/message-template.ts`, edição em `/whatsapp`
+      (módulo OpenWA). `whatsapp/templates.ts` guarda só os textos fixos.
 - [ ] Rodar `npm run test:e2e` — `test/encomendas.e2e-spec.ts` cobre o fluxo de
       retirada.

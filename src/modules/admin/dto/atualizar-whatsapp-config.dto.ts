@@ -34,4 +34,9 @@ export class AtualizarWhatsappConfigDto {
   @IsString()
   @MaxLength(2000)
   templateEncomenda?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  templateRetirada?: string;
 }

@@ -62,6 +62,15 @@ export class ConfigTenantDto {
   @IsString()
   @MaxLength(2000)
   whatsappTemplateEncomenda?: string;
+
+  /**
+   * Template da confirmação de retirada (com variáveis {{...}}).
+   * Vazio = usa o template padrão do sistema.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  whatsappTemplateRetirada?: string;
 }
 
 export const DEFAULT_TENANT_CONFIG: Required<ConfigTenantDto> = {
@@ -75,4 +84,5 @@ export const DEFAULT_TENANT_CONFIG: Required<ConfigTenantDto> = {
   whatsappJitterSegundos: 60,
   whatsappLimiteDiario: 100,
   whatsappTemplateEncomenda: '',
+  whatsappTemplateRetirada: '',
 };

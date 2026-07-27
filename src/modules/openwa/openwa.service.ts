@@ -6,9 +6,19 @@ import { Tenant } from '../../database/entities';
 import { DEFAULT_TENANT_CONFIG } from '../admin/dto/config-tenant.dto';
 import {
   DEFAULT_TEMPLATE_ENCOMENDA,
+  DEFAULT_TEMPLATE_RETIRADA,
   TemplateVariavel,
   VARIAVEIS_ENCOMENDA,
+  VARIAVEIS_RETIRADA,
 } from '../notificacoes/message-template';
+import {
+  AtualizarConfigWhatsappDto,
+  INTERVALO_MINIMO_SEGUNDOS,
+  JANELA_MAXIMA,
+  JANELA_MINIMA,
+  LIMITE_DIARIO_MAXIMO,
+  LIMITE_DIARIO_MINIMO,
+} from './dto/atualizar-config.dto';
 import {
   OpenWaClient,
   OpenWaError,
@@ -17,14 +27,26 @@ import {
 } from './openwa.client';
 
 export interface WhatsappTenantConfig {
+  /** Texto salvo pelo condomínio; vazio = está usando o padrão do sistema. */
   templateEncomenda: string;
   templatePadrao: string;
   variaveis: TemplateVariavel[];
+  templateRetirada: string;
+  templatePadraoRetirada: string;
+  variaveisRetirada: TemplateVariavel[];
   intervaloSegundos: number;
   jitterSegundos: number;
   limiteDiario: number;
   horarioEnvioInicio: string;
   horarioEnvioFim: string;
+  /** Faixas que o condomínio pode escolher — a tela mostra e valida por elas. */
+  limites: {
+    intervaloMinimoSegundos: number;
+    janelaMinima: string;
+    janelaMaxima: string;
+    limiteDiarioMinimo: number;
+    limiteDiarioMaximo: number;
+  };
 }
 
 /** Estado simplificado da conexão para a UI. */
@@ -486,18 +508,73 @@ export class OpenwaService {
       templateEncomenda: cfg.whatsappTemplateEncomenda || '',
       templatePadrao: DEFAULT_TEMPLATE_ENCOMENDA,
       variaveis: VARIAVEIS_ENCOMENDA,
+      templateRetirada: cfg.whatsappTemplateRetirada || '',
+      templatePadraoRetirada: DEFAULT_TEMPLATE_RETIRADA,
+      variaveisRetirada: VARIAVEIS_RETIRADA,
       intervaloSegundos: cfg.whatsappIntervaloSegundos,
       jitterSegundos: cfg.whatsappJitterSegundos,
       limiteDiario: cfg.whatsappLimiteDiario,
       horarioEnvioInicio: cfg.horarioEnvioInicio,
       horarioEnvioFim: cfg.horarioEnvioFim,
+      limites: {
+        intervaloMinimoSegundos: INTERVALO_MINIMO_SEGUNDOS,
+        janelaMinima: JANELA_MINIMA,
+        janelaMaxima: JANELA_MAXIMA,
+        limiteDiarioMinimo: LIMITE_DIARIO_MINIMO,
+        limiteDiarioMaximo: LIMITE_DIARIO_MAXIMO,
+      },
     };
   }
 
-  /** Salva o template de encomenda personalizado do condomínio (vazio = volta ao padrão). */
-  async updateTemplateEncomenda(tenantId: string, template: string): Promise<WhatsappTenantConfig> {
+  /**
+   * Salva o que o condomínio pode ajustar sozinho: os dois modelos de mensagem
+   * (vazio = volta ao padrão) e o ritmo de envio.
+   *
+   * Campo `undefined` não é tocado — a tela manda só o que mudou, sem apagar o
+   * resto sem querer. Os limites de cada campo estão no DTO; aqui fica só a
+   * regra que depende dos dois horários juntos.
+   */
+  async updateWhatsappConfig(
+    tenantId: string,
+    dto: AtualizarConfigWhatsappDto,
+  ): Promise<WhatsappTenantConfig> {
     const tenant = await this.loadTenant(tenantId);
-    tenant.configJson = { ...(tenant.configJson ?? {}), whatsappTemplateEncomenda: template };
+    const configJson = { ...(tenant.configJson ?? {}) };
+
+    if (dto.templateEncomenda !== undefined) {
+      configJson.whatsappTemplateEncomenda = dto.templateEncomenda;
+    }
+    if (dto.templateRetirada !== undefined) {
+      configJson.whatsappTemplateRetirada = dto.templateRetirada;
+    }
+    if (dto.intervaloSegundos !== undefined) {
+      configJson.whatsappIntervaloSegundos = dto.intervaloSegundos;
+    }
+    if (dto.limiteDiario !== undefined) {
+      configJson.whatsappLimiteDiario = dto.limiteDiario;
+    }
+
+    if (dto.horarioEnvioInicio !== undefined || dto.horarioEnvioFim !== undefined) {
+      const atual = { ...DEFAULT_TENANT_CONFIG, ...configJson } as typeof DEFAULT_TENANT_CONFIG;
+      const inicio = dto.horarioEnvioInicio ?? atual.horarioEnvioInicio;
+      const fim = dto.horarioEnvioFim ?? atual.horarioEnvioFim;
+
+      // O condomínio escolhe DENTRO da janela permitida — pode estreitar (só de
+      // tarde, por exemplo), nunca esticar para a madrugada.
+      if (inicio < JANELA_MINIMA || fim > JANELA_MAXIMA) {
+        throw new BadRequestException(
+          `A janela de envio precisa ficar entre ${JANELA_MINIMA} e ${JANELA_MAXIMA}`,
+        );
+      }
+      if (inicio >= fim) {
+        throw new BadRequestException('O horário de início precisa ser antes do de término');
+      }
+
+      configJson.horarioEnvioInicio = inicio;
+      configJson.horarioEnvioFim = fim;
+    }
+
+    tenant.configJson = configJson;
     await this.tenantRepo.save(tenant);
     return this.getWhatsappConfig(tenantId);
   }

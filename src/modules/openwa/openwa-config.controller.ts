@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Patch } from '@nestjs/common';
 import { Roles, TenantId } from '../../common/decorators';
 import { OpenwaService, WhatsappTenantConfig } from './openwa.service';
-import { AtualizarTemplateDto } from './dto/atualizar-template.dto';
+import { AtualizarConfigWhatsappDto } from './dto/atualizar-config.dto';
 
-/** Config de disparo/template do próprio condomínio (síndico/admin). */
+/** Config de disparo/modelos de mensagem do próprio condomínio (síndico/admin). */
 @Controller('whatsapp/config')
 @Roles('sindico', 'admin')
 export class OpenwaConfigController {
@@ -17,8 +17,8 @@ export class OpenwaConfigController {
   @Patch()
   atualizar(
     @TenantId() tenantId: string,
-    @Body() dto: AtualizarTemplateDto,
+    @Body() dto: AtualizarConfigWhatsappDto,
   ): Promise<WhatsappTenantConfig> {
-    return this.service.updateTemplateEncomenda(tenantId, dto.templateEncomenda);
+    return this.service.updateWhatsappConfig(tenantId, dto);
   }
 }

@@ -52,6 +52,35 @@ function DetailItem({
   );
 }
 
+/**
+ * Aba de "como retirar" (código ou documento).
+ *
+ * No escopo do módulo, e não dentro da página: componente declarado dentro de
+ * outro é recriado a cada render e o React o remonta, jogando fora o foco e a
+ * transição do botão a cada tecla digitada no campo ao lado.
+ */
+function TabButton({
+  icon: Icon, label, ativo, onSelect,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  ativo: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-md text-sm font-medium transition-all',
+        ativo ? 'bg-card text-foreground shadow-panel' : 'text-muted-foreground hover:text-foreground',
+      )}
+    >
+      <Icon className="h-4 w-4" /> {label}
+    </button>
+  );
+}
+
 export function DetalheEncomenda() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
@@ -162,19 +191,6 @@ export function DetalheEncomenda() {
     },
   ];
 
-  const TabButton = ({ value, icon: Icon, label }: { value: 'codigo' | 'documento'; icon: ComponentType<{ className?: string }>; label: string }) => (
-    <button
-      type="button"
-      onClick={() => setTab(value)}
-      className={cn(
-        'flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-md text-sm font-medium transition-all',
-        tab === value ? 'bg-card text-foreground shadow-panel' : 'text-muted-foreground hover:text-foreground',
-      )}
-    >
-      <Icon className="h-4 w-4" /> {label}
-    </button>
-  );
-
   return (
     <div className="space-y-6 pb-10">
       <div className="flex items-center gap-4">
@@ -237,8 +253,8 @@ export function DetalheEncomenda() {
 
                 {/* Abas Código / Documento */}
                 <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-1">
-                  <TabButton value="codigo" icon={KeyRound} label="Código" />
-                  <TabButton value="documento" icon={CreditCard} label="Documento" />
+                  <TabButton icon={KeyRound} label="Código" ativo={tab === 'codigo'} onSelect={() => setTab('codigo')} />
+                  <TabButton icon={CreditCard} label="Documento" ativo={tab === 'documento'} onSelect={() => setTab('documento')} />
                 </div>
 
                 <form onSubmit={retirar} className="space-y-4">

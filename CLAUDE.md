@@ -227,12 +227,17 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Vagas: consultar | — | ✅ | ✅ | ✅ |
 | Vagas: cadastrar, alugar, preços, cobranças | — | ✅ | ✅ | — |
 | Vagas: histórico financeiro (contratos, pagamentos) | — | ✅ | ✅ | — |
+| WhatsApp: modelos de mensagem e ritmo de envio do condomínio | ✅² | ✅ | ✅ | — |
 | Avisos: ler | — | ✅ | ✅ | ✅ |
 | Avisos: publicar/remover | — | ✅ | ✅ | — |
 | Filas de notificação e WhatsApp do condomínio | — | ✅ | ✅ | — |
 
 ¹ O superadmin cria usuários pelas rotas `/admin/tenants/:id/usuarios`, não pela
 rota `/usuarios` (que é do condomínio). Ninguém cria `superadmin` pela API.
+
+² Idem: o superadmin edita isso em `/admin/whatsapp`, sem as faixas de segurança
+que valem para o síndico (intervalo ≥ 60s, janela dentro de 08:00–21:00, limite
+de 20 a 300/dia).
 
 **A administradora só enxerga isso dentro dos condomínios da carteira dela**, e
 sempre com o condomínio escolhido no header `X-Tenant-Id`. Ver "Escopo da
@@ -339,7 +344,10 @@ mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a do
 4. **Warm-up de número novo**: Iniciar com 10-20/dia, aumentar 10 a cada 3 dias
 
 ### Janela de Envio
-5. **Horário comercial**: Enviar apenas entre **8h e 21h** (horário local, configurável por tenant)
+5. **Horário comercial**: Enviar apenas entre **8h e 21h** (horário local). O
+   síndico ajusta a janela em `/whatsapp`, mas **só para dentro** desse
+   intervalo — esticar para a madrugada é o que queima o número. Quem pode sair
+   da faixa é o superadmin, em `/admin/whatsapp`
 6. **Sem envio em massa simultâneo**: Fila serializada por número remetente
 
 ### Conteúdo

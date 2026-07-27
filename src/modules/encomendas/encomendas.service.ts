@@ -10,11 +10,12 @@ import { In, QueryFailedError, Repository } from 'typeorm';
 import { Apartamento, Encomenda, EncomendaStatus, Morador, Tenant, WhatsappMessage } from '../../database/entities';
 import { TipoNotificacao } from '../../database/entities/notificacao.entity';
 import { NotificationService } from '../notificacoes/notification.service';
-import { renderTemplate as renderTemplateWhatsapp } from '../whatsapp/templates';
 import {
   buildEncomendaVars,
+  buildRetiradaVars,
   renderTemplate,
   resolveTemplateEncomenda,
+  resolveTemplateRetirada,
 } from '../notificacoes/message-template';
 
 export interface NotificacaoResumo {
@@ -223,11 +224,10 @@ export class EncomendasService {
         this.tenantRepo.findOneOrFail({ where: { id: tenantId } }),
       ]);
 
-      const vars = {
-        nome: morador.nome.split(' ')[0],
-        apartamento: apartamento.identificador,
-        condominio: tenant.nome,
-      };
+      const vars = buildRetiradaVars(encomenda, morador, tenant, apartamento);
+      const template = resolveTemplateRetirada(
+        (tenant.configJson as { whatsappTemplateRetirada?: string })?.whatsappTemplateRetirada,
+      );
 
       await this.notifications.agendarNotificacao({
         tenantId,
@@ -237,7 +237,7 @@ export class EncomendasService {
         destinatarioTelefone: morador.telefoneE164,
         destinatarioNome: morador.nome,
         moradorId: morador.id,
-        conteudo: renderTemplateWhatsapp('retirada_confirmada', vars),
+        conteudo: renderTemplate(template, vars),
         variaveisJson: vars,
         prioridade: 7,
       });

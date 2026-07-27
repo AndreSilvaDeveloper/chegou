@@ -24,6 +24,7 @@ interface EditState {
   horarioEnvioInicio: string;
   horarioEnvioFim: string;
   templateEncomenda: string;
+  templateRetirada: string;
 }
 
 function StatusBadge({ c }: { c: AdminWhatsappCondominio }) {
@@ -69,6 +70,7 @@ export function AdminWhatsapp() {
         horarioEnvioInicio: editing.horarioEnvioInicio,
         horarioEnvioFim: editing.horarioEnvioFim,
         templateEncomenda: editing.templateEncomenda,
+        templateRetirada: editing.templateRetirada,
       });
     } else {
       setForm(null);
@@ -252,10 +254,24 @@ export function AdminWhatsapp() {
               </p>
 
               <TemplateEditor
+                id="admin-template-encomenda"
+                titulo="Mensagem de chegada"
+                ajuda="Enviada quando o porteiro registra a encomenda. Vazio = modelo padrão do sistema."
                 value={form.templateEncomenda}
                 onChange={(v) => setForm({ ...form, templateEncomenda: v })}
                 variaveis={query.data?.variaveis ?? []}
                 templatePadrao={query.data?.templatePadrao ?? ''}
+                disabled={saveMutation.isPending}
+              />
+
+              <TemplateEditor
+                id="admin-template-retirada"
+                titulo="Mensagem de retirada"
+                ajuda="Confirmação enviada depois que o morador retira. Vazio = modelo padrão do sistema."
+                value={form.templateRetirada}
+                onChange={(v) => setForm({ ...form, templateRetirada: v })}
+                variaveis={query.data?.variaveisRetirada ?? []}
+                templatePadrao={query.data?.templatePadraoRetirada ?? ''}
                 disabled={saveMutation.isPending}
               />
             </div>

@@ -1,4 +1,4 @@
-import { Encomenda, Morador, Tenant } from '../../database/entities';
+import { Apartamento, Encomenda, Morador, Tenant } from '../../database/entities';
 
 /**
  * Template padrão de notificação de encomenda. O condomínio pode personalizar o seu
@@ -15,6 +15,22 @@ export const DEFAULT_TEMPLATE_ENCOMENDA = [
   '',
   '🔑 Código de retirada: *{{codigo}}*',
   'Apresente este código na portaria para retirar. 🙂',
+].join('\n');
+
+/**
+ * Template padrão da confirmação de retirada. Mesma lógica do de chegada: o
+ * condomínio pode personalizar (config `whatsappTemplateRetirada`) e, vazio,
+ * vale este. Mora aqui — e não em `whatsapp/templates.ts` — justamente porque
+ * é personalizável; lá ficam só os textos fixos do sistema.
+ */
+export const DEFAULT_TEMPLATE_RETIRADA = [
+  'Olá, {{nome}}! ✅',
+  '',
+  'Confirmamos a retirada da encomenda da unidade *{{unidade}}* na portaria do {{condominio}}.',
+  '',
+  '📅 Retirada em {{data}} às {{hora}}',
+  '',
+  'Obrigado! 🙂',
 ].join('\n');
 
 /** Metadados das variáveis disponíveis no template (para exibir na UI de edição). */
@@ -34,6 +50,21 @@ export const VARIAVEIS_ENCOMENDA: TemplateVariavel[] = [
   { token: 'transportadora', descricao: 'Transportadora que entregou', exemplo: 'Correios' },
   { token: 'data', descricao: 'Data do recebimento', exemplo: '24/07/2026' },
   { token: 'hora', descricao: 'Hora do recebimento', exemplo: '14:35' },
+];
+
+/**
+ * Variáveis da confirmação de retirada. Sem `{{codigo}}` de propósito: o código
+ * já foi usado, repeti-lo depois da retirada só confunde o morador.
+ */
+export const VARIAVEIS_RETIRADA: TemplateVariavel[] = [
+  { token: 'nome', descricao: 'Primeiro nome do morador que retirou', exemplo: 'João' },
+  { token: 'morador', descricao: 'Nome completo do morador', exemplo: 'João da Silva' },
+  { token: 'unidade', descricao: 'Bloco + apartamento', exemplo: 'A-101' },
+  { token: 'condominio', descricao: 'Nome do condomínio', exemplo: 'Residencial Aurora' },
+  { token: 'tipo', descricao: 'Tipo da encomenda (caixa/envelope)', exemplo: 'caixa' },
+  { token: 'transportadora', descricao: 'Transportadora que entregou', exemplo: 'Correios' },
+  { token: 'data', descricao: 'Data da retirada', exemplo: '27/07/2026' },
+  { token: 'hora', descricao: 'Hora da retirada', exemplo: '18:02' },
 ];
 
 /** Aliases aceitos no template → token canônico (compatibilidade com nomes alternativos). */
@@ -106,8 +137,38 @@ export function buildEncomendaVars(
   };
 }
 
+/**
+ * Mapa de variáveis da confirmação de retirada. `data`/`hora` são as da
+ * **retirada**, não as do recebimento — é o que o morador acabou de fazer.
+ */
+export function buildRetiradaVars(
+  encomenda: Encomenda,
+  morador: Morador,
+  tenant: Tenant,
+  apartamento: Apartamento,
+): Record<string, string> {
+  const primeiroNome = (morador.nome ?? '').trim().split(/\s+/)[0] || morador.nome || '';
+  const quando = encomenda.retiradaAt ?? new Date();
+  return {
+    nome: primeiroNome,
+    morador: morador.nome ?? '',
+    unidade: apartamento.identificador ?? '',
+    condominio: tenant.nome ?? '',
+    tipo: encomenda.tipo ?? 'encomenda',
+    transportadora: encomenda.transportadora?.trim() || 'não informada',
+    data: fmtData(quando),
+    hora: fmtHora(quando),
+  };
+}
+
 /** Resolve o template efetivo do condomínio (custom ou padrão). */
 export function resolveTemplateEncomenda(custom?: string | null): string {
   const t = (custom ?? '').trim();
   return t.length > 0 ? t : DEFAULT_TEMPLATE_ENCOMENDA;
+}
+
+/** Idem, para a confirmação de retirada. */
+export function resolveTemplateRetirada(custom?: string | null): string {
+  const t = (custom ?? '').trim();
+  return t.length > 0 ? t : DEFAULT_TEMPLATE_RETIRADA;
 }
