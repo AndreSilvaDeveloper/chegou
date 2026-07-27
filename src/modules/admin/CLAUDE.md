@@ -49,7 +49,10 @@ síndico edita em `/whatsapp`** — modelo novo precisa aparecer nas duas telas.
 ## Ao alterar este módulo
 
 - [ ] Config nova do condomínio → `ConfigTenantDto` + `DEFAULT_TENANT_CONFIG` +
-      tela de configurações + invalidação de cache.
+      tela de configurações + invalidação de cache. **Decida também se a
+      administradora edita**: se sim, declare em
+      `ConfigOperacionalCondominioDto` (módulo Administradoras) e acrescente na
+      tela `MeuCondominio.tsx`; se não, mostre de leitura lá.
 - [ ] Módulo opcional novo → `TenantModule` (decorator), `MODULE_CONFIG_KEY`
       (`tenant-config.service.ts`), `MODULE_KEY` no front e o toggle no
       `SuperAdminTenant`.

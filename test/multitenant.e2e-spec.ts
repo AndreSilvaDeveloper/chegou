@@ -217,6 +217,102 @@ describe('Multitenant (e2e)', () => {
     });
   });
 
+  // ------------------------------- o que a administradora configura no condomínio
+
+  /**
+   * A administradora configura o **operacional** dos condomínios dela. O que
+   * está de fora não é detalhe de tela: `ativo` tira o condomínio da conta da
+   * assinatura, e os módulos são o que a plataforma contratou. Se algum deles
+   * passar a ser aceito aqui, é aqui que a suíte grita.
+   */
+  describe('configuração do condomínio pela administradora', () => {
+    const configurar = (token: string, tenantId: string, corpo: object) =>
+      http
+        .patch(`/api/minha-administradora/condominios/${tenantId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(corpo);
+
+    it('salva tipo, estrutura de blocos e janela de envio', async () => {
+      const res = await configurar(adminAToken, condA2, {
+        configJson: {
+          tipo: 'comercial',
+          estruturaBlocos: 'unico',
+          horarioEnvioInicio: '09:00',
+          horarioEnvioFim: '18:00',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.configJson).toMatchObject({
+        tipo: 'comercial',
+        estruturaBlocos: 'unico',
+        horarioEnvioInicio: '09:00',
+        horarioEnvioFim: '18:00',
+      });
+    });
+
+    it('salvar o operacional não apaga o resto da configuração', async () => {
+      // Pela mão de quem realmente liga módulo: o superadmin. Em `condA2`, não
+      // em `condA1` — lá embaixo há um teste que prova o bloqueio de módulo não
+      // contratado, e ligar Vagas nele o derrubaria.
+      const plataforma = await http
+        .patch(`/api/admin/tenants/${condA2}`)
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ configJson: { moduloVagas: true, whatsappLimiteDiario: 42 } });
+      expect(plataforma.status).toBe(200);
+
+      const res = await configurar(adminAToken, condA2, { configJson: { tipo: 'misto' } });
+
+      expect(res.status).toBe(200);
+      expect(res.body.configJson.tipo).toBe('misto');
+      // O merge ignora chave ausente; espalhar o DTO cru zeraria estas duas.
+      expect(res.body.configJson.moduloVagas).toBe(true);
+      expect(res.body.configJson.whatsappLimiteDiario).toBe(42);
+    });
+
+    it('não liga módulo contratado por conta própria', async () => {
+      const res = await configurar(adminAToken, condA2, { configJson: { moduloAvisos: true } });
+
+      // 400 do `forbidNonWhitelisted`: o campo nem existe no DTO dela.
+      expect(res.status).toBe(400);
+    });
+
+    it('não mexe em plano nem em ativo', async () => {
+      expect((await configurar(adminAToken, condA2, { plano: 'enterprise' })).status).toBe(400);
+      expect((await configurar(adminAToken, condA2, { ativo: false })).status).toBe(400);
+    });
+
+    it('não estica a janela de envio para fora da faixa anti-bloqueio', async () => {
+      const res = await configurar(adminAToken, condA2, {
+        configJson: { horarioEnvioInicio: '05:00', horarioEnvioFim: '23:00' },
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/08:00|21:00/);
+    });
+
+    it('recusa janela que termina antes de começar', async () => {
+      const res = await configurar(adminAToken, condA2, {
+        configJson: { horarioEnvioInicio: '18:00', horarioEnvioFim: '09:00' },
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('não configura condomínio de outra carteira', async () => {
+      const res = await configurar(adminBToken, condA2, { configJson: { tipo: 'comercial' } });
+
+      // 404, não 403: a de fora não confirma nem que o condomínio existe.
+      expect(res.status).toBe(404);
+    });
+
+    it('o síndico não entra pela rota da carteira', async () => {
+      const res = await configurar(sindicoA1Token, condA2, { configJson: { tipo: 'comercial' } });
+
+      expect(res.status).toBe(403);
+    });
+  });
+
   // ------------------------------------------- escopo do condomínio na request
 
   describe('escopo por request (X-Tenant-Id)', () => {

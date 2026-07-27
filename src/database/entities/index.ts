@@ -21,3 +21,7 @@ export { VagaCobranca } from './vaga-cobranca.entity';
 export { Funcionario } from './funcionario.entity';
 export { Notificacao } from './notificacao.entity';
 export { Aviso } from './aviso.entity';
+export { AssinaturaFaixa } from './assinatura-faixa.entity';
+export { AssinaturaCondicao } from './assinatura-condicao.entity';
+export { AssinaturaFatura } from './assinatura-fatura.entity';
+export { AssinaturaFaturaItem } from './assinatura-fatura-item.entity';

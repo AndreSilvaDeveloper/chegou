@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Building2, Loader2, LogIn, MapPin, Plus } from 'lucide-react';
+import { Building2, Loader2, LogIn, MapPin, Plus, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { mensagemErro } from '@/lib/erros';
 import { useAuthMe, useCondominioAtivo, useTrocarCondominio } from '@/hooks/use-tenant-config';
@@ -92,6 +92,18 @@ export function MeusCondominios() {
     navigate('/dashboard');
   };
 
+  /**
+   * Configurar entra no condomínio antes de navegar.
+   *
+   * A tela de configuração usa as rotas normais do condomínio (`X-Tenant-Id`),
+   * então o condomínio precisa já estar escolhido quando ela montar. Ela também
+   * se vira sozinha se alguém abrir o link direto — aqui é só para não piscar.
+   */
+  const configurar = (tenant: Tenant) => {
+    if (ativo.id !== tenant.id) trocarCondominio(tenant.id);
+    navigate(`/meus-condominios/${tenant.id}`);
+  };
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!form.nome.trim()) return toast.error('Informe o nome do condomínio');
@@ -160,15 +172,29 @@ export function MeusCondominios() {
                     )}
                   </div>
 
-                  <Button
-                    variant={estaAtivo ? 'outline' : 'default'}
-                    onClick={() => entrar(tenant)}
-                    disabled={!tenant.ativo}
-                    className="min-h-[48px] w-full"
-                  >
-                    <LogIn className="mr-2 h-4 w-4" />
-                    {estaAtivo ? 'Continuar neste condomínio' : 'Entrar no condomínio'}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      variant={estaAtivo ? 'outline' : 'default'}
+                      onClick={() => entrar(tenant)}
+                      disabled={!tenant.ativo}
+                      className="min-h-[48px] w-full"
+                    >
+                      <LogIn className="mr-2 h-4 w-4" />
+                      {estaAtivo ? 'Continuar neste condomínio' : 'Entrar no condomínio'}
+                    </Button>
+                    {/* Configurar também entra no condomínio — a tela opera
+                        dentro dele. Fica disponível mesmo com o condomínio
+                        inativo: é onde ela confere o cadastro e vê que a
+                        reativação é com a plataforma. */}
+                    <Button
+                      variant="outline"
+                      onClick={() => configurar(tenant)}
+                      className="min-h-[48px] w-full"
+                    >
+                      <Settings2 className="mr-2 h-4 w-4" />
+                      Configurar
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );

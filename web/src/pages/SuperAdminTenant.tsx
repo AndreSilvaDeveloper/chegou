@@ -1,7 +1,15 @@
 import { FormEvent, useEffect, useState, ComponentType } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import { Tenant, TenantConfig, TenantTipo } from '../api/types';
+import { Tenant, TenantConfig } from '../api/types';
+import {
+  DEFAULT_CONFIG,
+  InfoPill,
+  ModuleToggle,
+  OptionCard,
+  TIPO_META,
+  estruturaSugerida,
+} from '@/components/condominio/condominio-shared';
 import { ApartamentosManager } from '../components/ApartamentosManager';
 import { MoradoresManager } from '../components/MoradoresManager';
 import { EquipeManager } from '../components/EquipeManager';
@@ -11,7 +19,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
@@ -20,113 +27,8 @@ import {
   Clock, Power,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 type Tab = 'dados' | 'config' | 'apartamentos' | 'moradores' | 'equipe';
-
-const DEFAULT_CONFIG: Required<TenantConfig> = {
-  tipo: 'residencial',
-  estruturaBlocos: 'unico',
-  moduloVagas: false,
-  moduloAvisos: false,
-  horarioEnvioInicio: '08:00',
-  horarioEnvioFim: '21:00',
-};
-
-const TIPO_META: Record<TenantTipo, { label: string; icon: ComponentType<{ className?: string }> }> = {
-  residencial: { label: 'Residencial', icon: Home },
-  comercial: { label: 'Comercial', icon: Store },
-  misto: { label: 'Misto', icon: Blend },
-};
-
-/** Cartão selecionável (segmented control) — touch target grande, sem dropdown. */
-function OptionCard({
-  active, onClick, icon: Icon, title, description,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'flex flex-col items-start gap-3 rounded-xl border-2 p-4 text-left transition-all',
-        active
-          ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary/20'
-          : 'border-border bg-card hover:border-primary/40 hover:bg-muted/40'
-      )}
-    >
-      <div
-        className={cn(
-          'flex h-11 w-11 items-center justify-center rounded-lg transition-colors',
-          active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-        )}
-      >
-        <Icon className="h-5 w-5" />
-      </div>
-      <div>
-        <p className="font-semibold text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-    </button>
-  );
-}
-
-/** Linha de módulo com Switch — a linha inteira é clicável. */
-function ModuleToggle({
-  icon: Icon, title, description, checked, onChange,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/40"
-    >
-      <div
-        className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors',
-          checked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-        )}
-      >
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-      <Switch checked={checked} onCheckedChange={onChange} aria-label={title} />
-    </button>
-  );
-}
-
-function InfoPill({
-  icon: Icon, label, value,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-lg bg-background/60 px-3 py-2 backdrop-blur">
-      <Icon className="h-4 w-4 shrink-0 text-primary" />
-      <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="truncate text-sm font-medium text-foreground">{value}</p>
-      </div>
-    </div>
-  );
-}
 
 export function SuperAdminTenant() {
   const { id } = useParams<{ id: string }>();
@@ -175,18 +77,8 @@ export function SuperAdminTenant() {
     }
   };
 
-  /**
-   * Escolher o tipo já sugere a estrutura de blocos, que é quem realmente
-   * manda no cadastro de unidades. Comercial costuma ser bloco único;
-   * residencial e misto, múltiplos. O superadmin pode trocar depois — prédio
-   * residencial de torre única existe.
-   */
   const escolherTipo = (tipo: Required<TenantConfig>['tipo']) => {
-    setConfig({
-      ...config,
-      tipo,
-      estruturaBlocos: tipo === 'comercial' ? 'unico' : 'multiplos',
-    });
+    setConfig({ ...config, tipo, estruturaBlocos: estruturaSugerida(tipo) });
   };
 
   const salvarConfig = async (e: FormEvent) => {

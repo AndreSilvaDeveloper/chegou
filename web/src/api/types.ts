@@ -592,3 +592,158 @@ export interface Notificacao {
   createdAt: string;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Assinatura — o que o cliente paga pelo Chegou
+// ---------------------------------------------------------------------------
+
+export type ModoAssinatura = 'tabela' | 'preco_apartamento' | 'valor_fixo';
+export type StatusFatura = 'aberta' | 'paga' | 'vencida' | 'cancelada';
+
+/** Uma linha da tabela de preços. `ateQuantidade: null` = última faixa, sem teto. */
+export interface AssinaturaFaixa {
+  ateQuantidade: number | null;
+  precoApartamento: number;
+  ordem: number;
+}
+
+/** Quem recebe a fatura: um condomínio direto ou uma administradora. */
+export interface SacadoAssinatura {
+  tipo: 'condominio' | 'administradora';
+  id: string;
+  nome: string;
+}
+
+export interface ItemAssinatura {
+  tenantId: string;
+  nome: string;
+  apartamentos: number;
+  subtotal: number;
+}
+
+export interface ResultadoAssinatura {
+  quantidadeApartamentos: number;
+  modo: ModoAssinatura;
+  /** Preço por apartamento cobrado. `null` quando o modo é valor fixo. */
+  precoAplicado: number | null;
+  /** A faixa usada — só quando o preço veio da tabela. Explica o valor na tela. */
+  faixa: AssinaturaFaixa | null;
+  valorBruto: number;
+  desconto: number;
+  valor: number;
+  itens: ItemAssinatura[];
+}
+
+export interface PreviaAssinatura {
+  sacado: SacadoAssinatura;
+  resultado: ResultadoAssinatura;
+  condicao: {
+    id: string;
+    modo: ModoAssinatura;
+    descontoPercentual: number | null;
+    observacao: string | null;
+  } | null;
+}
+
+export interface AssinaturaFaturaItem {
+  id: string;
+  tenantId: string | null;
+  /** Gravado na fatura: excluir o condomínio não apaga o que foi cobrado. */
+  condominioNome: string;
+  apartamentos: number;
+  subtotal: number;
+}
+
+export interface AssinaturaFatura {
+  id: string;
+  tenantId: string | null;
+  administradoraId: string | null;
+  sacado: SacadoAssinatura;
+  /** Mês de referência, sempre no dia 1 (YYYY-MM-01). */
+  competencia: string;
+  quantidadeApartamentos: number;
+  modo: ModoAssinatura;
+  precoAplicado: number | null;
+  valorBruto: number;
+  desconto: number;
+  valor: number;
+  status: StatusFatura;
+  vencimento: string;
+  pagaEm: string | null;
+  formaPagamento: string | null;
+  observacao: string | null;
+  itens: AssinaturaFaturaItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Preço especial negociado com um cliente. */
+export interface AssinaturaCondicao {
+  id: string;
+  tenantId: string | null;
+  tenant?: { id: string; nome: string } | null;
+  administradoraId: string | null;
+  administradora?: { id: string; nome: string } | null;
+  modo: ModoAssinatura;
+  precoApartamento: number | null;
+  valorFixo: number | null;
+  descontoPercentual: number | null;
+  vigenteDe: string;
+  vigenteAte: string | null;
+  observacao: string | null;
+  ativo: boolean;
+}
+
+export interface ResumoAssinatura {
+  competencia: string | null;
+  totalFaturas: number;
+  valorFaturado: number;
+  emAberto: number;
+  valorEmAberto: number;
+  vencidas: number;
+  valorVencido: number;
+  pagas: number;
+  valorRecebido: number;
+}
+
+export interface ResultadoGeracaoFaturas {
+  competencia: string;
+  criadas: number;
+  jaExistiam: number;
+  ignorados: { sacado: SacadoAssinatura; motivo: string }[];
+  faturas: AssinaturaFatura[];
+}
+
+/** Quem paga por um condomínio. */
+export type ResponsavelPeloCondominio =
+  | { via: 'condominio'; tenantId: string; nome: string }
+  | { via: 'administradora'; administradoraId: string; nome: string };
+
+/** Em que ponto do vencimento a fatura mais urgente está. */
+export type SituacaoVencimento = 'vence_em_breve' | 'vence_hoje' | 'vencida';
+
+/** O aviso de vencimento mostrado ao cliente. */
+export interface AvisoVencimento {
+  situacao: SituacaoVencimento;
+  /** A fatura em destaque: a mais urgente das que estão em aberto. */
+  faturaId: string;
+  competencia: string;
+  vencimento: string;
+  valor: number;
+  /** Dias até vencer. Negativo é atraso: `-2` é "venceu anteontem". */
+  diasParaVencer: number;
+  /** Soma de tudo em aberto, não só da fatura em destaque. */
+  totalEmAberto: number;
+  quantidadeEmAberto: number;
+}
+
+/** A assinatura vista pelo próprio cliente. */
+export interface MinhaAssinatura {
+  /** Só a visão do condomínio traz. */
+  responsavel?: ResponsavelPeloCondominio;
+  /** `null` quando quem paga é a administradora do condomínio. */
+  conta: PreviaAssinatura | null;
+  faturas: AssinaturaFatura[];
+  /** `null` quando não há vencimento por perto nem atraso. */
+  aviso: AvisoVencimento | null;
+}

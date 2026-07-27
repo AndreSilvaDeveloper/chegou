@@ -62,26 +62,15 @@ export const STATUS_COBRANCA_META: Record<StatusCobranca, { label: string; varia
   cancelada: { label: 'Cancelada', variant: 'outline' },
 };
 
-export const fmtMoeda = (v: number | null | undefined) =>
-  v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-/** YYYY-MM-DD → dd/MM/yyyy, sem passar por Date (que embaralharia o fuso). */
-export function fmtData(ymd: string | null | undefined): string {
-  if (!ymd) return '—';
-  const [y, m, d] = ymd.slice(0, 10).split('-');
-  return `${d}/${m}/${y}`;
-}
-
-const MESES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-];
-
-/** YYYY-MM-01 → "Agosto de 2026" */
-export function fmtCompetencia(ymd: string): string {
-  const [y, m] = ymd.slice(0, 10).split('-').map(Number);
-  return `${MESES[m - 1]} de ${y}`;
-}
+// Dinheiro, data e competência moraram aqui até a tela de Assinatura precisar
+// dos mesmos formatos. Reexportados para não quebrar quem já importava daqui.
+export {
+  competenciaAtual,
+  fmtCompetencia,
+  fmtData,
+  fmtMoeda,
+  hojeLocal,
+} from '@/lib/formato';
 
 /** Nome do responsável, seja morador cadastrado ou pessoa externa. */
 export function nomeLocatario(locacao: VagaLocacao): string {
@@ -104,19 +93,4 @@ export function contatoLocatario(locacao: VagaLocacao): string | null {
 export function SituacaoBadge({ situacao }: { situacao: SituacaoVaga }) {
   const meta = SITUACAO_META[situacao] ?? SITUACAO_META.livre;
   return <Badge variant={meta.variant}>{meta.label}</Badge>;
-}
-
-/** Data local (fuso do condomínio) no formato YYYY-MM-DD. */
-export function hojeLocal(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-}
-
-/** Competência atual no formato YYYY-MM. */
-export function competenciaAtual(): string {
-  return hojeLocal().slice(0, 7);
 }

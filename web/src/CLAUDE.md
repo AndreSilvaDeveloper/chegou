@@ -16,7 +16,7 @@ web/src/
 │   ├── vagas/          # diálogos e painéis do módulo Vagas
 │   └── whatsapp/       # cards da conexão
 ├── hooks/              # use-tenant-config, use-theme, use-mobile, use-debounce…
-├── lib/                # utils (cn) e erros (mensagemErro)
+├── lib/                # utils (cn), erros (mensagemErro), formato (moeda/data)
 ├── pages/              # uma por rota
 ├── App.tsx             # rotas + ProtectedRoute
 └── components/Layout.tsx  # sidebar, menu por perfil, condomínio ativo
@@ -36,10 +36,41 @@ perfil a mais que a API = tela carrega vazia com erro.
 - Síndico e porteiro: sempre o do vínculo.
 - **Administradora**: escolhe em `/meus-condominios`; o id fica no localStorage e
   o `api` manda em `X-Tenant-Id` a cada request.
+- **Abrir `/meus-condominios/:id` entra naquele condomínio.** A tela reaproveita
+  os managers com `basePath=""`, que usam as rotas normais do condomínio; por
+  isso ela só monta o conteúdo depois que o `:id` virou o ativo. Renderizar
+  junto com a troca mostraria dado do condomínio anterior — **efeito de filho
+  roda antes do efeito do pai**.
 - Sem condomínio escolhido, o `ProtectedRoute` manda a administradora para a
   carteira. Só rota marcada com `semCondominio` escapa disso.
 - Trocar de condomínio (`useTrocarCondominio`) **limpa o cache do react-query** —
   mostrar dado de um condomínio sob o nome de outro é pior que recarregar.
+
+### Uma tela para dois perfis
+
+`/assinatura` serve síndico e administradora: a pergunta é a mesma ("quanto eu
+pago?"), muda o endpoint. Quem escolhe é o hook `useMinhaAssinatura()`
+(`hooks/use-assinatura.ts`), pelo `role` do `useAuthMe()`. A rota é
+`semCondominio` porque a conta da administradora é a da **carteira** — sem isso o
+`ProtectedRoute` a mandaria escolher um condomínio que não muda a resposta. No
+menu ela aparece duas vezes (grupos diferentes por perfil), filtrada por `roles`.
+
+O **mesmo hook** alimenta o ponto de aviso de vencimento no menu
+(`alertaAssinatura` no `NAV_ITEMS`). É uma query só de propósito: com duas, o
+ponto do menu e a faixa da tela poderiam discordar sobre o mesmo vencimento.
+Ela fica desligada para superadmin e porteiro, que não têm conta a pagar — os
+endpoints responderiam 403.
+
+### Uma tela, dois poderes
+
+`SuperAdminTenant` e `MeuCondominio` configuram o mesmo condomínio. O que muda é
+**o que cada perfil salva**, não a aparência — por isso as peças
+(`OptionCard`, `ModuleToggle`, `ModuleReadonly`, `InfoPill`, `TIPO_META`) moram
+em `components/condominio/condominio-shared.tsx`, e não copiadas nas duas.
+
+Na tela da administradora, plano, `ativo` e os módulos aparecem **de leitura**,
+com o motivo. Some-los faria o cliente achar que Vagas não existe e abrir
+chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
 
 ## Padrões de tela
 
@@ -55,6 +86,7 @@ perfil a mais que a API = tela carrega vazia com erro.
 | Telefone | `PhoneInput` — digita `(32) 99999-9999`, entrega E.164. **Nunca peça `+55`** |
 | Telefone em listagem | `formatarTelefone()` de `@/lib/telefone` |
 | Erro de request | `toast.error(mensagemErro(err, 'Não foi possível …'))` |
+| Dinheiro, data, competência | `fmtMoeda` / `fmtData` / `fmtCompetencia` de `@/lib/formato` |
 
 Regras fixas: mobile-first (base = celular, `sm:`/`md:` amplia), `min-h-[48px]`
 em botão de ação, ícone **sempre** com texto, `Label` sempre visível, ícones só

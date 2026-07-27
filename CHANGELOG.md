@@ -11,6 +11,164 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.16.0 — 2026-07-27
+
+A administradora passa a configurar os condomínios da carteira dela, sem
+precisar pedir ao suporte. Antes só o superadmin tinha essa tela.
+
+### Adicionado
+- **Tela "Configurar condomínio"** (`/meus-condominios/:id`), aberta pelo botão
+  **Configurar** no card da carteira. Cinco abas, como a do superadmin: Dados
+  gerais, Configurações, Unidades, Moradores e Acessos.
+- **A administradora edita o operacional**: cadastro (nome, CNPJ, endereço,
+  contatos), tipo de condomínio, estrutura de blocos e janela de envio do
+  WhatsApp. `PATCH /minha-administradora/condominios/:tenantId` agora aceita
+  `configJson` com esses quatro campos.
+- As peças visuais da tela de condomínio saíram de `SuperAdminTenant.tsx` para
+  `components/condominio/condominio-shared.tsx` — as duas telas mostram o mesmo
+  condomínio, muda só o que cada perfil pode salvar.
+
+### Segurança
+- **Plano, ativar/desativar e módulos contratados continuam só no superadmin.**
+  `ativo` é o que mais importa: condomínio inativo sai da conta da assinatura
+  (que conta apartamento ativo **de condomínio ativo**), então esse botão na mão
+  de quem paga a fatura seria um jeito de baixar a própria conta. Módulo e plano
+  aparecem na tela, de leitura — esconder faria o cliente achar que o recurso
+  não existe.
+- **A janela de envio respeita a mesma faixa da tela `/whatsapp`** (08:00–21:00,
+  início antes do fim). Sem isso a rota nova seria o desvio para o condomínio
+  passar a enviar de madrugada, que é o que queima o número.
+- Campo fora do permitido responde **400** pelo `forbidNonWhitelisted` — não é
+  ignorado em silêncio. Coberto por 8 casos novos em `test/multitenant.e2e-spec.ts`.
+
+### Corrigido
+- Salvar a configuração operacional **não apaga o resto do `config_json`** (os
+  modelos de mensagem, o ritmo de envio e os módulos): o merge descarta chave
+  ausente, mesma disciplina do `AdminService`. Invalida o cache do
+  `TenantConfigService`, senão a mudança de estrutura de blocos só valeria
+  depois do TTL.
+
+---
+
+## 0.15.0 — 2026-07-27
+
+Assinatura do sistema — **fase 4, primeira metade**: o cliente passa a ser
+avisado do vencimento. Antes, a fatura só era descoberta por quem ia olhar.
+
+### Adicionado
+- **Aviso de vencimento no painel**: faixa no topo da tela Assinatura a partir de
+  **3 dias** do vencimento, mudando de tom no dia e depois de vencer — e um ponto
+  colorido no item "Assinatura" do menu, para o aviso não depender de o cliente
+  abrir a tela. Vale para o síndico de condomínio direto e para a administradora.
+- A resposta de `GET /assinatura` e `GET /minha-administradora/assinatura` agora
+  traz `aviso`: a fatura mais urgente, a distância até o vencimento e o total em
+  aberto. `null` quando não há o que avisar.
+- **A faixa de fatura vencida explica a baixa manual** ("já pagou? o registro
+  pode levar até um dia útil"), que hoje é feita à mão pelo superadmin — sem essa
+  linha, quem acabou de pagar abre chamado achando que o pagamento se perdeu.
+
+### Decisões
+- **O aviso não sai por WhatsApp.** A fila de disparo é do condomínio para o
+  morador: `notificacoes.tenant_id` é `NOT NULL`, a sessão do OpenWA é uma por
+  condomínio e a cota diária existe para proteger aquele número. Cobrar a
+  assinatura por ali gastaria a cota das encomendas — e, para cliente
+  administradora, não há sequer um número a usar. Aviso por WhatsApp depende de
+  uma sessão própria da plataforma, que fica para a segunda metade da fase 4,
+  junto do gateway de pagamento.
+- **Quem decide se venceu é a data, não o `status`.** A fatura só vira `vencida`
+  no banco quando alguém consulta; ler o status faria a tela mostrar "em aberto"
+  numa fatura que venceu ontem.
+- **A fatura em destaque é a de vencimento mais antigo**, mesmo havendo outras:
+  é a que corre há mais tempo. Pela mais recente, uma fatura distante esconderia
+  a que vence hoje.
+
+### Corrigido
+- `diaAnterior()` e a nova contagem de dias passam por meia-noite **UTC**: em
+  fuso com horário de verão, dois dias vizinhos distam 23 ou 25 horas e a
+  divisão truncava justamente na virada.
+
+---
+
+## 0.14.0 — 2026-07-27
+
+Assinatura do sistema — **fase 3 de 4**: o cliente enxerga a própria conta, e a
+plataforma ganhou tela. A cobrança deixou de existir só na API.
+
+### Adicionado
+- **Tela "Assinatura" para o cliente** (`/assinatura`): quanto paga neste mês, a
+  conta aberta (quantidade × preço = valor), o preço especial quando existe e o
+  histórico de faturas com status e vencimento. Uma tela só para os dois perfis —
+  a administradora vê a carteira inteira, com a composição condomínio a
+  condomínio; o síndico vê o próprio condomínio.
+- **O síndico de condomínio de carteira é avisado de quem paga** em vez de cair
+  numa tela vazia: a cobrança é com a administradora dele, e a tela diz isso.
+- **Tela "Assinaturas" do superadmin** (`/admin/assinaturas`): cards de faturado,
+  recebido, em aberto e vencido; faturas da competência com baixa e cancelamento;
+  prévias de todos os clientes; e a tabela de preços editável.
+- **Rotas do cliente**: `GET /minha-administradora/assinatura` e `GET /assinatura`,
+  ambas só de leitura — dar baixa e mexer em preço continua sendo do superadmin.
+- `fmtMoeda` / `fmtData` / `fmtCompetencia` saíram de dentro do módulo Vagas para
+  `web/src/lib/formato.ts`, para as telas financeiras formatarem igual.
+
+### Segurança
+- **Fatura de outro cliente responde 404, não 403**: quem não é dono dela não
+  pode nem descobrir que ela existe. O id do cliente nunca vem da URL — sai do
+  usuário logado. Coberto por `test/assinaturas-cliente.e2e-spec.ts`, que também
+  prova que o porteiro não vê a conta do condomínio.
+
+---
+
+## 0.13.0 — 2026-07-27
+
+Assinatura do sistema — **fase 2 de 4**: as rotas do superadmin. Ainda sem tela;
+por enquanto o caminho é a API (ou `npm run assinatura:previa`).
+
+### Adicionado
+- **`/admin/assinaturas`**, só para o superadmin: tabela de preços, preço
+  especial, prévia por cliente, faturas do mês e o resumo do que foi faturado,
+  recebido e está em aberto.
+- **Emitir as faturas da competência** (`POST /faturas/gerar`), uma por cliente —
+  condomínio direto ou administradora com a carteira somada. Rodar duas vezes não
+  duplica; cliente sem apartamento ativo volta em `ignorados`, com o motivo, em
+  vez de virar uma fatura de R$ 0,00.
+- **Vencimento no mês seguinte** (padrão dia 10), porque a assinatura é pós-paga:
+  a contagem de apartamentos só fecha quando o mês acaba. Dia 31 em mês de 30 cai
+  no último dia, nunca transborda.
+- **Baixa e cancelamento manuais** da fatura, enquanto não há conciliação
+  automática. Cancelada sai dos totais — não foi cobrada e não é dívida.
+- **Preço especial pela API**: criar uma condição encerra a anterior na véspera,
+  na mesma transação, e o histórico fica. Condição em condomínio de carteira é
+  recusada — quem paga por ele é a administradora.
+- **Trocar a tabela de preços** substitui a lista inteira numa transação, exigindo
+  tetos crescentes e a última faixa sem teto. Nada disso toca fatura emitida — há
+  teste provando que mexer no preço não reescreve o passado.
+
+---
+
+## 0.12.0 — 2026-07-27
+
+Assinatura do sistema — **fase 1 de 4**: dados e cálculo, ainda sem rotas nem
+telas.
+
+### Adicionado
+- **Cálculo da assinatura por apartamento, em faixas** (migration 024):
+  3,99 até 50 · 3,49 de 51 a 200 · 2,99 acima de 200. A faixa encontrada vale
+  para todos os apartamentos — não é escalonado por trecho.
+- **Quem paga sai do vínculo**: condomínio sem administradora paga o próprio;
+  condomínio de carteira entra na fatura da administradora, que soma a carteira
+  inteira para achar a faixa (desconto por volume). Nenhum condomínio é cobrado
+  duas vezes.
+- **Preço especial** por condomínio ou por administradora, em três modos (preço
+  por apartamento, valor fixo mensal ou tabela) mais desconto percentual, com
+  vigência e histórico.
+- Estrutura da fatura mensal e da composição por condomínio, com a fotografia do
+  que foi cobrado (quantidade, modo, preço) — mudar a tabela de preços não
+  reescreve fatura emitida.
+- `npm run assinatura:previa` imprime quanto cada cliente pagaria hoje, para
+  conferir o cálculo sem depender de tela.
+
+---
+
 ## 0.11.0 — 2026-07-27
 
 Rodada de escala no disparo de notificações. O gargalo era estrutural: um único

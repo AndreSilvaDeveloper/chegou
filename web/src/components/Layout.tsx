@@ -6,10 +6,13 @@ import {
   Package, PackagePlus, Building2, Users, HardHat, Building,
   Menu, LogOut, Sun, Moon, Laptop, BarChart3, Car, Megaphone, ListChecks,
   PanelLeftClose, PanelLeftOpen, Download, MessageCircle, LayoutDashboard,
-  Briefcase, ArrowLeftRight,
+  Briefcase, ArrowLeftRight, Receipt,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import type { SituacaoVencimento } from '@/api/types';
+import { AVISO_VENCIMENTO_META } from '@/components/assinatura/assinatura-shared';
+import { useMinhaAssinatura } from '@/hooks/use-assinatura';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
 import {
   useAuthMe,
@@ -56,6 +59,8 @@ type NavItem = {
   modulo?: TenantModule;
   /** Funciona sem condomínio escolhido — vale para a carteira da administradora. */
   semCondominio?: boolean;
+  /** Recebe o ponto de aviso quando a assinatura tem fatura vencendo ou vencida. */
+  alertaAssinatura?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -70,9 +75,15 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/notificacoes', label: 'Filas', icon: ListChecks, roles: ['sindico', 'admin'], group: 'Comunicação' },
   { path: '/whatsapp', label: 'WhatsApp', icon: MessageCircle, roles: ['sindico', 'admin'], group: 'Comunicação' },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3, roles: ['sindico', 'admin'], group: 'Comunicação' },
+  // Mesma tela, dois grupos: para o síndico a assinatura é do condomínio dele;
+  // para a administradora é da carteira — e ela precisa vê-la mesmo sem ter
+  // escolhido um condomínio, por isso o `semCondominio`.
+  { path: '/assinatura', label: 'Assinatura', icon: Receipt, roles: ['sindico'], group: 'Condomínio', alertaAssinatura: true },
   { path: '/meus-condominios', label: 'Meus condomínios', icon: Briefcase, roles: ['admin'], group: 'Carteira', semCondominio: true },
+  { path: '/assinatura', label: 'Assinatura', icon: Receipt, roles: ['admin'], group: 'Carteira', semCondominio: true, alertaAssinatura: true },
   { path: '/admin', label: 'Condomínios', icon: Building, roles: ['superadmin'], end: true, group: 'Plataforma' },
   { path: '/admin/administradoras', label: 'Administradoras', icon: Briefcase, roles: ['superadmin'], group: 'Plataforma' },
+  { path: '/admin/assinaturas', label: 'Assinaturas', icon: Receipt, roles: ['superadmin'], group: 'Plataforma' },
   { path: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle, roles: ['superadmin'], group: 'Plataforma' },
 ];
 
@@ -92,6 +103,37 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
+/**
+ * O ponto que marca o item do menu quando há fatura vencendo ou vencida.
+ *
+ * É só um sinal: quem explica é a tela de Assinatura. Ele existe porque a
+ * fatura da plataforma não aparece em lugar nenhum do dia a dia do cliente —
+ * sem a marca, o aviso só seria visto por quem já foi olhar.
+ */
+function PontoDeAviso({
+  situacao,
+  compacto,
+}: {
+  situacao: SituacaoVencimento;
+  compacto: boolean;
+}) {
+  const { titulo, urgente } = AVISO_VENCIMENTO_META[situacao];
+
+  return (
+    <span
+      role="status"
+      aria-label={titulo}
+      title={titulo}
+      className={cn(
+        'block h-2.5 w-2.5 shrink-0 rounded-full',
+        urgente ? 'bg-red-500' : 'bg-amber-500',
+        // Recolhido, o ponto encosta no ícone: o anel o separa do fundo.
+        compacto ? 'absolute right-1.5 top-1.5 ring-2 ring-sidebar' : 'ml-auto',
+      )}
+    />
+  );
+}
+
 interface SidebarBodyProps {
   groups: Record<string, NavItem[]>;
   /** Fecha o menu do celular ao navegar. No desktop não existe. */
@@ -103,6 +145,8 @@ interface SidebarBodyProps {
   nomeCondominio: string;
   temCondominio: boolean;
   onTrocarCondominio: () => void;
+  /** Situação da assinatura do cliente; `null` quando não há o que avisar. */
+  alertaAssinatura: SituacaoVencimento | null;
 }
 
 /**
@@ -124,6 +168,7 @@ function SidebarBody({
   nomeCondominio,
   temCondominio,
   onTrocarCondominio,
+  alertaAssinatura,
 }: SidebarBodyProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -142,7 +187,7 @@ function SidebarBody({
                 title={isCollapsed ? item.label : undefined}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center rounded-xl font-medium transition-colors',
+                    'relative flex items-center rounded-xl font-medium transition-colors',
                     isCollapsed ? 'h-11 w-11 justify-center' : 'min-h-[44px] gap-3 px-3 py-2.5 text-[15px]',
                     isActive
                       ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
@@ -152,6 +197,9 @@ function SidebarBody({
               >
                 <item.icon className="h-5 w-5 shrink-0" />
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
+                {item.alertaAssinatura && alertaAssinatura && (
+                  <PontoDeAviso situacao={alertaAssinatura} compacto={isCollapsed} />
+                )}
               </NavLink>
             ))}
           </div>
@@ -207,6 +255,10 @@ export function Layout() {
 
   const condominioAtivo = useCondominioAtivo();
   const trocarCondominio = useTrocarCondominio();
+
+  // Mesma query da tela de Assinatura: o ponto no menu e a faixa de lá saem do
+  // mesmo dado. Fica desligada para superadmin e porteiro, que não têm conta.
+  const { data: assinatura } = useMinhaAssinatura();
 
   // Módulos opcionais: mesma query do /auth/me, sem request extra.
   const vagasAtivo = useModuleEnabled('vagas');
@@ -270,6 +322,7 @@ export function Layout() {
     ehAdministradora,
     nomeCondominio,
     temCondominio: Boolean(condominioAtivo.id) || !ehAdministradora,
+    alertaAssinatura: assinatura?.aviso?.situacao ?? null,
     onTrocarCondominio: () => {
       trocarCondominio(null);
       nav('/meus-condominios');

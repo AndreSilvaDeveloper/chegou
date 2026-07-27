@@ -20,6 +20,7 @@ import { VagasModule } from './modules/vagas/vagas.module';
 import { EquipeModule } from './modules/equipe/equipe.module';
 import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
 import { AvisosModule } from './modules/avisos/avisos.module';
+import { AssinaturasModule } from './modules/assinaturas/assinaturas.module';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module';
 import { AuditModule } from './common/audit/audit.module';
 import { RedisModule } from './common/redis/redis.module';
@@ -57,6 +58,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
     EquipeModule,
     NotificacoesModule,
     AvisosModule,
+    AssinaturasModule,
     RelatoriosModule,
     AuditModule,
     TenantConfigModule,

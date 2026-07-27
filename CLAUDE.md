@@ -183,6 +183,10 @@ chegou/
 | `vagas_precos` | ✅ | Tabela de preço sugerido por tipo de vaga |
 | `vagas_cobrancas` | ✅ | Cobrança mensal da locação, por competência |
 | `avisos` | ✅ | Comunicados do condomínio para moradores |
+| `assinatura_faixas` | — | Tabela de preços da plataforma (por apartamento) |
+| `assinatura_condicoes` | opcional | Preço especial de um condomínio **ou** de uma administradora |
+| `assinatura_faturas` | opcional | Fatura mensal da assinatura (condomínio **ou** administradora) |
+| `assinatura_fatura_itens` | opcional | Composição da fatura, um item por condomínio |
 | `notificacoes` | ✅ | Fila unificada de disparos (encomenda, cobrança, aviso) |
 | `whatsapp_messages` | permite NULL | Histórico de mensagens (in/out) |
 | `audit_log` | permite NULL | Log de auditoria de ações |
@@ -190,7 +194,9 @@ chegou/
 > Toda tabela nova de dado de condomínio nasce com `tenant_id NOT NULL` +
 > `REFERENCES tenants(id) ON DELETE CASCADE`. As exceções acima são deliberadas:
 > `whatsapp_messages` aceita NULL porque uma mensagem de número desconhecido não
-> tem dono, e `audit_log` registra também ações de plataforma.
+> tem dono, `audit_log` registra também ações de plataforma, e as tabelas de
+> **assinatura** cobram ora um condomínio, ora uma administradora — nelas um
+> CHECK (`tenant_id` XOR `administradora_id`) faz o papel do `NOT NULL`.
 
 ### Roles do Sistema
 | Role | Acesso | Escopo no banco | Login de Teste (Seed) |
@@ -214,7 +220,10 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Administradoras (criar, carteira, acessos) | ✅ | — | — | — |
 | Gestão de qualquer condomínio (`/admin/tenants/:id/...`) | ✅ | — | — | — |
 | Módulos contratados e plano do condomínio | ✅ | — | — | — |
+| Assinatura: tabela de preços, preço especial, gerar e dar baixa em fatura | ✅ | — | — | — |
 | Carteira própria (listar/criar/editar condomínios) | — | ✅ | — | — |
+| Configurar condomínio da carteira: cadastro, tipo, blocos, janela de envio | ✅ | ✅⁵ | — | — |
+| Assinatura própria: quanto paga e as faturas (só leitura) | — | ✅³ | ✅⁴ | — |
 | Dashboard e relatórios | — | ✅ | ✅ | — |
 | Encomendas: registrar, listar, dar baixa | — | ✅ | ✅ | ✅ |
 | Encomendas: cancelar, exportar, estatísticas | — | ✅ | ✅ | — |
@@ -238,6 +247,19 @@ rota `/usuarios` (que é do condomínio). Ninguém cria `superadmin` pela API.
 ² Idem: o superadmin edita isso em `/admin/whatsapp`, sem as faixas de segurança
 que valem para o síndico (intervalo ≥ 60s, janela dentro de 08:00–21:00, limite
 de 20 a 300/dia).
+
+³ A conta da administradora é a da **carteira inteira**, em
+`/minha-administradora/assinatura` — não a de um condomínio. É a única coisa que
+ela vê sem escolher condomínio no `X-Tenant-Id`.
+
+⁴ Só quando o condomínio é direto. Em condomínio de carteira quem paga é a
+administradora, e a tela do síndico diz isso em vez de mostrar conta vazia.
+
+⁵ **Só o operacional** — o que descreve o condomínio. Plano, ativar/desativar e
+módulos contratados descrevem o *contrato* e continuam só no superadmin.
+`ativo` em especial: condomínio inativo sai da conta da assinatura, então esse
+botão na mão de quem paga a fatura seria o botão de baixar a própria conta. A
+tela dela é `/meus-condominios/:id`; a do superadmin, `/admin/condominios/:id`.
 
 **A administradora só enxerga isso dentro dos condomínios da carteira dela**, e
 sempre com o condomínio escolhido no header `X-Tenant-Id`. Ver "Escopo da
@@ -287,6 +309,7 @@ naquela pasta.
 | WhatsApp | [src/modules/whatsapp](src/modules/whatsapp/CLAUDE.md) | Histórico de mensagens, respostas ao morador e webhook de entrada |
 | OpenWA | [src/modules/openwa](src/modules/openwa/CLAUDE.md) | Sessão não-oficial por condomínio (QR, status) |
 | Relatórios | [src/modules/relatorios](src/modules/relatorios/CLAUDE.md) | Consultas agregadas para as telas de relatório |
+| Assinaturas | [src/modules/assinaturas](src/modules/assinaturas/CLAUDE.md) | O que o cliente paga pelo Chegou (por apartamento, em faixas) |
 | Storage | [src/modules/storage](src/modules/storage/CLAUDE.md) | Upload de fotos e contratos (S3/MinIO/R2) |
 | Common | [src/common](src/common/CLAUDE.md) | Guards, decorators, escopo de tenant e auditoria |
 | Frontend | [web/src](web/src/CLAUDE.md) | Páginas, componentes, hooks e client da API |
@@ -544,8 +567,10 @@ se separa do card sozinho.
 | `PhoneInput` | `web/src/components/ui/phone-input.tsx` | Telefone mascarado `(32) 99999-9999` → E.164 |
 | `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
+| `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
 | `EmptyState` / `StatCard` / `ConfirmDialog` / `SimpleSelect` | `web/src/components/ui/` | Estado vazio, indicador, confirmação e select |
+| `OptionCard` / `ModuleToggle` / `ModuleReadonly` / `InfoPill` | `web/src/components/condominio/condominio-shared.tsx` | Telas de configurar condomínio (superadmin e administradora) |
 | `useAuthMe` / `useCondominioAtivo` / `useModuleEnabled` | `web/src/hooks/use-tenant-config.ts` | Usuário, condomínio ativo e módulos contratados |
 
 Se você está prestes a copiar um trecho de outro arquivo, considere extrair a
