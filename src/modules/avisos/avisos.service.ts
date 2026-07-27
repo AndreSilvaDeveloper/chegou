@@ -80,7 +80,11 @@ export class AvisosService {
     // Buscar moradores com base no filtro
     const query = this.moradorRepo.createQueryBuilder('morador')
       .where('morador.tenant_id = :tenantId', { tenantId: aviso.tenantId })
-      .andWhere('morador.ativo = true');
+      .andWhere('morador.ativo = true')
+      // Quem pediu para não receber WhatsApp não entra nem na fila. Mandar
+      // assim mesmo rende denúncia, e denúncia é o que bloqueia o número.
+      .andWhere('morador.receber_whatsapp = true')
+      .andWhere("morador.telefone_e164 IS NOT NULL AND morador.telefone_e164 <> ''");
 
     if (aviso.destinatario === DestinatarioAviso.APARTAMENTO && aviso.destinatarioFiltro?.apartamentoId) {
       query.andWhere('morador.apartamento_id = :apartamentoId', { apartamentoId: aviso.destinatarioFiltro.apartamentoId });
@@ -90,15 +94,15 @@ export class AvisosService {
     }
 
     const moradores = await query.getMany();
+    if (moradores.length === 0) return;
 
-    // Enfileirar notificações para cada morador com telefone
-    for (const morador of moradores) {
-      if (!morador.telefoneE164) continue;
-
-      await this.notificationService.agendarNotificacao({
+    // Em lote: um aviso para o prédio inteiro são centenas de mensagens, e o
+    // síndico está esperando a resposta do POST.
+    await this.notificationService.agendarEmLote(
+      moradores.map((morador) => ({
         tenantId: aviso.tenantId,
         tipo: TipoNotificacao.AVISO,
-        destinatarioTelefone: morador.telefoneE164,
+        destinatarioTelefone: morador.telefoneE164 as string,
         destinatarioNome: morador.nome,
         moradorId: morador.id,
         referenciaTipo: 'aviso_geral', // Template
@@ -108,8 +112,8 @@ export class AvisosService {
           titulo: aviso.titulo,
           conteudo: aviso.conteudo,
         },
-      });
-    }
+      })),
+    );
   }
 
   async desativar(tenantId: string, id: string) {

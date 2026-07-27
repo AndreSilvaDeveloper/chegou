@@ -10,6 +10,15 @@ export const envValidationSchema = Joi.object({
 
   REDIS_URL: Joi.string().uri({ scheme: ['redis', 'rediss'] }).required(),
 
+  // ---- Worker de disparo (fila de notificações) ----
+  // false numa réplica que só atende HTTP: sem isso, escalar a API na
+  // horizontal multiplica os workers e o ritmo de envio sai do controle.
+  WORKER_ENABLED: Joi.boolean().default(true),
+  // Jobs simultâneos no worker. A serialização que protege o número é por
+  // condomínio (trava no Redis), então isto é quantos CONDOMÍNIOS diferentes
+  // podem estar enviando ao mesmo tempo.
+  NOTIFICATION_CONCURRENCY: Joi.number().integer().min(1).max(200).default(15),
+
   JWT_SECRET: Joi.string().min(16).required(),
   JWT_EXPIRES_IN: Joi.string().default('12h'),
   BCRYPT_ROUNDS: Joi.number().integer().min(8).max(15).default(12),
@@ -26,6 +35,9 @@ export const envValidationSchema = Joi.object({
   OPENWA_SESSION_PREFIX: Joi.string().pattern(/^[a-z0-9-]+$/).default('chegou'),
   // Base pública p/ registrar o webhook da sessão (fallback: WEBHOOK_BASE_URL). Vazio = não registra webhook.
   OPENWA_WEBHOOK_BASE_URL: Joi.string().uri().allow('').optional(),
+  // Timeout de cada chamada ao gateway. Existe para uma sessão pendurada não
+  // segurar um worker (e, com ele, os envios de outros condomínios).
+  OPENWA_TIMEOUT_MS: Joi.number().integer().min(1000).max(120000).default(15000),
 
   STORAGE_ENDPOINT: Joi.string().allow('').optional(),
   STORAGE_BUCKET: Joi.string().allow('').optional(),

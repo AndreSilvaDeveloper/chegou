@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, QueryFailedError, Repository } from 'typeorm';
 import { Apartamento, Morador } from '../../database/entities';
 import { TenantConfigService } from '../../common/tenant-config/tenant-config.service';
 import { VagasService } from '../vagas/vagas.service';
@@ -320,37 +320,44 @@ export class ApartamentosService {
       where: { tenantId, ativo: true },
     });
 
-    let enviados = 0;
+    const cobraveis = apartamentos.filter((a) => a.valorCondominio);
+    if (cobraveis.length === 0) return { enviados: 0 };
 
-    for (const apto of apartamentos) {
-      if (!apto.valorCondominio) continue;
+    // Uma consulta para todos os apartamentos, não uma por unidade: com 300
+    // unidades eram 300 idas ao banco antes de a primeira mensagem existir.
+    const moradores = await this.moradorRepo.find({
+      where: {
+        tenantId,
+        apartamentoId: In(cobraveis.map((a) => a.id)),
+        ativo: true,
+        principal: true,
+        receberWhatsapp: true,
+      },
+    });
 
-      const moradores = await this.moradorRepo.find({
-        where: { tenantId, apartamentoId: apto.id, ativo: true, principal: true },
-      });
-
-      for (const morador of moradores) {
-        if (!morador.telefoneE164) continue;
-
-        await notificationService.agendarNotificacao({
+    const valorPorApto = new Map(cobraveis.map((a) => [a.id, a.valorCondominio]));
+    const notificacoes = moradores
+      .filter((m) => m.telefoneE164)
+      .map((morador) => {
+        const primeiroNome = morador.nome.split(' ')[0];
+        const valor = valorPorApto.get(morador.apartamentoId);
+        return {
           tenantId,
-          tipo: 'cobranca_condominio',
-          destinatarioTelefone: morador.telefoneE164,
+          tipo: 'cobranca_condominio' as never,
+          destinatarioTelefone: morador.telefoneE164 as string,
           destinatarioNome: morador.nome,
           moradorId: morador.id,
           referenciaTipo: 'cobranca_condominio',
-          referenciaId: apto.id,
-          conteudo: `Olá ${morador.nome.split(' ')[0]}, o valor do condomínio (R$ ${apto.valorCondominio}) vence em breve.`,
-          variaveisJson: {
-            nome: morador.nome.split(' ')[0],
-            valor: apto.valorCondominio,
-          },
-        });
-        enviados++;
-      }
-    }
+          referenciaId: morador.apartamentoId,
+          conteudo: `Olá ${primeiroNome}, o valor do condomínio (R$ ${valor}) vence em breve.`,
+          variaveisJson: { nome: primeiroNome, valor },
+        };
+      });
 
-    return { enviados };
+    if (notificacoes.length === 0) return { enviados: 0 };
+
+    await notificationService.agendarEmLote(notificacoes);
+    return { enviados: notificacoes.length };
   }
 
   async importarCsv(tenantId: string, fileBuffer: Buffer) {

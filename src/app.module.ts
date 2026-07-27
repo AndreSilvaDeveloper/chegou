@@ -22,6 +22,7 @@ import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
 import { AvisosModule } from './modules/avisos/avisos.module';
 import { RelatoriosModule } from './modules/relatorios/relatorios.module';
 import { AuditModule } from './common/audit/audit.module';
+import { RedisModule } from './common/redis/redis.module';
 import { TenantConfigModule } from './common/tenant-config/tenant-config.module';
 import { TenantScopeModule } from './common/tenant-scope/tenant-scope.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -39,6 +40,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
       validationOptions: { abortEarly: true, allowUnknown: true },
     }),
     DatabaseModule,
+    RedisModule,
     QueuesModule,
     AuthModule,
     HealthModule,

@@ -66,6 +66,24 @@ Regras que valem para os modelos de mensagem:
 3. A tela **abre com o texto efetivo preenchido** (o do condomínio ou o padrão),
    não em branco: o síndico precisa ver a mensagem real para mudar uma palavra.
 
+## Custo de um envio (o que o disparo em escala paga)
+
+`sendText` era 3 a 4 chamadas HTTP ao gateway **por mensagem** (`getSession` +
+`checkNumber` 1–2× + `sendText`), mais um `UPDATE tenants` a cada envio. Com o
+worker compartilhado, isso era o teto da plataforma. Hoje:
+
+| Peça | Cache | Chave | Invalidação |
+|---|---|---|---|
+| Status da sessão | 30 s | `wa:sess:{tenant}` | `persist()` e webhook de status |
+| JID do destinatário | 30 dias | `wa:jid:{tenant}:{numero}` | falha no envio apaga a chave |
+
+Sobra **uma** chamada HTTP no caminho quente. O `UPDATE tenants` só acontece
+quando o status realmente mudou.
+
+Toda chamada ao gateway tem `OPENWA_TIMEOUT_MS` (padrão 15 s). Sem timeout, o
+padrão do Node espera até 5 minutos — e um worker preso é fila parada para
+outros condomínios.
+
 ## Regras de negócio
 
 1. **Provisionamento na criação do condomínio é best-effort**

@@ -97,6 +97,10 @@ services:
       OPENWA_BASE_URL: ${OPENWA_BASE_URL:-}
       OPENWA_API_KEY: ${OPENWA_API_KEY:-}
       OPENWA_SESSION_PREFIX: ${OPENWA_SESSION_PREFIX:-chegou}
+      OPENWA_TIMEOUT_MS: ${OPENWA_TIMEOUT_MS:-15000}
+      # Disparo: quantos condomínios enviam em paralelo (um envio por condomínio)
+      NOTIFICATION_CONCURRENCY: ${NOTIFICATION_CONCURRENCY:-15}
+      WORKER_ENABLED: ${WORKER_ENABLED:-true}
       # Base pública p/ o gateway alcançar nosso webhook (se vazio, o app usa WEBHOOK_BASE_URL = https://DOMAIN)
       OPENWA_WEBHOOK_BASE_URL: ${OPENWA_WEBHOOK_BASE_URL:-}
       # Storage (MinIO interno; público via /fotos no proxy)

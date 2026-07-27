@@ -11,6 +11,48 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.11.0 — 2026-07-27
+
+Rodada de escala no disparo de notificações. O gargalo era estrutural: um único
+worker sequencial para a plataforma inteira, com teto de ~40 mensagens/minuto
+somadas todas as instâncias de WhatsApp.
+
+### Alterado
+- **Envio paralelo entre condomínios, serial dentro de cada um.** O worker passa
+  a processar `NOTIFICATION_CONCURRENCY` jobs (padrão 15) com uma trava no Redis
+  por condomínio. Antes era `concurrency: 1` global — um gateway lento em um
+  condomínio segurava a fila de todos.
+- **Timeout de 15s nas chamadas ao gateway** (`OPENWA_TIMEOUT_MS`). Sem ele o
+  Node esperava até 5 minutos e o worker ficava preso nesse tempo.
+- **Cache de JID do destinatário (30 dias) e do status da sessão (30s)**: o
+  envio caiu de 3–4 chamadas HTTP ao gateway para 1. O `UPDATE tenants` por
+  mensagem só acontece quando o status muda.
+- **Disparo em massa em lote** (`agendarEmLote`): um aviso para o prédio inteiro
+  virou um `INSERT` e um `addBulk`, em vez de centenas de idas ao banco dentro
+  do request do síndico. Cobrança de condomínio também deixou de fazer uma
+  consulta de moradores por apartamento.
+- Uma conexão Redis compartilhada (`common/redis`) no lugar de uma por serviço.
+
+### Corrigido
+- **Reserva de horário de envio agora é atômica** (script Lua). Duas encomendas
+  registradas no mesmo segundo — ou duas réplicas da API — recebiam o mesmo
+  horário e saíam juntas pelo mesmo número, que é exatamente o padrão de rajada
+  que faz o WhatsApp bloquear.
+- **Limite diário conta o dia em que a mensagem sai**, não o dia em que foi
+  criada. Com fila acumulada, o adiado para amanhã contava hoje e não contava
+  amanhã, deixando o número furar o próprio limite.
+- **Aviso respeita o opt-out do morador** (`receber_whatsapp`). A regra estava
+  na documentação do módulo mas não no código: a consulta só filtrava `ativo`.
+
+### Adicionado
+- `WORKER_ENABLED=false` desliga o consumo da fila numa instância, para escalar a
+  API na horizontal sem multiplicar os workers de envio.
+- Índices `(tenant_id, created_at)` e `(tenant_id, enviada_at)` em `notificacoes`
+  (migration 023).
+- Log do tempo de cada envio, para medir o teto real em vez de estimá-lo.
+
+---
+
 ## 0.10.0 — 2026-07-27
 
 ### Adicionado

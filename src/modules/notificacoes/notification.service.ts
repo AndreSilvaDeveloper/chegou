@@ -36,40 +36,75 @@ export class NotificationService {
     };
   }
 
-  async agendarNotificacao(params: Partial<Notificacao>) {
-    if (!params.tenantId) throw new BadRequestException('tenantId é obrigatório');
+  async agendarNotificacao(params: Partial<Notificacao>): Promise<Notificacao> {
+    const [notificacao] = await this.agendarEmLote([params]);
+    return notificacao;
+  }
 
-    const notificacao = this.notificacaoRepo.create({
-      ...params,
-      status: StatusNotificacao.PENDENTE,
-    });
-    await this.notificacaoRepo.save(notificacao);
+  /**
+   * Enfileira várias notificações do **mesmo condomínio** de uma vez.
+   *
+   * Um aviso para o prédio inteiro são centenas de mensagens. Uma a uma, cada
+   * volta custava INSERT + SELECT do tenant + UPDATE + idas ao Redis, tudo em
+   * série dentro do request do síndico — a tela travava por segundos. Aqui a
+   * config do condomínio é lida uma vez, os slots são reservados em sequência
+   * (só Redis, é o que garante o ritmo entre as mensagens) e o banco e a fila
+   * levam uma escrita em lote cada.
+   */
+  async agendarEmLote(itens: Partial<Notificacao>[]): Promise<Notificacao[]> {
+    if (itens.length === 0) return [];
 
-    // Delay anti-bloqueio (intervalo + jitter + janela + cap), por número do condomínio.
-    const cfg = await this.getAntiBanConfig(params.tenantId);
-    const schedulerDelay = await this.scheduler.reserve(params.tenantId, cfg);
-    const explicitDelay = params.agendadaPara
-      ? Math.max(0, params.agendadaPara.getTime() - Date.now())
-      : 0;
-    const delay = Math.max(schedulerDelay, explicitDelay);
-
-    if (delay > 1000) {
-      notificacao.status = StatusNotificacao.AGENDADA;
-      notificacao.agendadaPara = new Date(Date.now() + delay);
-      await this.notificacaoRepo.save(notificacao);
+    const tenantId = itens[0].tenantId;
+    if (!tenantId) throw new BadRequestException('tenantId é obrigatório');
+    if (itens.some((i) => i.tenantId !== tenantId)) {
+      throw new BadRequestException('agendarEmLote aceita um condomínio por vez');
     }
 
-    await this.dispatchQueue.add(
-      'dispatch',
-      { notificacaoId: notificacao.id },
-      {
+    const cfg = await this.getAntiBanConfig(tenantId);
+    const agora = Date.now();
+
+    const preparadas: { entidade: Notificacao; delay: number }[] = [];
+    for (const params of itens) {
+      // Delay anti-bloqueio (intervalo + jitter + janela + cota), por número do condomínio.
+      const schedulerDelay = await this.scheduler.reserve(tenantId, cfg);
+      const explicitDelay = params.agendadaPara
+        ? Math.max(0, params.agendadaPara.getTime() - agora)
+        : 0;
+      const delay = Math.max(schedulerDelay, explicitDelay);
+      const agendada = delay > 1000;
+
+      preparadas.push({
         delay,
-        priority: notificacao.prioridade || 5, // BullMQ: menor número = maior prioridade
-      },
+        entidade: this.notificacaoRepo.create({
+          ...params,
+          status: agendada ? StatusNotificacao.AGENDADA : StatusNotificacao.PENDENTE,
+          agendadaPara: agendada ? new Date(agora + delay) : (params.agendadaPara ?? null),
+        }),
+      });
+    }
+
+    // Um INSERT para o lote todo: o status e o horário já foram decididos acima,
+    // então não é preciso gravar e depois voltar para atualizar.
+    const salvas = await this.notificacaoRepo.save(preparadas.map((p) => p.entidade));
+
+    await this.dispatchQueue.addBulk(
+      salvas.map((notificacao, i) => ({
+        name: 'dispatch',
+        data: { notificacaoId: notificacao.id },
+        opts: {
+          delay: preparadas[i].delay,
+          priority: notificacao.prioridade || 5, // BullMQ: menor número = maior prioridade
+        },
+      })),
     );
 
-    this.logger.log(`Notificação ${notificacao.id} enfileirada (delay: ${Math.round(delay / 1000)}s)`);
-    return notificacao;
+    const ultimo = Math.round(Math.max(...preparadas.map((p) => p.delay)) / 1000);
+    this.logger.log(
+      salvas.length === 1
+        ? `Notificação ${salvas[0].id} enfileirada (delay: ${ultimo}s)`
+        : `${salvas.length} notificações enfileiradas p/ tenant ${tenantId} (última em ${ultimo}s)`,
+    );
+    return salvas;
   }
 
   async listar(tenantId: string, query: import('./dto/query-notifications.dto').QueryNotificationsDto) {

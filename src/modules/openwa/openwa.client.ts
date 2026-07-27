@@ -75,10 +75,12 @@ export class OpenWaClient {
   private readonly logger = new Logger(OpenWaClient.name);
   private readonly baseUrl: string;
   private readonly apiKey: string;
+  private readonly timeoutMs: number;
 
   constructor(private readonly config: ConfigService) {
     this.baseUrl = (this.config.get<string>('OPENWA_BASE_URL') ?? '').replace(/\/+$/, '');
     this.apiKey = this.config.get<string>('OPENWA_API_KEY') ?? '';
+    this.timeoutMs = this.config.get<number>('OPENWA_TIMEOUT_MS', 15_000);
   }
 
   /** true quando há base URL + API key configuradas. */
@@ -100,9 +102,21 @@ export class OpenWaClient {
           ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        // SEM timeout, o padrão do Node espera até 5 min por resposta. Como o
+        // worker de disparo é compartilhado por todos os condomínios, uma sessão
+        // pendurada no gateway congelaria a fila inteira. Falhar rápido deixa o
+        // BullMQ reagendar com backoff, sem prender ninguém.
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (err) {
-      // Falha de rede (gateway fora do ar, DNS, timeout) → status 0.
+      const nome = (err as Error).name;
+      if (nome === 'TimeoutError' || nome === 'AbortError') {
+        throw new OpenWaError(
+          0,
+          `Gateway OpenWA não respondeu em ${this.timeoutMs}ms (${method} ${path})`,
+        );
+      }
+      // Falha de rede (gateway fora do ar, DNS) → status 0.
       throw new OpenWaError(0, `Falha de rede ao acessar OpenWA: ${(err as Error).message}`);
     }
 

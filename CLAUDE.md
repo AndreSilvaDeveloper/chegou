@@ -361,21 +361,20 @@ mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a do
 12. **Logs completos**: Registrar todo envio/falha em `whatsapp_messages`
 
 ### Implementação Técnica (BullMQ)
-```typescript
-// Configuração da fila de notificações
-{
-  limiter: {
-    max: 1,                    // 1 job por vez
-    duration: 15_000,          // mínimo 15s entre jobs
-  },
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 60_000 },  // 1min, 2min, 4min
-    removeOnComplete: { age: 7 * 24 * 3600 },
-    removeOnFail: { age: 30 * 24 * 3600 },
-  },
-}
-```
+
+O ritmo **não** vem de um limiter da fila: vem do `delay` calculado no
+enfileiramento (slot por condomínio) somado à trava de um envio por condomínio.
+É o que permite muitos condomínios enviarem em paralelo sem que nenhum número
+saia do passo.
+
+| Camada | Garantia | Onde ajustar |
+|---|---|---|
+| Fila | 15 condomínios em paralelo | `NOTIFICATION_CONCURRENCY` |
+| Condomínio | 1 envio por vez | trava `wa:envio:{tenant}` (Redis) |
+| Mensagem | intervalo + jitter | config do condomínio (tela `/whatsapp`) |
+| Dia | cota por dia de **envio** | `wa:cota:{tenant}:{dia}` |
+
+Detalhes e armadilhas: [módulo Notificações](src/modules/notificacoes/CLAUDE.md).
 
 ---
 
@@ -704,6 +703,9 @@ Veja `.env.example` para lista completa. As mais críticas:
 | `OPENWA_API_KEY` | Chave do gateway |
 | `WEBHOOK_BASE_URL` | URL pública da API, usada para registrar o webhook no gateway |
 | `VITE_API_URL` | URL da API para o frontend |
+| `OPENWA_TIMEOUT_MS` | Timeout de cada chamada ao gateway (padrão 15000) |
+| `NOTIFICATION_CONCURRENCY` | Condomínios enviando em paralelo (padrão 15) |
+| `WORKER_ENABLED` | `false` numa réplica que só atende HTTP |
 
 > Não existe número remetente global: **o número é o da sessão do condomínio** no
 > OpenWA. Também não há variável de provedor — o gateway é um só.

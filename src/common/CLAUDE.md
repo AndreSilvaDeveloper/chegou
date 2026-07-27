@@ -57,6 +57,20 @@ contratados (`moduloVagas`, `moduloAvisos`), o tipo do condomínio, a estrutura 
 blocos e os parâmetros anti-bloqueio do WhatsApp. `invalidate()` é chamado quando
 o superadmin salva a configuração, para o efeito ser imediato.
 
+## Redis compartilhado (`redis/`)
+
+`REDIS_CLIENT` é **uma** conexão ioredis para o app inteiro (as do BullMQ são
+dele, à parte). Quem precisa de Redis injeta o token, não abre a sua:
+
+```ts
+constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+```
+
+Hoje passam por ela o slot de envio e a cota diária (`notificacoes`), a trava de
+envio por condomínio e o cache de sessão/JID (`openwa`). Todas com chave
+prefixada por `wa:` e **sempre com TTL** — nada aqui é fonte da verdade, é
+aceleração e coordenação.
+
 ## Auditoria (`audit/`, `interceptors/`)
 
 `AuditInterceptor` registra POST/PUT/PATCH/DELETE em `audit_log`, sanitizando

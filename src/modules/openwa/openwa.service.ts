@@ -1,7 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import Redis from 'ioredis';
 import { IsNull, Repository } from 'typeorm';
+import { REDIS_CLIENT } from '../../common/redis/redis.module';
 import { Tenant } from '../../database/entities';
 import { DEFAULT_TENANT_CONFIG } from '../admin/dto/config-tenant.dto';
 import {
@@ -152,14 +154,35 @@ type TenantWhatsappPatch = Partial<
 export class OpenwaService {
   private readonly logger = new Logger(OpenwaService.name);
 
+  /** Status da sessão: curto, só para não perguntar ao gateway a cada mensagem. */
+  private static readonly TTL_SESSAO_S = 30;
+  /** JID do destinatário: longo, porque o número de um morador não muda. */
+  private static readonly TTL_JID_S = 30 * 24 * 3600;
+
   constructor(
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly client: OpenWaClient,
     private readonly config: ConfigService,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
   get configured(): boolean {
     return this.client.configured;
+  }
+
+  /** Status da sessão, cacheado por segundos — vale por envio, não por dia. */
+  private sessaoKey(tenantId: string): string {
+    return `wa:sess:${tenantId}`;
+  }
+
+  /** JID canônico de um número naquele condomínio. Muda praticamente nunca. */
+  private jidKey(tenantId: string, digits: string): string {
+    return `wa:jid:${tenantId}:${digits}`;
+  }
+
+  /** Derruba o status cacheado — chamado sempre que a conexão muda de estado. */
+  private async esquecerSessao(tenantId: string): Promise<void> {
+    await this.redis.del(this.sessaoKey(tenantId)).catch(() => undefined);
   }
 
   /** Nome da sessão no gateway, derivado do slug (sanitizado ao formato aceito: [a-z0-9-], 3–50). */
@@ -183,6 +206,7 @@ export class OpenwaService {
     // Só grava o número quando o gateway o expõe (sessão autenticada); não apaga o já salvo.
     if (session.phone) patch.whatsappNumero = session.phone;
     await this.tenantRepo.update(tenantId, patch);
+    await this.esquecerSessao(tenantId);
   }
 
   /**
@@ -453,9 +477,44 @@ export class OpenwaService {
       throw new OpenWaNotConnectedError('Condomínio ainda não tem instância de WhatsApp');
     }
 
+    const status = await this.statusParaEnvio(tenant);
+    if (status !== 'ready') {
+      throw new OpenWaNotConnectedError(
+        `WhatsApp do condomínio não está conectado (status: ${status})`,
+      );
+    }
+
+    const sessionId = tenant.whatsappSessionId;
+    const chatId = await this.resolveChatId(tenantId, sessionId, phone);
+    try {
+      const res = await this.client.sendText(sessionId, chatId, text);
+      return { messageId: res.messageId };
+    } catch (err) {
+      // JID cacheado pode ter envelhecido (número portado, conta apagada).
+      // Descarta para a próxima tentativa perguntar de novo ao gateway.
+      await this.redis.del(this.jidKey(tenantId, onlyDigits(phone))).catch(() => undefined);
+      throw err;
+    }
+  }
+
+  /**
+   * Status da sessão para decidir se dá para enviar.
+   *
+   * Antes era um `GET /sessions/:id` no gateway **a cada mensagem**, mais um
+   * `UPDATE tenants` também a cada mensagem. Com muitos condomínios isso era um
+   * terço da latência do envio e uma escrita inútil no banco. Agora o "ready"
+   * vale por alguns segundos em cache, e o banco só é tocado quando o status
+   * realmente mudou. Sessão que cai invalida o cache pelo webhook — e, no pior
+   * caso, o próprio envio falha e o BullMQ reagenda.
+   */
+  private async statusParaEnvio(tenant: Tenant): Promise<OpenWaSessionStatus> {
+    const chave = this.sessaoKey(tenant.id);
+    const cacheado = (await this.redis.get(chave).catch(() => null)) as OpenWaSessionStatus | null;
+    if (cacheado) return cacheado;
+
     let session: OpenWaSession;
     try {
-      session = await this.client.getSession(tenant.whatsappSessionId);
+      session = await this.client.getSession(tenant.whatsappSessionId as string);
     } catch (err) {
       if (err instanceof OpenWaError && err.status === 404) {
         throw new OpenWaNotConnectedError('Instância de WhatsApp não encontrada no gateway');
@@ -463,36 +522,46 @@ export class OpenwaService {
       throw err;
     }
 
-    await this.tenantRepo.update(tenant.id, { whatsappStatus: session.status });
-    if (session.status !== 'ready') {
-      throw new OpenWaNotConnectedError(
-        `WhatsApp do condomínio não está conectado (status: ${session.status})`,
-      );
+    await this.redis
+      .set(chave, session.status, 'EX', OpenwaService.TTL_SESSAO_S)
+      .catch(() => undefined);
+    if (session.status !== tenant.whatsappStatus) {
+      await this.tenantRepo.update(tenant.id, { whatsappStatus: session.status });
     }
-
-    const chatId = await this.resolveChatId(session.id, phone);
-    const res = await this.client.sendText(session.id, chatId, text);
-    return { messageId: res.messageId };
+    return session.status;
   }
 
   /**
    * Descobre o JID correto do destinatário. Pergunta ao WhatsApp (via `checkNumber`) qual
    * variação — com ou sem o nono dígito — realmente existe, e usa o JID canônico retornado.
    * Se o gateway não resolver, cai no número SEM o 9 (padrão que entrega na maioria dos DDDs).
+   *
+   * O resultado é cacheado por condomínio + número: o JID de um morador não muda,
+   * e essa era a segunda (às vezes terceira) chamada HTTP de todo envio.
    */
-  private async resolveChatId(sessionId: string, phone: string): Promise<string> {
+  private async resolveChatId(tenantId: string, sessionId: string, phone: string): Promise<string> {
     const digits = onlyDigits(phone);
+    const chave = this.jidKey(tenantId, digits);
+
+    const cacheado = await this.redis.get(chave).catch(() => null);
+    if (cacheado) return cacheado;
+
     for (const candidato of brazilCandidates(digits)) {
       let check: { exists: boolean; whatsappId: string | null };
       try {
         check = await this.client.checkNumber(sessionId, candidato);
       } catch (err) {
         // Erro de rede/gateway → não dá pra afirmar que não existe; envia best-effort (sem o 9).
+        // Não cacheia: é palpite, não resposta.
         this.logger.warn(`checkNumber falhou p/ ${candidato}: ${errMsg(err)} — usando fallback sem o 9`);
         return `${stripBrazilNinthDigit(digits)}@c.us`;
       }
       if (check.exists && check.whatsappId) {
-        return check.whatsappId; // já vem no formato nativo do engine (ex.: 55...@c.us)
+        // já vem no formato nativo do engine (ex.: 55...@c.us)
+        await this.redis
+          .set(chave, check.whatsappId, 'EX', OpenwaService.TTL_JID_S)
+          .catch(() => undefined);
+        return check.whatsappId;
       }
     }
     // Gateway respondeu para todas as variações (com e sem o 9) e nenhuma existe no WhatsApp.
@@ -590,5 +659,8 @@ export class OpenwaService {
     if (phone) patch.whatsappNumero = phone;
     void pushName; // pushName não é persistido em coluna; disponível no status ao vivo
     await this.tenantRepo.update(tenantId, patch);
+    // O webhook é a via mais rápida de saber que a sessão caiu: invalida o cache
+    // para o próximo envio ir perguntar ao gateway em vez de confiar no "ready".
+    await this.esquecerSessao(tenantId);
   }
 }
