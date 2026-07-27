@@ -208,7 +208,7 @@ export function AdminWhatsapp() {
       )}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[640px]">
+        <DialogContent className="sm:max-w-[640px]">
           <DialogHeader>
             <DialogTitle>Regras de disparo — {editing?.nome}</DialogTitle>
             <DialogDescription>

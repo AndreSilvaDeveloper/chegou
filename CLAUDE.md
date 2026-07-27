@@ -551,6 +551,56 @@ peça e registrar aqui — é assim que esta tabela cresce.
 
 ---
 
+## 🔢 Versionamento — obrigatório em toda alteração
+
+> **Quem mexe no sistema sobe a versão.** Sem exceção: back, front, migration,
+> ajuste de estilo. É a versão que diz ao porteiro (e ao suporte) qual build
+> está rodando naquele celular, e é ela que dispara a atualização automática.
+
+Formato **MAIOR.RECURSO.CORREÇÃO** (`0.0.0`):
+
+| Posição | Sobe quando | Exemplo |
+|---|---|---|
+| **MAIOR** (`1.0.0`) | Virada de versão do produto: marco grande, quebra de compatibilidade, mudança de rumo | Sair do beta; trocar o gateway de WhatsApp |
+| **RECURSO** (`0.1.0`) | Funcionalidade grande nova | Módulo Vagas, Dashboard, relatórios, integração nova |
+| **CORREÇÃO** (`0.0.1`) | Bug, ajuste visual, refino, texto, refactor | Modal cortado no celular, telefone salvo errado |
+
+Ao subir a versão, **`RECURSO` zera `CORREÇÃO`** e **`MAIOR` zera as duas**
+(`0.9.4` + recurso = `0.10.0`).
+
+```bash
+npm run versao correcao    # bug corrigido
+npm run versao recurso     # funcionalidade grande
+npm run versao maior       # virada de versão
+npm run versao 1.2.3       # número exato
+```
+
+O script sobe o número **nos dois `package.json`** (raiz e `web/`) — eles
+precisam bater porque o build do front só enxerga a pasta `web/`, e a raiz é o
+que a API informa em `GET /api/health`.
+
+**No mesmo commit da alteração**: subir a versão + descrever a mudança no
+[CHANGELOG.md](CHANGELOG.md). Versão sem linha no changelog não diz nada a
+quem for investigar um problema daqui a três meses.
+
+### Como a atualização chega ao usuário
+
+Ninguém precisa dar reload — nem no navegador, nem no PWA instalado:
+
+1. `web/src/hooks/use-atualizacao.ts` pergunta ao servidor se há build novo a
+   cada minuto, ao voltar ao primeiro plano e ao reconectar.
+2. Achou: o service worker baixa a versão nova e ela fica pronta.
+3. Aplica (recarrega) **em momento seguro** — na troca de tela, ou com o app
+   ocioso e sem campo preenchido. Nunca no meio de um cadastro.
+4. Enquanto espera, aparece um aviso com "Atualizar agora".
+5. Depois de recarregar, um toast confirma: "Atualizado para a versão X".
+
+Por isso o `vite.config.ts` usa `registerType: 'prompt'` — quem decide a hora de
+recarregar é o app, não o service worker. Não troque para `autoUpdate`: o reload
+passaria a acontecer no meio do que o porteiro estiver digitando.
+
+---
+
 ## 🚫 Regras que DEVEM ser seguidas
 
 1. **NUNCA** usar `synchronize: true` no TypeORM
@@ -596,6 +646,14 @@ peça e registrar aqui — é assim que esta tabela cresce.
 29. **SEMPRE** atualizar a tabela "O que cada perfil faz" ao mudar um `@Roles`
 30. **SEMPRE** criar o `CLAUDE.md` junto com o módulo novo — nunca "depois"
 
+### Versionamento
+31. **SEMPRE** subir a versão (`npm run versao correcao|recurso|maior`) na
+    mesma alteração — bug é `CORREÇÃO`, funcionalidade grande é `RECURSO`,
+    virada de produto é `MAIOR` (ver "Versionamento")
+32. **SEMPRE** registrar a mudança no `CHANGELOG.md`, no commit da alteração
+33. **NUNCA** editar a versão só em um dos `package.json` — use o script, que
+    mantém raiz e `web/` no mesmo número
+
 ---
 
 ## 🔧 Comandos Úteis
@@ -610,6 +668,7 @@ npm run db:migrate             # Rodar migrations pendentes
 npm run db:migrate:down        # Reverter última migration
 npm run db:migrate:create nome # Criar nova migration
 npm run seed:dev               # Popular banco com dados de teste
+npm run versao correcao        # Sobe a versão (correcao | recurso | maior | X.Y.Z)
 
 # ---- Frontend ----
 cd web

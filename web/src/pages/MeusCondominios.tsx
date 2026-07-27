@@ -177,7 +177,7 @@ export function MeusCondominios() {
       )}
 
       <Dialog open={novoAberto} onOpenChange={setNovoAberto}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Novo condomínio</DialogTitle>
             <DialogDescription>

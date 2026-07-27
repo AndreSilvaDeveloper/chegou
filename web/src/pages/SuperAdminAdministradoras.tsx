@@ -261,7 +261,7 @@ function CarteiraDialog({
 
   return (
     <Dialog open={!!administradoraId} onOpenChange={(aberto) => !aberto && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{detalhe?.nome ?? 'Carteira'}</DialogTitle>
           <DialogDescription>

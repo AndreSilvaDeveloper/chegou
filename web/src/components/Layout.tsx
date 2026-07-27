@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useTheme } from '@/hooks/use-theme';
+import { APP_VERSION } from '@/lib/versao';
 
 const COLLAPSE_KEY = 'chegou.sidebar.collapsed';
 
@@ -193,7 +194,7 @@ export function Layout() {
 
       {/* Sem condomínio escolhido não há o que rotular nem de onde sair. */}
       {showTenant && !isCollapsed && (condominioAtivo.id || !ehAdministradora) && (
-        <div className="space-y-2 p-3">
+        <div className="space-y-2 px-3 pt-3">
           <div className="flex items-center gap-2.5 rounded-xl bg-sidebar-accent/60 px-3 py-2.5">
             <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
@@ -218,6 +219,17 @@ export function Layout() {
           )}
         </div>
       )}
+
+      {/* Versão do build que está rodando — junto do condomínio de propósito:
+          é o que o suporte pergunta primeiro quando algo não bate. */}
+      <div className={cn('p-3', isCollapsed && 'flex justify-center')}>
+        <p
+          className="font-mono text-[11px] text-muted-foreground"
+          title={`Chegou versão ${APP_VERSION}`}
+        >
+          v{APP_VERSION}
+        </p>
+      </div>
     </div>
   );
 

@@ -1,6 +1,6 @@
 {
   "name": "portaria-condominio",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "description": "SaaS multi-tenant para gestão de encomendas em portaria de condomínio",
   "private": true,
   "license": "UNLICENSED",
@@ -18,7 +18,8 @@
     "db:migrate": "node-pg-migrate -j sql -m db/migrations up",
     "db:migrate:down": "node-pg-migrate -j sql -m db/migrations down",
     "db:migrate:create": "node-pg-migrate -j sql -m db/migrations create",
-    "seed:dev": "ts-node -r tsconfig-paths/register scripts/seed-dev.ts"
+    "seed:dev": "ts-node -r tsconfig-paths/register scripts/seed-dev.ts",
+    "versao": "node scripts/bump-version.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1094.0",

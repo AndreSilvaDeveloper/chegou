@@ -2,12 +2,25 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
+import { readFileSync } from 'node:fs';
+
+// A versão do app mora em web/package.json e entra no bundle como __APP_VERSION__.
+// É ela que aparece na sidebar e que diz ao usuário qual build ele está rodando.
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' e não 'autoUpdate': quem decide a HORA de recarregar é o app
+      // (`useAtualizacaoAutomatica`), para não puxar o tapete de quem está no
+      // meio de um cadastro. A atualização continua automática — só espera um
+      // momento seguro. Ver web/src/hooks/use-atualizacao.ts.
+      registerType: 'prompt',
+      injectRegister: null,
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Chegou — Central de Portaria',

@@ -66,7 +66,7 @@ export function FormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn('max-h-[90vh] overflow-y-auto sm:max-w-lg', className)}>
+      <DialogContent className={cn('sm:max-w-lg', className)}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

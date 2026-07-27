@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { useAtualizacaoAutomatica } from './hooks/use-atualizacao';
 
 // Lazy loading all pages
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -24,6 +25,10 @@ const Whatsapp = React.lazy(() => import('./pages/Whatsapp').then(m => ({ defaul
 const AdminWhatsapp = React.lazy(() => import('./pages/AdminWhatsapp').then(m => ({ default: m.AdminWhatsapp })));
 
 export default function App() {
+  // Fica de olho em deploy novo e recarrega sozinho em momento seguro.
+  // Aqui em cima porque vale também para a tela de login.
+  useAtualizacaoAutomatica();
+
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center text-muted-foreground">Carregando...</div>}>
       <Routes>

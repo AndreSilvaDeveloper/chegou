@@ -60,6 +60,18 @@ Regras fixas: mobile-first (base = celular, `sm:`/`md:` amplia), `min-h-[48px]`
 em botão de ação, ícone **sempre** com texto, `Label` sempre visível, ícones só
 do Lucide, dark mode em tudo, testar em 375px.
 
+### Diálogo: a margem e a rolagem já vêm do `DialogContent`
+
+O `DialogContent` (e o `AlertDialogContent`) já traz `w-[calc(100%-2rem)]`,
+`max-h-[calc(100dvh-2rem)]` e `overflow-y-auto` — 1rem de margem em volta no
+celular e rolagem interna quando o formulário é grande. Na tela, passe **só a
+largura de desktop** (`sm:max-w-lg`).
+
+Não repita `max-h-[90vh] overflow-y-auto` no `className`: o `tailwind-merge`
+faz o seu `max-h` vencer o da base, e `vh` no celular inclui a barra do
+navegador — é exatamente o que fazia o diálogo ser cortado em cima e embaixo.
+Altura de diálogo se mede em `dvh`.
+
 ### Cor: use o token, nunca o hex
 
 A paleta inteira está em `styles.css` (tema **Warm Sand**, âmbar `#FFC72C`).
@@ -75,6 +87,20 @@ Escolha pelo papel da superfície, não pela cor:
 | Hover | `hover:bg-accent` |
 
 Cor fixa (`bg-[#...]`) quebra o dark mode e a troca de tema — não use.
+
+## Versão e atualização automática
+
+- `APP_VERSION` (`lib/versao.ts`) vem de `web/package.json` pelo `define` do
+  Vite. Aparece na sidebar, embaixo do condomínio.
+- `useAtualizacaoAutomatica()` (`hooks/use-atualizacao.ts`), montado no `App`,
+  procura build novo (1 min, ao voltar ao primeiro plano, ao reconectar) e
+  recarrega sozinho **em momento seguro**: troca de tela, ou app ocioso sem
+  diálogo aberto e sem campo preenchido.
+- Por isso o `vite.config.ts` usa `registerType: 'prompt'`. Com `autoUpdate` o
+  service worker recarregaria na hora que quisesse — inclusive no meio de um
+  cadastro.
+- **Toda alteração sobe a versão**: `npm run versao correcao|recurso|maior` +
+  linha no `CHANGELOG.md`. Ver "Versionamento" no `CLAUDE.md` raiz.
 
 ## Hooks de contexto (`hooks/use-tenant-config.ts`)
 

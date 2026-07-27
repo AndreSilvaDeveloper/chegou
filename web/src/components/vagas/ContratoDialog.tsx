@@ -86,7 +86,7 @@ export function ContratoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Contrato da vaga {locacao.vaga?.numero ?? ''}</DialogTitle>
           <DialogDescription>
