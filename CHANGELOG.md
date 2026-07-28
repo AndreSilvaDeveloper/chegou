@@ -11,6 +11,17 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.18.1 — 2026-07-28
+
+### Corrigido
+- **Enviar amostra de etiqueta falhava com "Envie ao menos um arquivo no campo
+  files"** em `/admin/etiquetas`. O `onChange` do input limpava
+  `e.target.value` logo depois de chamar `mutate()`, mas `e.target.files` é uma
+  lista **viva**: zerar o input esvaziava a mesma lista que o upload ainda ia
+  ler, e o `FormData` subia sem arquivo. Agora os arquivos são copiados para um
+  `File[]` antes da limpeza. (Zerar o input continua necessário — sem isso o
+  `onChange` não dispara ao reenviar o mesmo arquivo.)
+
 ## 0.18.0 — 2026-07-28
 
 Primeiro passo da leitura de etiqueta por foto: a infraestrutura de OCR e o

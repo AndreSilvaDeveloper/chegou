@@ -375,9 +375,13 @@ export function SuperAdminEtiquetas() {
   };
 
   const enviar = useMutation({
-    mutationFn: (arquivos: FileList) => {
+    // Recebe `File[]`, não `FileList`: o `FileList` é uma referência VIVA ao
+    // input, e limpar `input.value` (para permitir reenviar o mesmo arquivo)
+    // esvazia a lista. Como `mutate()` é assíncrono, a limpeza acontecia antes
+    // desta função rodar e o upload subia sem arquivo nenhum.
+    mutationFn: (arquivos: File[]) => {
       const fd = new FormData();
-      Array.from(arquivos).forEach((f) => fd.append('files', f));
+      arquivos.forEach((f) => fd.append('files', f));
       return api.upload<UploadAmostrasResposta>('/admin/etiquetas/amostras', fd);
     },
     onSuccess: (r) => {
@@ -438,10 +442,12 @@ export function SuperAdminEtiquetas() {
           multiple
           className="hidden"
           onChange={(e) => {
-            const arquivos = e.target.files;
-            if (arquivos?.length) enviar.mutate(arquivos);
-            // Zera para permitir reenviar o mesmo arquivo depois de um erro.
+            // Copia ANTES de zerar o input: `e.target.files` é uma lista viva e
+            // `e.target.value = ''` a esvazia. Zerar é necessário para o
+            // `onChange` disparar de novo ao reenviar o mesmo arquivo.
+            const arquivos = Array.from(e.target.files ?? []);
             e.target.value = '';
+            if (arquivos.length) enviar.mutate(arquivos);
           }}
         />
         <Button
