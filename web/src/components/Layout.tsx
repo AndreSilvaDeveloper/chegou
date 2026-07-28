@@ -6,7 +6,7 @@ import {
   Package, PackagePlus, Building2, Users, HardHat, Building,
   Menu, LogOut, Sun, Moon, Laptop, BarChart3, Car, Megaphone, ListChecks,
   PanelLeftClose, PanelLeftOpen, Download, MessageCircle, LayoutDashboard,
-  Briefcase, ArrowLeftRight, Receipt,
+  Briefcase, ArrowLeftRight, Receipt, ScanText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -85,6 +85,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/admin/administradoras', label: 'Administradoras', icon: Briefcase, roles: ['superadmin'], group: 'Plataforma' },
   { path: '/admin/assinaturas', label: 'Assinaturas', icon: Receipt, roles: ['superadmin'], group: 'Plataforma' },
   { path: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle, roles: ['superadmin'], group: 'Plataforma' },
+  { path: '/admin/etiquetas', label: 'Etiquetas', icon: ScanText, roles: ['superadmin'], group: 'Plataforma' },
 ];
 
 function BrandMark({ compact = false }: { compact?: boolean }) {

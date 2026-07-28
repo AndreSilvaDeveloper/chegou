@@ -10,6 +10,7 @@ import { AdministradorasModule } from './modules/administradoras/administradoras
 import { ApartamentosModule } from './modules/apartamentos/apartamentos.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EncomendasModule } from './modules/encomendas/encomendas.module';
+import { EtiquetasModule } from './modules/etiquetas/etiquetas.module';
 import { HealthModule } from './modules/health/health.module';
 import { MoradoresModule } from './modules/moradores/moradores.module';
 import { StorageModule } from './modules/storage/storage.module';
@@ -51,6 +52,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
     MoradoresModule,
     UsuariosModule,
     EncomendasModule,
+    EtiquetasModule,
     StorageModule,
     AdminModule,
     AdministradorasModule,

@@ -89,6 +89,22 @@ services:
       "
     restart: "no"
 
+  # ---- OCR de etiquetas (PaddleOCR) ----
+  # Sem `ports:` de propósito: quem fala com ele é só a API, pela rede interna.
+  # O primeiro build demora (baixa os modelos); depois é cache. Ver ocr/README.md.
+  ocr:
+    build:
+      context: ./ocr
+      dockerfile: Dockerfile
+    container_name: portaria-ocr
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
   # ---- Backend (NestJS) em modo dev, hot reload ----
   api:
     build:
@@ -120,6 +136,10 @@ services:
       STORAGE_ACCESS_KEY: portaria
       STORAGE_SECRET_KEY: portaria123
       STORAGE_PUBLIC_URL: http://localhost:9000/portaria-fotos
+      # Leitura de etiqueta. Vazio = funcionalidade desligada (a API sobe igual).
+      # Sem depends_on: o OCR leva ~1min para ficar pronto e não pode segurar a API.
+      OCR_BASE_URL: http://ocr:8000
+      OCR_TIMEOUT_MS: "30000"
       # hot reload em bind mount (necessário no Windows/macOS Docker)
       CHOKIDAR_USEPOLLING: "true"
       TSC_WATCHFILE: DynamicPriorityPolling

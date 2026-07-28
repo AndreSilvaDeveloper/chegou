@@ -79,6 +79,21 @@ export class StorageService {
     return this.upload('encomendas', tenantId, file);
   }
 
+  /**
+   * Amostra de etiqueta do banco de treino do parser.
+   *
+   * Vai sob `plataforma/` em vez de um tenant: a amostra não pertence a
+   * condomínio nenhum — é material de calibração do parser, usado por todos.
+   * Ver `src/modules/etiquetas/`.
+   */
+  async uploadEtiquetaAmostra(file: {
+    buffer: Buffer;
+    mimetype: string;
+    originalname: string;
+  }): Promise<{ url: string; key: string }> {
+    return this.upload('etiquetas-amostras', 'plataforma', file);
+  }
+
   /** Contrato de locação de vaga (PDF ou foto do documento assinado). */
   async uploadContratoVaga(
     tenantId: string,

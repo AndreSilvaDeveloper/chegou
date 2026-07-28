@@ -21,6 +21,11 @@ export { VagaCobranca } from './vaga-cobranca.entity';
 export { Funcionario } from './funcionario.entity';
 export { Notificacao } from './notificacao.entity';
 export { Aviso } from './aviso.entity';
+export {
+  EtiquetaAmostra,
+  type CamposEtiqueta,
+  type LinhaOcr,
+} from './etiqueta-amostra.entity';
 export { AssinaturaFaixa } from './assinatura-faixa.entity';
 export { AssinaturaCondicao } from './assinatura-condicao.entity';
 export { AssinaturaFatura } from './assinatura-fatura.entity';

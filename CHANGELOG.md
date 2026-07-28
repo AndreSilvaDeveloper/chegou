@@ -13,6 +13,7 @@ escreve aqui o que mudou, no mesmo commit.
 
 ## 0.17.0 — 2026-07-28
 
+<<<<<<< Updated upstream
 O morador passa a poder se cadastrar sozinho por um **QR Code**, sem baixar app
 nem ter login. O síndico (ou a administradora) gera o link em `/moradores`, ao
 lado de "Importar CSV".
@@ -147,6 +148,63 @@ Duas telas escritas em meses diferentes não saíam do mesmo tamanho.
   `utilities` vem depois de `components`) — a saída de emergência existe, mas
   pede comentário. Hoje há uma única exceção: `file:text-sm` no `Input`, porque
   variante do Tailwind alcança utilitário e não classe da escala.
+=======
+Primeiro passo da leitura de etiqueta por foto: a infraestrutura de OCR e o
+banco de amostras que vai calibrar o parser. **A leitura na portaria ainda não
+está no ar** — ela depende de o parser acertar, e o parser só acerta depois de
+ver etiqueta de verdade.
+
+### Adicionado
+- **Serviço de OCR próprio** (`ocr/`): PaddleOCR num container à parte, com
+  `POST /ocr`. Roda dentro do servidor — nenhuma foto de etiqueta, que tem nome
+  e endereço de morador, sai da nossa infra. Registrado no `docker-compose.yml`
+  da raiz e no `deploy/`.
+- **Parser de etiqueta** (`src/modules/etiquetas/parser/`): transforma as linhas
+  do OCR em destinatário, bloco, unidade, andar, transportadora, rastreio e CEP.
+  Com testes unitários travando as armadilhas conhecidas.
+- **Banco de amostras** em `/admin/etiquetas` (superadmin): sobe fotos em lote,
+  mostra o que o OCR leu, permite marcar o gabarito de cada etiqueta e roda o
+  parser contra tudo, com **placar de acerto por campo e por transportadora**.
+  É a ferramenta que torna a melhoria do parser mensurável em vez de achismo.
+- Tabela `etiqueta_amostras` (migration 025) e variáveis `OCR_BASE_URL` /
+  `OCR_TIMEOUT_MS`.
+
+### Notas
+- Sem `OCR_BASE_URL` o módulo responde 503 e o resto da API não sente — o
+  container de OCR é o mais pesado da stack (~1,5 GB de RAM em pico) e precisa
+  poder ficar de fora num servidor apertado.
+- O primeiro `docker compose build ocr` demora vários minutos: baixa os modelos
+  no build para não depender de internet em runtime.
+>>>>>>> Stashed changes
+
+## 0.17.0 — 2026-07-28
+
+Primeiro passo da leitura de etiqueta por foto: a infraestrutura de OCR e o
+banco de amostras que vai calibrar o parser. **A leitura na portaria ainda não
+está no ar** — ela depende de o parser acertar, e o parser só acerta depois de
+ver etiqueta de verdade.
+
+### Adicionado
+- **Serviço de OCR próprio** (`ocr/`): PaddleOCR num container à parte, com
+  `POST /ocr`. Roda dentro do servidor — nenhuma foto de etiqueta, que tem nome
+  e endereço de morador, sai da nossa infra. Registrado no `docker-compose.yml`
+  da raiz e no `deploy/`.
+- **Parser de etiqueta** (`src/modules/etiquetas/parser/`): transforma as linhas
+  do OCR em destinatário, bloco, unidade, andar, transportadora, rastreio e CEP.
+  Com testes unitários travando as armadilhas conhecidas.
+- **Banco de amostras** em `/admin/etiquetas` (superadmin): sobe fotos em lote,
+  mostra o que o OCR leu, permite marcar o gabarito de cada etiqueta e roda o
+  parser contra tudo, com **placar de acerto por campo e por transportadora**.
+  É a ferramenta que torna a melhoria do parser mensurável em vez de achismo.
+- Tabela `etiqueta_amostras` (migration 025) e variáveis `OCR_BASE_URL` /
+  `OCR_TIMEOUT_MS`.
+
+### Notas
+- Sem `OCR_BASE_URL` o módulo responde 503 e o resto da API não sente — o
+  container de OCR é o mais pesado da stack (~1,5 GB de RAM em pico) e precisa
+  poder ficar de fora num servidor apertado.
+- O primeiro `docker compose build ocr` demora vários minutos: baixa os modelos
+  no build para não depender de internet em runtime.
 
 ## 0.16.0 — 2026-07-27
 

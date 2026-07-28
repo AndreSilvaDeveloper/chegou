@@ -748,6 +748,7 @@ export interface MinhaAssinatura {
   aviso: AvisoVencimento | null;
 }
 
+<<<<<<< Updated upstream
 // ---- Autocadastro de morador (QR Code) ----
 
 /** Unidade como a página pública de autocadastro precisa dela. */
@@ -763,4 +764,112 @@ export interface DadosAutocadastro {
   condominioNome: string;
   estruturaBlocos: 'unico' | 'multiplos';
   unidades: UnidadeAutocadastro[];
+=======
+// ---------------------------------------------------------------------------
+// Leitura de etiqueta — banco de amostras (superadmin)
+// ---------------------------------------------------------------------------
+
+/** Uma linha de texto que o OCR leu, com a caixa `[x1, y1, x2, y2]`. */
+export interface LinhaOcr {
+  texto: string;
+  confianca: number;
+  box: [number, number, number, number];
+}
+
+/**
+ * Os campos que a leitura tenta preencher. Mesma forma para o que o parser
+ * extraiu e para o gabarito — é o que permite comparar campo a campo.
+ */
+export interface CamposEtiqueta {
+  destinatario: string | null;
+  bloco: string | null;
+  /** Apartamento, sala ou casa. */
+  numero: string | null;
+  andar: string | null;
+  transportadora: string | null;
+  codigoRastreio: string | null;
+  cep: string | null;
+}
+
+export const CAMPOS_ETIQUETA = [
+  'destinatario',
+  'bloco',
+  'numero',
+  'andar',
+  'transportadora',
+  'codigoRastreio',
+  'cep',
+] as const;
+
+export type CampoEtiqueta = (typeof CAMPOS_ETIQUETA)[number];
+
+export const ROTULO_CAMPO_ETIQUETA: Record<CampoEtiqueta, string> = {
+  destinatario: 'Destinatário',
+  bloco: 'Bloco',
+  numero: 'Unidade',
+  andar: 'Andar',
+  transportadora: 'Transportadora',
+  codigoRastreio: 'Rastreio',
+  cep: 'CEP',
+};
+
+/** Item da listagem — sem as linhas do OCR, que só a tela de detalhe usa. */
+export interface EtiquetaAmostraResumo {
+  id: string;
+  tenantId: string | null;
+  fotoUrl: string;
+  transportadora: string | null;
+  ocrMs: number | null;
+  extraido: CamposEtiqueta | null;
+  gabarito: CamposEtiqueta | null;
+  parserVersao: string | null;
+  observacao: string | null;
+  createdAt: string;
+  conferida: boolean;
+}
+
+export interface EtiquetaAmostra extends Omit<EtiquetaAmostraResumo, 'conferida'> {
+  ocrLinhas: LinhaOcr[];
+  fotoKey: string;
+  ativo: boolean;
+  updatedAt: string;
+}
+
+export interface EtiquetasStatus {
+  ocrConfigurado: boolean;
+  ocrDisponivel: boolean;
+  parserVersao: string;
+  amostras: number;
+  conferidas: number;
+}
+
+export interface PlacarCampo {
+  campo: CampoEtiqueta;
+  total: number;
+  acertos: number;
+}
+
+export interface PlacarTransportadora {
+  transportadora: string;
+  amostras: number;
+  acertos: number;
+  total: number;
+}
+
+/** Quanto o parser acerta contra as amostras já conferidas. */
+export interface PlacarEtiquetas {
+  parserVersao: string;
+  amostrasTotal: number;
+  amostrasConferidas: number;
+  campos: PlacarCampo[];
+  porTransportadora: PlacarTransportadora[];
+}
+
+export interface UploadAmostrasResposta {
+  criadas: EtiquetaAmostra[];
+  falhas: { arquivo: string; erro: string }[];
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 }

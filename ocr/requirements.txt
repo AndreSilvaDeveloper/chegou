@@ -1,0 +1,10 @@
+# Versões travadas de propósito: a API do PaddleOCR mudou de forma entre 2.x e
+# 3.x (`.ocr()` virou `.predict()`, com outro formato de retorno). Subir sem
+# testar quebra o `_normalizar_saida`.
+paddlepaddle==2.6.2
+paddleocr==2.9.1
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pillow==11.1.0
+numpy==1.26.4

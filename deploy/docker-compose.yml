@@ -72,6 +72,24 @@ services:
       "
     restart: "no"
 
+  # OCR de etiquetas de entrega (PaddleOCR). Roda aqui dentro: nenhuma foto de
+  # etiqueta — que tem nome e endereço de morador — sai do servidor.
+  # Sem `ports:`: só a API alcança, pela rede interna. Ver ocr/README.md.
+  # Pesa ~1,5 GB de RAM em pico; se o servidor for apertado, é o primeiro
+  # candidato a sair (a API sobe normalmente com OCR_BASE_URL vazio).
+  ocr:
+    build:
+      context: ../ocr
+      dockerfile: Dockerfile
+    image: chegou-ocr:local
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
   api:
     build:
       context: ..
@@ -110,6 +128,9 @@ services:
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
       STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       STORAGE_PUBLIC_URL: https://${DOMAIN}/fotos/${STORAGE_BUCKET}
+      # Leitura de etiqueta (serviço `ocr` acima). Vazio = desligado.
+      OCR_BASE_URL: ${OCR_BASE_URL:-http://ocr:8000}
+      OCR_TIMEOUT_MS: ${OCR_TIMEOUT_MS:-30000}
       # Seed do superadmin (usado por: docker compose exec api node scripts/seed-prod.js)
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@portaria.app}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}

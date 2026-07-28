@@ -185,6 +185,7 @@ chegou/
 | `vagas_precos` | ✅ | Tabela de preço sugerido por tipo de vaga |
 | `vagas_cobrancas` | ✅ | Cobrança mensal da locação, por competência |
 | `avisos` | ✅ | Comunicados do condomínio para moradores |
+| `etiqueta_amostras` | opcional | Etiquetas de exemplo que calibram a leitura por foto |
 | `assinatura_faixas` | — | Tabela de preços da plataforma (por apartamento) |
 | `assinatura_condicoes` | opcional | Preço especial de um condomínio **ou** de uma administradora |
 | `assinatura_faturas` | opcional | Fatura mensal da assinatura (condomínio **ou** administradora) |
@@ -196,7 +197,9 @@ chegou/
 > Toda tabela nova de dado de condomínio nasce com `tenant_id NOT NULL` +
 > `REFERENCES tenants(id) ON DELETE CASCADE`. As exceções acima são deliberadas:
 > `whatsapp_messages` aceita NULL porque uma mensagem de número desconhecido não
-> tem dono, `audit_log` registra também ações de plataforma, e as tabelas de
+> tem dono, `etiqueta_amostras` porque uma etiqueta da Shopee é igual em todo
+> condomínio (lá o `tenant_id` só registra a origem), `audit_log` registra
+> também ações de plataforma, e as tabelas de
 > **assinatura** cobram ora um condomínio, ora uma administradora — nelas um
 > CHECK (`tenant_id` XOR `administradora_id`) faz o papel do `NOT NULL`.
 
@@ -223,6 +226,7 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Gestão de qualquer condomínio (`/admin/tenants/:id/...`) | ✅ | — | — | — |
 | Módulos contratados e plano do condomínio | ✅ | — | — | — |
 | Assinatura: tabela de preços, preço especial, gerar e dar baixa em fatura | ✅ | — | — | — |
+| Banco de amostras de etiqueta (calibrar a leitura por foto) | ✅ | — | — | — |
 | Carteira própria (listar/criar/editar condomínios) | — | ✅ | — | — |
 | Configurar condomínio da carteira: cadastro, tipo, blocos, janela de envio | ✅ | ✅⁵ | — | — |
 | Assinatura própria: quanto paga e as faturas (só leitura) | — | ✅³ | ✅⁴ | — |
@@ -300,6 +304,7 @@ naquela pasta.
 | Módulo | Doc | Em uma linha |
 |---|---|---|
 | Encomendas | [src/modules/encomendas](src/modules/encomendas/CLAUDE.md) | Core: receber, notificar, entregar com código |
+| Etiquetas | [src/modules/etiquetas](src/modules/etiquetas/CLAUDE.md) | Ler a etiqueta do pacote por foto (OCR próprio + parser) |
 | Apartamentos | [src/modules/apartamentos](src/modules/apartamentos/CLAUDE.md) | Unidades do condomínio, blocos e importação |
 | Moradores | [src/modules/moradores](src/modules/moradores/CLAUDE.md) | Quem mora e por onde recebe WhatsApp |
 | Vagas | [src/modules/vagas](src/modules/vagas/CLAUDE.md) | Garagem, locação, preços e cobrança (opcional) |
@@ -772,6 +777,8 @@ Veja `.env.example` para lista completa. As mais críticas:
 | `OPENWA_TIMEOUT_MS` | Timeout de cada chamada ao gateway (padrão 15000) |
 | `NOTIFICATION_CONCURRENCY` | Condomínios enviando em paralelo (padrão 15) |
 | `WORKER_ENABLED` | `false` numa réplica que só atende HTTP |
+| `OCR_BASE_URL` | Serviço de OCR de etiquetas (vazio = leitura desligada) |
+| `OCR_TIMEOUT_MS` | Timeout de cada leitura de imagem (padrão 30000) |
 
 > Não existe número remetente global: **o número é o da sessão do condomínio** no
 > OpenWA. Também não há variável de provedor — o gateway é um só.

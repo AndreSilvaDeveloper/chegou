@@ -39,6 +39,15 @@ export const envValidationSchema = Joi.object({
   // segurar um worker (e, com ele, os envios de outros condomínios).
   OPENWA_TIMEOUT_MS: Joi.number().integer().min(1000).max(120000).default(15000),
 
+  // ---- OCR de etiquetas (serviço PaddleOCR interno) ----
+  // Vazio = leitura de etiqueta desligada. A API sobe e funciona igual; só a
+  // rota de ler etiqueta responde 503. É de propósito: servidor apertado pode
+  // rodar sem o container de OCR, que é o mais pesado da stack.
+  OCR_BASE_URL: Joi.string().uri().allow('').optional(),
+  // OCR de foto grande leva alguns segundos; o timeout do gateway WhatsApp
+  // (15s) seria curto demais aqui.
+  OCR_TIMEOUT_MS: Joi.number().integer().min(1000).max(120000).default(30000),
+
   STORAGE_ENDPOINT: Joi.string().allow('').optional(),
   STORAGE_BUCKET: Joi.string().allow('').optional(),
   STORAGE_REGION: Joi.string().default('us-east-1'),

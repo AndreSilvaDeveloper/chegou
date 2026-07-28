@@ -27,6 +27,7 @@ const Whatsapp = React.lazy(() => import('./pages/Whatsapp').then(m => ({ defaul
 const AdminWhatsapp = React.lazy(() => import('./pages/AdminWhatsapp').then(m => ({ default: m.AdminWhatsapp })));
 const Assinatura = React.lazy(() => import('./pages/Assinatura').then(m => ({ default: m.Assinatura })));
 const SuperAdminAssinaturas = React.lazy(() => import('./pages/SuperAdminAssinaturas').then(m => ({ default: m.SuperAdminAssinaturas })));
+const SuperAdminEtiquetas = React.lazy(() => import('./pages/SuperAdminEtiquetas').then(m => ({ default: m.SuperAdminEtiquetas })));
 
 export default function App() {
   // Fica de olho em deploy novo e recarrega sozinho em momento seguro.
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/admin/condominios/:id" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminTenant /></ProtectedRoute>} />
           <Route path="/admin/administradoras" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminAdministradoras /></ProtectedRoute>} />
           <Route path="/admin/assinaturas" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminAssinaturas /></ProtectedRoute>} />
+          <Route path="/admin/etiquetas" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminEtiquetas /></ProtectedRoute>} />
           {/* A conta da administradora é a da carteira: `semCondominio` para ela
               poder abri-la sem ter escolhido um condomínio antes. */}
           <Route path="/assinatura" element={<ProtectedRoute allowedRoles={['admin', 'sindico']} semCondominio><Assinatura /></ProtectedRoute>} />
