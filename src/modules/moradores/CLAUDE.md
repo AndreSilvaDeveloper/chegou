@@ -13,8 +13,23 @@ daqui é o destino de toda notificação de encomenda, aviso e cobrança.
 | `PATCH /moradores/:id` | ✅ | ✅ | — |
 | `DELETE /moradores/:id` (desativa) | ✅ | ✅ | — |
 | `POST /moradores/import` (CSV) | ✅ | ✅ | — |
+| `GET /moradores/autocadastro-link` (token do QR) | ✅ | ✅ | — |
+| `POST /moradores/autocadastro-link/rotate` (novo link) | ✅ | ✅ | — |
 
 O porteiro consulta para saber a quem entregar; cadastro é da gestão.
+
+### Rotas públicas (autocadastro via QR) — sem login
+
+| Rota | Acesso |
+|---|---|
+| `GET /public/autocadastro/:token` | `@Public` — nome do condomínio + unidades |
+| `POST /public/autocadastro/:token` | `@Public` — cria o morador |
+
+O condomínio **vem do token** (coluna `tenants.autocadastro_token`, UNIQUE),
+resolvido no servidor — o `tenantId` nunca chega pelo corpo. `@Throttle` aperta a
+rota de escrita (5/min por IP). Arquivos: `autocadastro.controller.ts` /
+`autocadastro.service.ts`. Front público: `web/src/pages/AutocadastroMorador.tsx`
+em `/cadastro/:token`, **fora** do Layout.
 
 ## Dados
 
@@ -41,6 +56,16 @@ O porteiro consulta para saber a quem entregar; cadastro é da gestão.
 7. Remoção é desativação — histórico de encomendas aponta para o morador.
 8. **Importação CSV normaliza o telefone** e recusa a linha com o motivo; antes,
    telefone escrito solto estourava o CHECK do banco com erro técnico.
+9. **Autocadastro entra como não-principal e recebendo WhatsApp.** `principal` e
+   `receber_whatsapp` são decisão da gestão, não de quem se cadastra — por isso o
+   `AutocadastroMoradorDto` nem expõe esses campos. Quem cria de fato é o
+   `MoradoresService.criar`, reaproveitando todas as regras (apto do condomínio,
+   E.164, principal). O cadastro é **ativo na hora** (decisão de produto): a rede
+   contra "unidade errada" é o passo de revisão na tela, não uma fila de aprovação.
+10. **O token do link é revogável.** "Gerar novo link" rotaciona
+    `autocadastro_token`; o QR anterior (impresso/salvo) para de funcionar na hora.
+    Token inválido/revogado responde **404 genérico**, sem deixar concluir que
+    existe outro.
 
 ## Frontend
 
@@ -52,6 +77,9 @@ na tela do superadmin).
 | `components/ui/phone-input.tsx` | Digita `(32) 99999-9999`, entrega E.164 |
 | `lib/telefone.ts` | `formatarTelefone` (listagens), `paraE164`, `mascaraTelefone` |
 | `components/ui/search-select.tsx` | Escolha do apartamento com busca por digitação |
+| `components/QrAutocadastroDialog.tsx` | Diálogo do link/QR (gera, copia, baixa, rotaciona) |
+| `pages/AutocadastroMorador.tsx` | Página pública `/cadastro/:token` (preenche → revisa → confirma) |
+| `api/client.ts` → `apiPublic` | Requests sem `Authorization`/`X-Tenant-Id` para a rota pública |
 
 **A busca do apartamento é feita no servidor** (`GET /apartamentos?q=`), com
 debounce: a lista não cabe num select em condomínio grande (o backend corta em
@@ -69,6 +97,12 @@ com `1`, mas o apartamento sim).
   a lista vem cortada/filtrada e ele poderia não estar lá.
 - O nome passa por `trim` antes do `IsNotEmpty` — `"   "` passaria como
   preenchido e viraria morador sem nome na listagem.
+- **`GET /moradores/autocadastro-link` colide com `GET /moradores/:id`.** O
+  `MoradoresController` tem `@Get(':id')` com `ParseUUIDPipe`; se ele for
+  registrado antes, "autocadastro-link" cai no `:id` e volta **400 (uuid
+  expected)**. Por isso, no `moradores.module.ts`, o `AutocadastroLinkController`
+  vem **antes** do `MoradoresController` no array de `controllers` — o Express
+  casa na ordem de registro, então a rota estática tem que vir primeiro.
 
 ## Ao alterar este módulo
 
@@ -80,3 +114,5 @@ com `1`, mas o apartamento sim).
       `PhoneInput` na tela. Nunca peça `+55` ao usuário.
 - [ ] `test/moradores.e2e-spec.ts` cobre obrigatórios, normalização e busca por
       prefixo — rode ao mexer nisso.
+- [ ] Mexeu no autocadastro (token, rota pública, DTO) → `test/multitenant.e2e-spec.ts`
+      cobre isolamento por token, revogação e 404 genérico. Rode `npm run test:e2e`.

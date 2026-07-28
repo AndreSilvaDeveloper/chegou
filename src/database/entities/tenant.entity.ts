@@ -75,6 +75,11 @@ export class Tenant {
   @Column({ name: 'whatsapp_status', type: 'varchar', length: 30, nullable: true })
   whatsappStatus!: string | null;
 
+  // Token do link público de autocadastro de morador (QR). NULL = ainda não gerado.
+  // Rotacionar invalida o anterior. A rota pública resolve o condomínio por ele.
+  @Column({ name: 'autocadastro_token', type: 'varchar', length: 32, nullable: true })
+  autocadastroToken!: string | null;
+
   @Column({ name: 'config_json', type: 'jsonb', default: () => "'{}'::jsonb" })
   configJson!: Record<string, unknown>;
 

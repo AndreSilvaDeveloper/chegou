@@ -124,3 +124,33 @@ export const api = {
   delete: <T>(path: string) => request<T>('DELETE', path),
   upload: <T>(path: string, formData: FormData) => upload<T>(path, formData),
 };
+
+/**
+ * Requests públicas (autocadastro de morador via QR): sem `Authorization` nem
+ * `X-Tenant-Id`. É de propósito que não reaproveita `request()` — a página é
+ * aberta por quem não tem login, e um síndico testando no mesmo navegador teria
+ * um token no localStorage que não deve vazar para a rota pública. O condomínio
+ * é resolvido pelo token na URL, no servidor.
+ */
+async function requestPublico<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const base = import.meta.env.VITE_API_URL || '';
+  const res = await fetch(`${base}/api${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) {
+    const msg = data?.message
+      ? Array.isArray(data.message) ? data.message.join(', ') : data.message
+      : `HTTP ${res.status}`;
+    throw new ApiError(res.status, data, msg);
+  }
+  return data as T;
+}
+
+export const apiPublic = {
+  get: <T>(path: string) => requestPublico<T>('GET', path),
+  post: <T>(path: string, body?: unknown) => requestPublico<T>('POST', path, body),
+};

@@ -11,6 +11,48 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.17.0 — 2026-07-28
+
+O morador passa a poder se cadastrar sozinho por um **QR Code**, sem baixar app
+nem ter login. O síndico (ou a administradora) gera o link em `/moradores`, ao
+lado de "Importar CSV".
+
+### Adicionado
+- **Página pública de autocadastro** (`/cadastro/:token`, fora do login): o
+  morador preenche nome, WhatsApp e escolhe a **própria unidade** entre as que o
+  condomínio já cadastrou. Fluxo em três passos — preenche → **revisa** (confere
+  bloco/unidade) → confirma → sucesso. O passo de revisão existe para pegar o
+  erro de unidade antes de gravar.
+- **Diálogo do link/QR** em `/moradores` (`QrAutocadastroDialog`): mostra o QR,
+  copia o link, baixa o PNG e **gera um link novo** (revoga o anterior, com
+  confirmação — para o caso de o link vazar).
+- **Rotas**: públicas `GET|POST /public/autocadastro/:token` (o condomínio vem do
+  token, nunca do corpo) e, para a gestão, `GET /moradores/autocadastro-link` +
+  `POST .../rotate` (`@Roles('admin','sindico')`).
+- Coluna `tenants.autocadastro_token` (UNIQUE, migration 025) e o helper
+  `apiPublic` no front (requests sem `Authorization`/`X-Tenant-Id`).
+
+### Segurança
+- **O `tenantId` sai do token, resolvido no servidor** — o corpo não escolhe
+  condomínio. Prova em `test/multitenant.e2e-spec.ts`: o token de um condomínio
+  não cria morador em unidade de outro, token inválido/revogado responde **404
+  genérico**, e a gestão do link exige login.
+- **Escrita anônima com `@Throttle`** (5 cadastros/min por IP).
+- **`principal` e `receber_whatsapp` ficam fora da mão de quem se cadastra** — são
+  decisão da gestão; o DTO público nem os expõe. Quem cria de fato é o
+  `MoradoresService.criar`, sem duplicar regra.
+
+### Decisões
+- **Cadastro ativo na hora** (sem fila de aprovação): a rede contra "bloco
+  errado" é o passo de revisão na tela. O link revogável + o rate limit seguram o
+  abuso.
+- **Vale para todo condomínio** — não é módulo opcional.
+- **Botão só aparece no contexto do condomínio** (`basePath === ''`): na tela do
+  superadmin, que reaproveita o mesmo manager, a rota `@TenantId` não existe.
+
+### Dependência
+- `qrcode` no front (geração do QR). **Após este pull, `npm install` em `web/`.**
+
 ## 0.16.2 — 2026-07-27
 
 Registrar encomenda ficou mais rápido no campo **Transportadora** e a

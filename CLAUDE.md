@@ -231,6 +231,8 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Encomendas: cancelar, exportar, estatísticas | — | ✅ | ✅ | — |
 | Apartamentos e moradores: consultar | — | ✅ | ✅ | ✅ |
 | Apartamentos e moradores: editar/remover/importar | — | ✅ | ✅ | — |
+| Moradores: gerar/revogar link de autocadastro (QR) | — | ✅ | ✅ | — |
+| Autocadastro de morador (página pública `/cadastro/:token`) | \*público — sem login, condomínio vem do token\* ||||
 | Cadastrar unidade | — | ✅ | ✅ | ✅ |
 | Vincular/desvincular vaga da unidade | — | ✅ | ✅ | — |
 | Equipe (funcionários) | — | ✅ | ✅ | — |

@@ -18,6 +18,7 @@ const SuperAdminAdministradoras = React.lazy(() => import('./pages/SuperAdminAdm
 const MeusCondominios = React.lazy(() => import('./pages/MeusCondominios').then(m => ({ default: m.MeusCondominios })));
 const MeuCondominio = React.lazy(() => import('./pages/MeuCondominio').then(m => ({ default: m.MeuCondominio })));
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const AutocadastroMorador = React.lazy(() => import('./pages/AutocadastroMorador').then(m => ({ default: m.AutocadastroMorador })));
 const Relatorios = React.lazy(() => import('./pages/Relatorios').then(m => ({ default: m.Relatorios })));
 const Vagas = React.lazy(() => import('./pages/Vagas').then(m => ({ default: m.Vagas })));
 const Avisos = React.lazy(() => import('./pages/Avisos').then(m => ({ default: m.Avisos })));
@@ -36,6 +37,9 @@ export default function App() {
     <Suspense fallback={<div className="flex h-screen items-center justify-center text-muted-foreground">Carregando...</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Autocadastro de morador via QR: público, fora do Layout e sem login.
+            O condomínio vem do token na URL, validado no servidor. */}
+        <Route path="/cadastro/:token" element={<AutocadastroMorador />} />
         {/* O wrapper do Layout só exige login: a regra de "escolha um condomínio"
             fica em cada rota, senão a própria tela da carteira cairia nela. */}
         <Route element={<ProtectedRoute semCondominio><Layout /></ProtectedRoute>}>

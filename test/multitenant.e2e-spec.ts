@@ -548,4 +548,80 @@ describe('Multitenant (e2e)', () => {
       expect(res.status).toBe(400);
     });
   });
+
+  // -------------------------------------------- autocadastro de morador (QR)
+
+  describe('autocadastro de morador via link público', () => {
+    let tokenA1: string;
+
+    it('a gestão do link exige login', async () => {
+      const res = await http.get('/api/moradores/autocadastro-link');
+      expect(res.status).toBe(401);
+    });
+
+    it('o síndico obtém o token do próprio condomínio', async () => {
+      const res = await http
+        .get('/api/moradores/autocadastro-link')
+        .set('Authorization', `Bearer ${sindicoA1Token}`);
+      expect(res.status).toBe(200);
+      expect(typeof res.body.token).toBe('string');
+      tokenA1 = res.body.token;
+    });
+
+    it('a rota pública devolve o condomínio e as unidades do token, sem login', async () => {
+      const res = await http.get(`/api/public/autocadastro/${tokenA1}`);
+      expect(res.status).toBe(200);
+      expect(res.body.condominioNome).toContain('A1');
+      const ids = res.body.unidades.map((u: { id: string }) => u.id);
+      expect(ids).toContain(aptoA1);
+      // A unidade de outro condomínio não pode aparecer aqui.
+      expect(ids).not.toContain(aptoB1);
+    });
+
+    it('token inválido responde 404 sem vazar existência', async () => {
+      const res = await http.get('/api/public/autocadastro/token-que-nao-existe');
+      expect(res.status).toBe(404);
+    });
+
+    it('cadastra o morador no condomínio do token', async () => {
+      const cadastro = await http
+        .post(`/api/public/autocadastro/${tokenA1}`)
+        .send({ apartamentoId: aptoA1, nome: 'Morador Autocadastro', telefoneE164: '+5532999990000' });
+      expect(cadastro.status).toBe(201);
+
+      // O morador caiu em A1 (visível ao síndico de A1)...
+      const listaA1 = await http
+        .get('/api/moradores')
+        .set('Authorization', `Bearer ${sindicoA1Token}`);
+      expect(listaA1.status).toBe(200);
+      expect(listaA1.body.some((m: { nome: string }) => m.nome === 'Morador Autocadastro')).toBe(true);
+
+      // ...e não em B1.
+      const listaB1 = await http
+        .get('/api/moradores')
+        .set('Authorization', `Bearer ${adminBToken}`)
+        .set('X-Tenant-Id', condB1);
+      expect(listaB1.status).toBe(200);
+      expect(listaB1.body.some((m: { nome: string }) => m.nome === 'Morador Autocadastro')).toBe(false);
+    });
+
+    it('o token de um condomínio não cria morador em unidade de outro', async () => {
+      const res = await http
+        .post(`/api/public/autocadastro/${tokenA1}`)
+        .send({ apartamentoId: aptoB1, nome: 'Invasor', telefoneE164: '+5532999991111' });
+      // O apto de B1 não pertence ao condomínio do token → recusado.
+      expect(res.status).toBe(400);
+    });
+
+    it('rotacionar o link invalida o token anterior', async () => {
+      const nova = await http
+        .post('/api/moradores/autocadastro-link/rotate')
+        .set('Authorization', `Bearer ${sindicoA1Token}`);
+      expect(nova.status).toBe(201);
+      expect(nova.body.token).not.toBe(tokenA1);
+
+      const antigo = await http.get(`/api/public/autocadastro/${tokenA1}`);
+      expect(antigo.status).toBe(404);
+    });
+  });
 });

@@ -8,11 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Search, Plus, User, Pencil, Trash2, Loader2, ArrowUpDown, MessageSquare, Star, Upload } from 'lucide-react';
+import { Search, Plus, User, Pencil, Trash2, Loader2, ArrowUpDown, MessageSquare, Star, Upload, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ImportDialog } from './ImportDialog';
+import { QrAutocadastroDialog } from './QrAutocadastroDialog';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { SearchSelect } from '@/components/ui/search-select';
 import { apenasDigitos, formatarTelefone } from '@/lib/telefone';
@@ -194,6 +195,11 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
 
   // Import CSV
   const [openImport, setOpenImport] = useState(false);
+  // O autocadastro roda nas rotas do condomínio em uso (@TenantId). Fora dele
+  // — a tela do superadmin, que reaproveita este manager com basePath — a rota
+  // não existe, então o botão não aparece.
+  const [openQr, setOpenQr] = useState(false);
+  const permiteAutocadastro = basePath === '';
 
   const filteredData = useMemo(() => {
     if (!search.trim()) return list;
@@ -285,6 +291,12 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
           />
         </div>
         <div className="flex flex-col gap-2 w-full sm:flex-row md:w-auto">
+          {permiteAutocadastro && (
+            <Button variant="outline" onClick={() => setOpenQr(true)} className="w-full sm:w-auto">
+              <QrCode className="mr-2 h-4 w-4" />
+              Link de autocadastro
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setOpenImport(true)} className="w-full sm:w-auto">
             <Upload className="mr-2 h-4 w-4" />
             Importar CSV
@@ -413,6 +425,10 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
         type="moradores"
         onSuccess={load}
       />
+
+      {permiteAutocadastro && (
+        <QrAutocadastroDialog open={openQr} onOpenChange={setOpenQr} />
+      )}
     </Card>
   );
 }

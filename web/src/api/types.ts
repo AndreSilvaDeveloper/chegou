@@ -747,3 +747,20 @@ export interface MinhaAssinatura {
   /** `null` quando não há vencimento por perto nem atraso. */
   aviso: AvisoVencimento | null;
 }
+
+// ---- Autocadastro de morador (QR Code) ----
+
+/** Unidade como a página pública de autocadastro precisa dela. */
+export interface UnidadeAutocadastro {
+  id: string;
+  bloco: string | null;
+  numero: string;
+  identificador: string;
+}
+
+/** Resposta pública de `GET /public/autocadastro/:token`. */
+export interface DadosAutocadastro {
+  condominioNome: string;
+  estruturaBlocos: 'unico' | 'multiplos';
+  unidades: UnidadeAutocadastro[];
+}
