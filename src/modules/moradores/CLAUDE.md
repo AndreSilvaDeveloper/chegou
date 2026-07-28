@@ -55,7 +55,10 @@ em `/cadastro/:token`, **fora** do Layout.
 6. **Trocar de apartamento** revalida que o destino é do mesmo condomínio.
 7. Remoção é desativação — histórico de encomendas aponta para o morador.
 8. **Importação CSV normaliza o telefone** e recusa a linha com o motivo; antes,
-   telefone escrito solto estourava o CHECK do banco com erro técnico.
+   telefone escrito solto estourava o CHECK do banco com erro técnico. O diálogo
+   oferece um **modelo para baixar** (`MODELOS` em `web/src/components/ImportDialog.tsx`):
+   o parser casa a coluna pelo nome, então o cabeçalho do modelo tem que bater com
+   o esperado aqui (`apartamento_identificador,nome,telefone,documento,email,principal,receber_whatsapp`).
 9. **Autocadastro entra como não-principal e recebendo WhatsApp.** `principal` e
    `receber_whatsapp` são decisão da gestão, não de quem se cadastra — por isso o
    `AutocadastroMoradorDto` nem expõe esses campos. Quem cria de fato é o

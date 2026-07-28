@@ -139,6 +139,11 @@ export class ApartamentosService {
     return qb.getMany();
   }
 
+  /** Total de unidades ativas do condomínio (a listagem é cortada em {@link LIMITE_LISTAGEM}). */
+  async contar(tenantId: string): Promise<number> {
+    return this.aptoRepo.count({ where: { tenantId, ativo: true } });
+  }
+
   /** Lista os blocos distintos (não vazios) do condomínio, em ordem alfabética. */
   async listarBlocos(tenantId: string): Promise<string[]> {
     const rows = await this.aptoRepo

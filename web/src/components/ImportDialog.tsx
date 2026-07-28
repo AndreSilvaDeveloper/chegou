@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { api } from '../api/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, UploadCloud, FileType, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, UploadCloud, FileType, CheckCircle2, AlertCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ImportDialogProps {
@@ -11,6 +11,31 @@ interface ImportDialogProps {
   type: 'apartamentos' | 'moradores';
   onSuccess: () => void;
 }
+
+/**
+ * Modelo CSV de cada import: cabeçalho EXATO que o backend espera (o parser lê
+ * pelo nome da coluna) + linhas de exemplo. Mantê-los aqui, ao lado do envio,
+ * é o que evita o modelo divergir do parser — trocar um cabeçalho num lado sem
+ * o outro quebra silenciosamente todas as linhas.
+ */
+const MODELOS: Record<ImportDialogProps['type'], { arquivo: string; conteudo: string }> = {
+  apartamentos: {
+    arquivo: 'modelo-apartamentos.csv',
+    conteudo:
+      'bloco,numero,observacoes,valor_condominio\n' +
+      'A,101,Apartamento de frente,350.00\n' +
+      'A,102,,\n' +
+      'B,201,Cobertura,500.00\n',
+  },
+  moradores: {
+    arquivo: 'modelo-moradores.csv',
+    conteudo:
+      'apartamento_identificador,nome,telefone,documento,email,principal,receber_whatsapp\n' +
+      'A-101,Maria Silva,(32) 99999-0001,,maria@email.com,true,true\n' +
+      'A-101,João Silva,(32) 99999-0002,,,false,true\n' +
+      'B-201,Ana Souza,(32) 99999-0003,,,true,true\n',
+  },
+};
 
 interface ImportResult {
   successCount: number;
@@ -35,6 +60,18 @@ export function ImportDialog({ open, onOpenChange, type, onSuccess }: ImportDial
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const baixarModelo = () => {
+    const { arquivo, conteudo } = MODELOS[type];
+    // BOM para o Excel abrir os acentos corretamente.
+    const blob = new Blob(['\ufeff' + conteudo], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = arquivo;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleClose = () => {
     handleReset();
     onOpenChange(false);
@@ -50,8 +87,11 @@ export function ImportDialog({ open, onOpenChange, type, onSuccess }: ImportDial
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
-      const res = await api.post<ImportResult>(`/${type}/import`, formData);
+
+      // api.upload (multipart real), NÃO api.post: post faz JSON.stringify no
+      // corpo e manda application/json — o FormData viraria "{}" e o arquivo
+      // nunca chegaria (backend responde "Nenhum arquivo enviado").
+      const res = await api.upload<ImportResult>(`/${type}/import`, formData);
       setResult(res);
       
       if (res.successCount > 0) {
@@ -76,7 +116,22 @@ export function ImportDialog({ open, onOpenChange, type, onSuccess }: ImportDial
         <div className="py-4">
           {!result ? (
             <div className="space-y-4">
-              <div 
+              <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="txt-apoio text-muted-foreground">
+                  Não sabe o formato? Baixe o modelo, preencha e envie de volta.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={baixarModelo}
+                  className="w-full shrink-0 sm:w-auto"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar modelo
+                </Button>
+              </div>
+
+              <div
                 className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >

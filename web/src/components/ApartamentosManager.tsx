@@ -1,6 +1,7 @@
-import { FormEvent, useEffect, useState, useMemo } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { Apartamento } from '../api/types';
+import { useDebounce } from '@/hooks';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,9 @@ import {
 /** Como o condomínio organiza as unidades (vem de `config_json`). */
 type EstruturaBlocos = 'unico' | 'multiplos';
 
+/** Mesmo teto do backend: acima disso a lista vem cortada e a busca resolve. */
+const LIMITE_LISTAGEM = 50;
+
 export function ApartamentosManager({
   basePath = '',
   permiteVagas = false,
@@ -34,6 +38,8 @@ export function ApartamentosManager({
   const [list, setList] = useState<Apartamento[]>([]);
   const [, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Total de unidades do condomínio, independente do corte da listagem.
+  const [total, setTotal] = useState<number | null>(null);
 
   // Estrutura do condomínio decide se o campo bloco existe e se é obrigatório.
   const [estrutura, setEstrutura] = useState<EstruturaBlocos>('multiplos');
@@ -52,15 +58,27 @@ export function ApartamentosManager({
 
   const url = (p: string) => `${basePath}/apartamentos${p}`;
   
-  const load = async () => {
+  // Busca no SERVIDOR (não no cliente): a lista vem cortada em 50, então filtrar
+  // localmente só enxergaria as 50 primeiras — era o que fazia "501" não achar
+  // uma unidade que existe. O backend casa por número/bloco/identificador.
+  const load = async (termo = '') => {
     setLoading(true);
     try {
-      const data = await api.get<Apartamento[]>(url(''));
-      setList(data);
+      const query = termo.trim() ? `?q=${encodeURIComponent(termo.trim())}` : '';
+      setList(await api.get<Apartamento[]>(url(query)));
     } catch (err) {
       toast.error('Erro ao carregar apartamentos');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const carregarTotal = async () => {
+    try {
+      const r = await api.get<{ total: number }>(url('/count'));
+      setTotal(r.total);
+    } catch {
+      setTotal(null);
     }
   };
 
@@ -74,7 +92,11 @@ export function ApartamentosManager({
     }
   };
 
-  useEffect(() => { load(); carregarEstrutura(); }, [basePath]);
+  useEffect(() => { carregarEstrutura(); carregarTotal(); }, [basePath]);
+
+  // Recarrega a lista do servidor a cada busca (com debounce) e ao trocar de condomínio.
+  const buscaDebounced = useDebounce(search, 300);
+  useEffect(() => { load(buscaDebounced); }, [buscaDebounced, basePath]);
 
   const openCreate = () => {
     setEditId(null);
@@ -131,7 +153,8 @@ export function ApartamentosManager({
         toast.success(temVagas ? 'Apartamento e vagas cadastrados!' : 'Apartamento adicionado!');
       }
       setOpenForm(false);
-      load();
+      load(search);
+      carregarTotal();
     } catch (err) {
       toast.error(mensagemErro(err, 'Erro ao salvar apartamento'));
     } finally {
@@ -145,7 +168,8 @@ export function ApartamentosManager({
       await api.delete(url(`/${deletingId}`));
       toast.success('Apartamento desativado com sucesso');
       setOpenDelete(false);
-      load();
+      load(search);
+      carregarTotal();
     } catch (err) {
       toast.error('Erro ao desativar apartamento');
     }
@@ -154,14 +178,10 @@ export function ApartamentosManager({
   // Import CSV
   const [openImport, setOpenImport] = useState(false);
 
-  const filteredData = useMemo(() => {
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(a => 
-      a.identificador.toLowerCase().includes(q) || 
-      (a.observacoes && a.observacoes.toLowerCase().includes(q))
-    );
-  }, [list, search]);
+  const aposImportar = () => {
+    load(search);
+    carregarTotal();
+  };
 
   const columns: ColumnDef<Apartamento>[] = [
     {
@@ -240,9 +260,19 @@ export function ApartamentosManager({
         </div>
       </div>
 
-      <DataTable 
-        columns={columns} 
-        data={filteredData} 
+      {total !== null && (
+        <p className="mb-3 txt-apoio text-muted-foreground">
+          <span className="font-semibold text-foreground">{total}</span>{' '}
+          {total === 1 ? 'unidade cadastrada' : 'unidades cadastradas'}
+          {!search.trim() && total > LIMITE_LISTAGEM && (
+            <> · mostrando as primeiras {LIMITE_LISTAGEM} — use a busca para encontrar as demais</>
+          )}
+        </p>
+      )}
+
+      <DataTable
+        columns={columns}
+        data={list}
         emptyStateTitle="Nenhum apartamento encontrado"
         emptyStateDescription="Adicione apartamentos para que eles recebam encomendas."
       />
@@ -308,7 +338,7 @@ export function ApartamentosManager({
         open={openImport}
         onOpenChange={setOpenImport}
         type="apartamentos"
-        onSuccess={load}
+        onSuccess={aposImportar}
       />
     </Card>
   );

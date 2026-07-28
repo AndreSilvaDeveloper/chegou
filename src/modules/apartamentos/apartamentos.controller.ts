@@ -50,6 +50,17 @@ export class ApartamentosController {
     return { estruturaBlocos: await this.service.estruturaBlocos(tenantId) };
   }
 
+  /**
+   * Total de unidades do condomínio. Existe porque a listagem é cortada em
+   * {@link LIMITE_LISTAGEM} — sem esta contagem a tela não teria como mostrar
+   * quantas unidades há de verdade (a busca resolve o resto).
+   */
+  @Get('count')
+  @Roles('porteiro', 'admin', 'sindico')
+  async contar(@TenantId() tenantId: string) {
+    return { total: await this.service.contar(tenantId) };
+  }
+
   @Get('lookup')
   @Roles('porteiro', 'admin', 'sindico')
   async lookup(

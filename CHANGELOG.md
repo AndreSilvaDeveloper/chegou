@@ -11,6 +11,38 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.18.2 — 2026-07-28
+
+Rodada de acertos na importação e na listagem de Apartamentos, depois de importar
+um condomínio de verdade (122 unidades) e ver onde furava.
+
+### Corrigido
+- **A importação CSV não enviava o arquivo** (bug pré-existente): o diálogo usava
+  `api.post`, que faz `JSON.stringify` no corpo e manda `application/json` — o
+  `FormData` virava `"{}"` e o backend respondia "Nenhum arquivo enviado". Agora
+  usa `api.upload` (multipart de verdade). Valia para os dois imports.
+- **A busca de apartamentos não achava unidades que existiam.** A listagem vem
+  cortada em 50, mas a tela filtrava **no cliente** — então buscar "501" só
+  procurava entre as 50 já carregadas e dizia "nenhum encontrado" mesmo com a
+  unidade no banco. Agora a busca vai ao **servidor** (com debounce), que casa por
+  número, bloco e identificador. Mesmo padrão que o cadastro de morador já usava.
+
+### Adicionado
+- **Botão "Baixar modelo"** no diálogo de importação, nas duas telas. Gera o CSV
+  no próprio navegador, com o **cabeçalho exato que o backend espera** e linhas de
+  exemplo (com BOM, para o Excel abrir os acentos certos).
+- **Total de unidades na tela de Apartamentos** (`GET /apartamentos/count`): a
+  listagem é cortada em 50, então sem essa contagem não dava para saber quantas
+  unidades o condomínio tem de verdade. Quando há mais que 50, a tela avisa que
+  está mostrando as primeiras e que a busca encontra as demais.
+
+### Por quê
+- **O modelo mora ao lado do envio** (`MODELOS` em `ImportDialog.tsx`): o parser
+  lê a coluna pelo nome, então cabeçalho do modelo e cabeçalho esperado não podem
+  divergir — trocar um sem o outro quebraria todas as linhas em silêncio. Colunas:
+  apartamentos `bloco,numero,observacoes,valor_condominio`; moradores
+  `apartamento_identificador,nome,telefone,documento,email,principal,receber_whatsapp`.
+
 ## 0.18.1 — 2026-07-28
 
 ### Corrigido
@@ -55,7 +87,6 @@ ver etiqueta de verdade.
   download, ~400 MB de imagem, ~300–500 MB de RAM).
 - `rapidocr-onnxruntime` está travado em **1.4.x** e exige **Python < 3.13** — é
   por isso que o Dockerfile usa 3.11. Ver `ocr/README.md`.
-
 ## 0.17.0 — 2026-07-28
 
 O morador passa a poder se cadastrar sozinho por um **QR Code**, sem baixar app

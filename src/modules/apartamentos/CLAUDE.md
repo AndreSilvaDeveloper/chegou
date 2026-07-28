@@ -7,7 +7,8 @@ apartamento, morador mora em um, vaga pode pertencer a um.
 
 | Rota | admin | sindico | porteiro |
 |---|:---:|:---:|:---:|
-| `GET /apartamentos` (busca por `q`) | ✅ | ✅ | ✅ |
+| `GET /apartamentos` (busca por `q`, corta em 50) | ✅ | ✅ | ✅ |
+| `GET /apartamentos/count` (total de unidades) | ✅ | ✅ | ✅ |
 | `GET /apartamentos/blocos` | ✅ | ✅ | ✅ |
 | `GET /apartamentos/estrutura` | ✅ | ✅ | ✅ |
 | `GET /apartamentos/lookup` | ✅ | ✅ | ✅ |
@@ -55,7 +56,10 @@ vazio contam como a mesma coisa.
 3. **Bloco + número é único no condomínio** (409 com mensagem explícita).
 4. **Remoção é desativação** — apagar levaria junto o histórico de encomendas.
 5. **Importação CSV** processa linha a linha e devolve os erros com o número da
-   linha, sem abortar o lote.
+   linha, sem abortar o lote. O diálogo oferece um **modelo para baixar**
+   (`MODELOS` em `web/src/components/ImportDialog.tsx`): como o parser casa a
+   coluna pelo nome, o cabeçalho do modelo tem que bater com o esperado
+   (`bloco,numero,observacoes,valor_condominio`).
 
 ### Vagas que pertencem à unidade
 
@@ -85,6 +89,12 @@ e `components/ImportDialog.tsx`.
 A seção de vagas só aparece com `permiteVagas` — hoje: módulo Vagas habilitado
 **e** perfil síndico/administradora. Na tela do superadmin ela fica oculta
 (as rotas de vaga não existem sob `/admin/tenants/:id/apartamentos`).
+
+**A busca da lista é no servidor** (`GET /apartamentos?q=`), com debounce — a
+listagem vem cortada em `LIMITE_LISTAGEM` (50), então filtrar no cliente só
+enxergaria as 50 primeiras (foi o bug de "501 não encontra uma unidade que
+existe"). O `ApartamentosManager` mostra o **total** (`/count`) e, acima de 50
+sem busca, avisa que está exibindo só as primeiras.
 
 ## Ao alterar este módulo
 
