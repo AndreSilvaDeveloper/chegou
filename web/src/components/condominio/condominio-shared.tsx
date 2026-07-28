@@ -85,7 +85,7 @@ export function OptionCard({
       </div>
       <div>
         <p className="font-semibold text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="txt-apoio text-muted-foreground">{description}</p>
       </div>
     </button>
   );
@@ -121,7 +121,7 @@ export function ModuleToggle({
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-medium text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="txt-apoio text-muted-foreground">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} aria-label={title} />
     </button>
@@ -159,11 +159,11 @@ export function ModuleReadonly({
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-medium text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="txt-apoio text-muted-foreground">{description}</p>
       </div>
       <span
         className={cn(
-          'shrink-0 font-mono text-[11px] uppercase tracking-wider',
+          'shrink-0 font-mono txt-nota uppercase tracking-wider',
           checked ? 'text-primary' : 'text-muted-foreground',
         )}
       >
@@ -186,8 +186,8 @@ export function InfoPill({
     <div className="flex items-center gap-2.5 rounded-lg bg-background/60 px-3 py-2 backdrop-blur">
       <Icon className="h-4 w-4 shrink-0 text-primary" />
       <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="truncate text-sm font-medium text-foreground">{value}</p>
+        <p className="txt-nota uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="truncate txt-corpo font-medium text-foreground">{value}</p>
       </div>
     </div>
   );

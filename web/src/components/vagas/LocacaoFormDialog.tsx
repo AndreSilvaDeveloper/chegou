@@ -208,7 +208,7 @@ export function LocacaoFormDialog({
           <form onSubmit={submit} className="space-y-4">
             {!editando && (
               <div className="space-y-2">
-                <Label htmlFor="loc-vaga" className="text-base">
+                <Label htmlFor="loc-vaga">
                   Vaga
                 </Label>
                 <SimpleSelect
@@ -227,7 +227,7 @@ export function LocacaoFormDialog({
 
             {/* Tipo de locatário */}
             <div className="space-y-2">
-              <Label className="text-base">Quem é o responsável pela vaga?</Label>
+              <Label>Quem é o responsável pela vaga?</Label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {(
                   [
@@ -253,8 +253,8 @@ export function LocacaoFormDialog({
                       )}
                     />
                     <span className="min-w-0">
-                      <span className="block text-sm font-medium text-foreground">{titulo}</span>
-                      <span className="block text-xs text-muted-foreground">{desc}</span>
+                      <span className="block txt-corpo font-medium text-foreground">{titulo}</span>
+                      <span className="block txt-apoio text-muted-foreground">{desc}</span>
                     </span>
                   </button>
                 ))}
@@ -263,7 +263,7 @@ export function LocacaoFormDialog({
 
             {form.locatarioTipo === 'morador' ? (
               <div className="space-y-2">
-                <Label htmlFor="loc-morador" className="text-base">
+                <Label htmlFor="loc-morador">
                   Morador responsável
                 </Label>
                 <SimpleSelect
@@ -283,7 +283,7 @@ export function LocacaoFormDialog({
             ) : (
               <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
                 <div className="space-y-2">
-                  <Label htmlFor="loc-nome" className="text-base">
+                  <Label htmlFor="loc-nome">
                     Nome do locatário
                   </Label>
                   <Input
@@ -293,7 +293,7 @@ export function LocacaoFormDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="loc-doc" className="text-base">
+                  <Label htmlFor="loc-doc">
                     CPF
                   </Label>
                   <Input
@@ -303,7 +303,7 @@ export function LocacaoFormDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="loc-tel" className="text-base">
+                  <Label htmlFor="loc-tel">
                     Telefone (WhatsApp)
                   </Label>
                   <PhoneInput
@@ -313,7 +313,7 @@ export function LocacaoFormDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="loc-email" className="text-base">
+                  <Label htmlFor="loc-email">
                     E-mail
                   </Label>
                   <Input
@@ -323,7 +323,7 @@ export function LocacaoFormDialog({
                     onChange={(e) => setForm({ ...form, locatarioEmail: e.target.value })}
                   />
                 </div>
-                <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                <p className="flex items-start gap-2 txt-apoio text-muted-foreground">
                   <Info className="mt-0.5 h-4 w-4 shrink-0" />
                   Telefone ou e-mail é obrigatório — é por onde a cobrança é enviada.
                 </p>
@@ -332,7 +332,7 @@ export function LocacaoFormDialog({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="loc-valor" className="text-base">
+                <Label htmlFor="loc-valor">
                   Valor mensal (R$)
                 </Label>
                 <Input
@@ -344,7 +344,7 @@ export function LocacaoFormDialog({
                   onChange={(e) => setForm({ ...form, valorMensal: e.target.value })}
                 />
                 {vagaSelecionada && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="txt-apoio text-muted-foreground">
                     Tabela do condomínio para {TIPO_VAGA_LABEL[vagaSelecionada.tipo].toLowerCase()}:{' '}
                     {fmtMoeda(
                       precosQuery.data?.find((p) => p.tipo === vagaSelecionada.tipo)?.valorMensal ?? null,
@@ -353,7 +353,7 @@ export function LocacaoFormDialog({
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="loc-dia" className="text-base">
+                <Label htmlFor="loc-dia">
                   Dia do vencimento
                 </Label>
                 <Input
@@ -368,7 +368,7 @@ export function LocacaoFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="loc-inicio" className="text-base">
+              <Label htmlFor="loc-inicio">
                 Início do contrato
               </Label>
               <Input
@@ -380,7 +380,7 @@ export function LocacaoFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="loc-obs" className="text-base">
+              <Label htmlFor="loc-obs">
                 Observações
               </Label>
               <Textarea

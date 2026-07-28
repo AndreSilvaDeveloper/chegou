@@ -45,7 +45,7 @@ export function SimpleSelect({
           id={id}
           type="button"
           className={cn(
-            'flex h-12 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:ring-2 data-[state=open]:ring-ring',
+            'flex h-12 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 txt-corpo ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:ring-2 data-[state=open]:ring-ring',
             className,
           )}
         >
@@ -63,7 +63,7 @@ export function SimpleSelect({
           <DropdownMenuItem key={o.value || 'default'} onSelect={() => onValueChange(o.value)} className="gap-2">
             <Check className={cn('h-4 w-4 shrink-0 text-primary', value === o.value ? 'opacity-100' : 'opacity-0')} />
             <span className="flex-1 truncate">{o.label}</span>
-            {o.hint && <span className="shrink-0 text-xs text-muted-foreground">{o.hint}</span>}
+            {o.hint && <span className="shrink-0 txt-apoio text-muted-foreground">{o.hint}</span>}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

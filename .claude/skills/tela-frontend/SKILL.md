@@ -36,10 +36,41 @@ export function MinhaTela() {
 }
 ```
 
+## Tamanho de texto: escolha o papel, não o número
+
+**Nunca escreva `text-sm`, `text-xs`, `text-lg`, `text-2xl`… numa tela.** Use a
+classe da escala (definida em `web/src/styles.css`) — ela já traz o tamanho do
+celular e o do desktop:
+
+| Classe | Celular | Desktop | Quando |
+|---|---|---|---|
+| `txt-numero` | 30px | 36px | KPI, número em destaque |
+| `txt-numero-sm` | 20px | 24px | valor numérico em linha (total, contador) |
+| `txt-titulo` | 24px | 30px | título da tela — **um por tela**, e o `PageHeader` já põe |
+| `txt-secao` | 18px | 20px | título de card/diálogo/seção — `CardTitle` e `DialogTitle` já põem |
+| `txt-subtitulo` | 16px | 18px | nome do item dentro do card, subtítulo de bloco (`<h3>`) |
+| `txt-corpo` | 16px | 14px | texto padrão, tabela, campo, botão — `Input`, `Label`, `Button` já põem |
+| `txt-apoio` | 14px | 14px | descrição, dica, texto secundário (vem com `text-muted-foreground`) |
+| `txt-nota` | 12px | 12px | chrome: badge, legenda de gráfico, atalho de menu |
+| `eyebrow` | 11px | 11px | rótulo mono maiúsculo acima do título |
+
+Na dúvida entre `txt-corpo` e `txt-apoio`: se o porteiro **precisa** ler para
+trabalhar, é `txt-corpo`. Se é explicação de apoio, é `txt-apoio`. Nada que
+precise ser lido vai para `txt-nota`.
+
+**Não repita a classe que o componente já traz** (`<CardTitle className="txt-secao">`,
+`<Label className="txt-corpo">`): é o tipo de ruído que faz a próxima pessoa
+trocar por outro tamanho sem perceber que está saindo do padrão.
+
+Precisa mesmo de um tamanho fora da escala? Utilitário do Tailwind ainda vence a
+classe — mas escreva um comentário dizendo o porquê, senão é só divergência.
+
 ## Regras que não se negociam
 
 - **Mobile-first**: estilo base é o do celular; `sm:`/`md:` só para ampliar.
   Grid começa em `grid-cols-1`. Botão começa em `w-full`, vira `sm:w-auto`.
+- **Tamanho de texto vem da escala** (`txt-*`, tabela acima) — nunca `text-sm`
+  e afins soltos, nunca `text-[13px]`.
 - **Toque de 48px**: `min-h-[48px]` em botão e link de ação.
 - **Ícone sempre com texto** — nunca ícone sozinho, nunca emoji como ícone.
 - **Label sempre visível** (`<Label htmlFor>`), placeholder é exemplo, não rótulo.
@@ -62,7 +93,7 @@ pequena, botões empilhados no celular, alvo de toque e estado "salvando".
   onSubmit={() => salvar.mutate(form)}
 >
   <div className="space-y-2">
-    <Label htmlFor="nome" className="text-base">Nome</Label>
+    <Label htmlFor="nome">Nome</Label>              {/* Label já é txt-corpo */}
     <Input id="nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
   </div>
 </FormDialog>

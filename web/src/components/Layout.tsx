@@ -95,8 +95,8 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
       </div>
       {!compact && (
         <div className="leading-none">
-          <span className="text-lg font-extrabold tracking-tight text-foreground">chegou</span>
-          <span className="ml-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">central</span>
+          <span className="txt-secao font-extrabold tracking-tight text-foreground">chegou</span>
+          <span className="eyebrow ml-1.5">central</span>
         </div>
       )}
     </div>
@@ -188,7 +188,7 @@ function SidebarBody({
                 className={({ isActive }) =>
                   cn(
                     'relative flex items-center rounded-xl font-medium transition-colors',
-                    isCollapsed ? 'h-11 w-11 justify-center' : 'min-h-[44px] gap-3 px-3 py-2.5 text-[15px]',
+                    isCollapsed ? 'h-11 w-11 justify-center' : 'min-h-[44px] gap-3 px-3 py-2.5 txt-corpo',
                     isActive
                       ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -213,7 +213,7 @@ function SidebarBody({
             <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className="eyebrow">Condomínio</p>
-              <p className="truncate text-sm font-medium text-foreground">{nomeCondominio}</p>
+              <p className="truncate txt-corpo font-medium text-foreground">{nomeCondominio}</p>
             </div>
           </div>
           {/* A administradora atende vários: precisa saber em qual está e poder sair. */}
@@ -234,7 +234,7 @@ function SidebarBody({
           é o que o suporte pergunta primeiro quando algo não bate. */}
       <div className={cn('p-3', isCollapsed && 'flex justify-center')}>
         <p
-          className="font-mono text-[11px] text-muted-foreground"
+          className="font-mono txt-nota text-muted-foreground"
           title={`Chegou versão ${APP_VERSION}`}
         >
           v{APP_VERSION}
@@ -384,7 +384,7 @@ export function Layout() {
 
           <div className="flex items-center gap-3">
             {showTenant && (
-              <span className="hidden max-w-[200px] items-center gap-1.5 truncate text-sm font-medium text-muted-foreground lg:inline-flex">
+              <span className="hidden max-w-[200px] items-center gap-1.5 truncate txt-apoio font-medium text-muted-foreground lg:inline-flex">
                 <Building2 className="h-3.5 w-3.5 shrink-0" />
                 {nomeCondominio}
               </span>
@@ -393,14 +393,14 @@ export function Layout() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0" aria-label="Conta">
                   <Avatar className="h-9 w-9 border border-border">
-                    <AvatarFallback className="bg-muted font-mono text-sm font-semibold text-foreground">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-muted font-mono txt-corpo font-semibold text-foreground">{initials}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-60" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col gap-1">
-                    <p className="text-sm font-semibold leading-none">{user?.nome}</p>
+                    <p className="txt-corpo font-semibold leading-none">{user?.nome}</p>
                     <p className="eyebrow">{ROLE_LABEL[userRole] ?? userRole}</p>
                   </div>
                 </DropdownMenuLabel>
@@ -449,7 +449,7 @@ export function Layout() {
         {showTenant && (
           <div className="flex items-center gap-2 px-4 pb-1 md:hidden">
             <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate text-xs font-medium text-muted-foreground">{nomeCondominio}</span>
+            <span className="truncate txt-apoio font-medium text-muted-foreground">{nomeCondominio}</span>
           </div>
         )}
 

@@ -116,7 +116,7 @@ export function VagaFormDialog({
       onSubmit={submit}
     >
       <div className="space-y-2">
-        <Label htmlFor="vaga-numero" className="text-base">
+        <Label htmlFor="vaga-numero">
           Número da vaga
         </Label>
         <Input
@@ -130,7 +130,7 @@ export function VagaFormDialog({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="vaga-tipo" className="text-base">
+        <Label htmlFor="vaga-tipo">
           Tipo de vaga
         </Label>
         <SimpleSelect
@@ -142,7 +142,7 @@ export function VagaFormDialog({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="vaga-local" className="text-base">
+        <Label htmlFor="vaga-local">
           Localização
         </Label>
         <Input
@@ -154,7 +154,7 @@ export function VagaFormDialog({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="vaga-apto" className="text-base">
+        <Label htmlFor="vaga-apto">
           Apartamento vinculado
         </Label>
         <SimpleSelect
@@ -165,7 +165,7 @@ export function VagaFormDialog({
           placeholder="Nenhum — vaga livre para locação"
         />
         {form.apartamentoId && (
-          <p className="flex items-start gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-700 dark:text-sky-300">
+          <p className="flex items-start gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 txt-corpo text-sky-700 dark:text-sky-300">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             Vinculada a um apartamento, esta vaga sai do pool de locação e não pode ser alugada.
           </p>
@@ -173,7 +173,7 @@ export function VagaFormDialog({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="vaga-obs" className="text-base">
+        <Label htmlFor="vaga-obs">
           Observações
         </Label>
         <Textarea

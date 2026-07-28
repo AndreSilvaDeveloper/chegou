@@ -166,8 +166,8 @@ export function MeuCondominio() {
     return (
       <Card>
         <CardContent className="space-y-4 py-12 text-center">
-          <p className="text-lg font-semibold text-foreground">Condomínio não encontrado</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="txt-subtitulo font-semibold text-foreground">Condomínio não encontrado</p>
+          <p className="txt-apoio text-muted-foreground">
             Ele pode ter saído da sua carteira. Volte e escolha outro.
           </p>
           <Link to="/meus-condominios">
@@ -207,7 +207,7 @@ export function MeuCondominio() {
               <TipoIcon className="h-7 w-7" />
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">
+              <h2 className="truncate txt-titulo font-bold tracking-tight text-foreground">
                 {condominio.nome}
               </h2>
               <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -247,7 +247,7 @@ export function MeuCondominio() {
             <TabsTrigger
               key={t.key}
               value={t.key}
-              className="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
+              className="flex items-center justify-center gap-2 rounded-lg py-2.5 txt-corpo data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
             >
               <t.icon className="h-4 w-4" />
               <span>{t.label}</span>
@@ -267,7 +267,7 @@ export function MeuCondominio() {
             <form onSubmit={salvarCadastro}>
               <CardContent className="space-y-6 pt-0 md:pt-0">
                 <div className="space-y-2">
-                  <Label htmlFor="cond-nome" className="text-base">Nome do condomínio *</Label>
+                  <Label htmlFor="cond-nome">Nome do condomínio *</Label>
                   <Input
                     id="cond-nome"
                     value={cadastro.nome}
@@ -278,7 +278,7 @@ export function MeuCondominio() {
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="cond-cnpj" className="text-base">CNPJ</Label>
+                    <Label htmlFor="cond-cnpj">CNPJ</Label>
                     <Input
                       id="cond-cnpj"
                       className="font-mono"
@@ -289,7 +289,7 @@ export function MeuCondominio() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cond-email" className="text-base">E-mail de contato</Label>
+                    <Label htmlFor="cond-email">E-mail de contato</Label>
                     <Input
                       id="cond-email"
                       type="email"
@@ -301,7 +301,7 @@ export function MeuCondominio() {
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="cond-cidade" className="text-base">Cidade</Label>
+                    <Label htmlFor="cond-cidade">Cidade</Label>
                     <Input
                       id="cond-cidade"
                       value={cadastro.cidade}
@@ -309,7 +309,7 @@ export function MeuCondominio() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cond-uf" className="text-base">Estado (UF)</Label>
+                    <Label htmlFor="cond-uf">Estado (UF)</Label>
                     <Input
                       id="cond-uf"
                       className="uppercase"
@@ -323,7 +323,7 @@ export function MeuCondominio() {
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="cond-endereco" className="text-base">Endereço</Label>
+                    <Label htmlFor="cond-endereco">Endereço</Label>
                     <Input
                       id="cond-endereco"
                       value={cadastro.endereco}
@@ -331,7 +331,7 @@ export function MeuCondominio() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cond-telefone" className="text-base">Telefone de contato</Label>
+                    <Label htmlFor="cond-telefone">Telefone de contato</Label>
                     <PhoneInput
                       id="cond-telefone"
                       value={cadastro.telefoneContato}
@@ -367,8 +367,8 @@ export function MeuCondominio() {
               <CardContent className="space-y-8 pt-0 md:pt-0">
                 <section className="space-y-3">
                   <div>
-                    <h3 className="text-base font-semibold text-foreground">Tipo de condomínio</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="txt-subtitulo font-semibold text-foreground">Tipo de condomínio</h3>
+                    <p className="txt-apoio text-muted-foreground">
                       Define a nomenclatura das unidades e os recursos disponíveis.
                     </p>
                   </div>
@@ -396,8 +396,8 @@ export function MeuCondominio() {
 
                 <section className="space-y-3">
                   <div>
-                    <h3 className="text-base font-semibold text-foreground">Estrutura de blocos</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="txt-subtitulo font-semibold text-foreground">Estrutura de blocos</h3>
+                    <p className="txt-apoio text-muted-foreground">
                       Controla se o cadastro de unidades pede a identificação do bloco.
                     </p>
                   </div>
@@ -423,10 +423,10 @@ export function MeuCondominio() {
 
                 <section className="space-y-3">
                   <div>
-                    <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+                    <h3 className="flex items-center gap-2 txt-subtitulo font-semibold text-foreground">
                       <Clock className="h-4 w-4 text-primary" /> Janela de envio no WhatsApp
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="txt-apoio text-muted-foreground">
                       Notificações só saem dentro deste horário. Dá para estreitar, mas não para
                       passar de 08:00–21:00 — enviar de madrugada é o que derruba o número do
                       condomínio.
@@ -434,7 +434,7 @@ export function MeuCondominio() {
                   </div>
                   <div className="grid max-w-md gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="envio-inicio" className="text-base">Início</Label>
+                      <Label htmlFor="envio-inicio">Início</Label>
                       <Input
                         id="envio-inicio"
                         type="time"
@@ -445,7 +445,7 @@ export function MeuCondominio() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="envio-fim" className="text-base">Fim</Label>
+                      <Label htmlFor="envio-fim">Fim</Label>
                       <Input
                         id="envio-fim"
                         type="time"
@@ -462,8 +462,8 @@ export function MeuCondominio() {
 
                 <section className="space-y-3">
                   <div>
-                    <h3 className="text-base font-semibold text-foreground">Módulos contratados</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="txt-subtitulo font-semibold text-foreground">Módulos contratados</h3>
+                    <p className="txt-apoio text-muted-foreground">
                       Fazem parte do contrato do condomínio com o Chegou, por isso são ligados pela
                       plataforma.
                     </p>
@@ -515,7 +515,7 @@ function PlataformaDecide({ texto }: { texto: string }) {
   return (
     <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">
       <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-      <p className="text-sm text-muted-foreground">{texto}</p>
+      <p className="txt-apoio text-muted-foreground">{texto}</p>
     </div>
   );
 }

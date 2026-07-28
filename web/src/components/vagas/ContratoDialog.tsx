@@ -100,10 +100,10 @@ export function ContratoDialog({
               <div className="flex items-start gap-3">
                 <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                 <div className="min-w-0">
-                  <p className="break-words text-sm font-medium text-foreground">
+                  <p className="break-words txt-corpo font-medium text-foreground">
                     {locacao.contratoNomeArquivo || 'Contrato anexado'}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="txt-apoio text-muted-foreground">
                     Enviado em {fmtData(locacao.contratoEnviadoAt)}
                   </p>
                 </div>
@@ -130,7 +130,7 @@ export function ContratoDialog({
 
               {confirmandoRemocao && (
                 <div className="space-y-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-                  <p className="text-sm text-foreground">
+                  <p className="txt-corpo text-foreground">
                     Remover o contrato desta locação? O arquivo é apagado e não dá para desfazer.
                   </p>
                   <div className="flex flex-col gap-2 sm:flex-row">
@@ -160,7 +160,7 @@ export function ContratoDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="contrato-file" className="text-base">
+            <Label htmlFor="contrato-file">
               {temContrato ? 'Substituir por outro arquivo' : 'Arquivo do contrato'}
             </Label>
             <input
@@ -169,10 +169,10 @@ export function ContratoDialog({
               type="file"
               accept={ACEITOS}
               onChange={(e) => escolher(e.target.files?.[0] ?? null)}
-              className="block w-full cursor-pointer rounded-md border border-input bg-background p-3 text-base file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
+              className="block w-full cursor-pointer rounded-md border border-input bg-background p-3 txt-corpo file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file: file:font-medium file:text-primary-foreground"
             />
             {arquivo && (
-              <p className="text-sm text-muted-foreground">
+              <p className="txt-apoio text-muted-foreground">
                 {arquivo.name} — {(arquivo.size / 1024 / 1024).toFixed(1)} MB
               </p>
             )}

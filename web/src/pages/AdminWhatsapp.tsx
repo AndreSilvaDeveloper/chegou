@@ -44,8 +44,8 @@ function Metric({ icon: Icon, label, value }: { icon: typeof Package; label: str
     <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
       <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 leading-tight">
-        <p className="text-[11px] text-muted-foreground">{label}</p>
-        <p className="text-sm font-semibold text-foreground">{value}</p>
+        <p className="txt-nota text-muted-foreground">{label}</p>
+        <p className="txt-corpo font-semibold text-foreground">{value}</p>
       </div>
     </div>
   );
@@ -158,8 +158,8 @@ export function AdminWhatsapp() {
                       <Smartphone className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-base font-semibold text-foreground">{c.nome}</p>
-                      <p className="font-mono text-xs text-muted-foreground">
+                      <p className="truncate txt-corpo font-semibold text-foreground">{c.nome}</p>
+                      <p className="font-mono txt-apoio text-muted-foreground">
                         {c.conectado && c.numero ? `+${c.numero}` : c.slug}
                       </p>
                     </div>
@@ -172,14 +172,14 @@ export function AdminWhatsapp() {
                   <Metric icon={Megaphone} label="Avisos enviados" value={c.disparosAviso} />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 txt-apoio text-muted-foreground">
                   <span>Intervalo: <b className="text-foreground">{c.intervaloSegundos}s + até {c.jitterSegundos}s</b></span>
                   <span>Janela: <b className="text-foreground">{c.horarioEnvioInicio}–{c.horarioEnvioFim}</b></span>
                   <span>Limite: <b className="text-foreground">{c.limiteDiario > 0 ? `${c.limiteDiario}/dia` : '—'}</b></span>
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 txt-apoio text-muted-foreground">
                     {c.templateEncomenda ? (
                       <><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Template personalizado</>
                     ) : 'Template padrão'}
@@ -248,7 +248,7 @@ export function AdminWhatsapp() {
                 </div>
               </div>
 
-              <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <p className="rounded-lg bg-muted/50 px-3 py-2 txt-apoio text-muted-foreground">
                 Cada mensagem espera <b>{form.intervaloSegundos}s</b> + um tempo aleatório de até{' '}
                 <b>{form.jitterSegundos}s</b> após a anterior. Limite de <b>0</b> = sem limite diário.
               </p>

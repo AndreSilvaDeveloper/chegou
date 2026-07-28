@@ -22,11 +22,11 @@ export function PageHeader({ title, description, eyebrow, icon: Icon, children, 
         )}
         <div className="min-w-0">
           {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
-          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+          <h1 className="txt-titulo font-bold tracking-tight text-foreground">
             {title}
           </h1>
           {description && (
-            <p className="mt-1 text-sm text-muted-foreground md:text-base">
+            <p className="mt-1 txt-apoio text-muted-foreground">
               {description}
             </p>
           )}

@@ -92,14 +92,14 @@ export function ImportDialog({ open, onOpenChange, type, onSuccess }: ImportDial
                   <>
                     <FileType className="h-10 w-10 text-primary mb-2" />
                     <p className="font-medium">{file.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="txt-apoio text-muted-foreground mt-1">
                       {(file.size / 1024).toFixed(1)} KB
                     </p>
                   </>
                 ) : (
                   <>
                     <UploadCloud className="h-10 w-10 text-muted-foreground mb-2" />
-                    <p className="font-medium text-sm">Clique para selecionar um arquivo CSV</p>
+                    <p className="font-medium txt-corpo">Clique para selecionar um arquivo CSV</p>
                   </>
                 )}
               </div>
@@ -118,7 +118,7 @@ export function ImportDialog({ open, onOpenChange, type, onSuccess }: ImportDial
               </div>
 
               {result.errors.length > 0 && (
-                <div className="max-h-48 overflow-y-auto border rounded-md p-2 bg-destructive/5 text-sm">
+                <div className="max-h-48 overflow-y-auto border rounded-md p-2 bg-destructive/5 txt-corpo">
                   <ul className="space-y-1">
                     {result.errors.map((e, i) => (
                       <li key={i} className="text-destructive flex gap-2">

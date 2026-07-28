@@ -155,8 +155,8 @@ export function MeusCondominios() {
                 <CardContent className="space-y-4 p-4 md:p-5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-lg font-semibold text-foreground">{tenant.nome}</p>
-                      <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <p className="txt-subtitulo font-semibold text-foreground">{tenant.nome}</p>
+                      <p className="flex items-center gap-1 txt-apoio text-muted-foreground">
                         <MapPin className="h-3.5 w-3.5" />
                         {tenant.cidade
                           ? `${tenant.cidade}${tenant.estado ? `/${tenant.estado}` : ''}`
@@ -213,7 +213,7 @@ export function MeusCondominios() {
 
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cond-nome" className="text-base">
+              <Label htmlFor="cond-nome">
                 Nome do condomínio
               </Label>
               <Input
@@ -233,7 +233,7 @@ export function MeusCondominios() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cond-slug" className="text-base">
+              <Label htmlFor="cond-slug">
                 Identificador (usado no endereço do sistema)
               </Label>
               <Input
@@ -246,7 +246,7 @@ export function MeusCondominios() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="cond-cidade" className="text-base">
+                <Label htmlFor="cond-cidade">
                   Cidade
                 </Label>
                 <Input
@@ -256,7 +256,7 @@ export function MeusCondominios() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cond-uf" className="text-base">
+                <Label htmlFor="cond-uf">
                   Estado (UF)
                 </Label>
                 <Input
@@ -270,9 +270,9 @@ export function MeusCondominios() {
             </div>
 
             <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
-              <p className="text-sm font-medium text-foreground">Primeiro acesso (síndico)</p>
+              <p className="txt-corpo font-medium text-foreground">Primeiro acesso (síndico)</p>
               <div className="space-y-2">
-                <Label htmlFor="sind-nome" className="text-base">
+                <Label htmlFor="sind-nome">
                   Nome do síndico
                 </Label>
                 <Input
@@ -282,7 +282,7 @@ export function MeusCondominios() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sind-email" className="text-base">
+                <Label htmlFor="sind-email">
                   E-mail do síndico
                 </Label>
                 <Input
@@ -293,7 +293,7 @@ export function MeusCondominios() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sind-senha" className="text-base">
+                <Label htmlFor="sind-senha">
                   Senha provisória
                 </Label>
                 <Input

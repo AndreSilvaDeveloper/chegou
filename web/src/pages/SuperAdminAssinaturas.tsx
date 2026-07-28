@@ -158,13 +158,13 @@ export function SuperAdminAssinaturas() {
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-3">
-          <TabsTrigger value="faturas" className="min-h-[44px] text-sm">
+          <TabsTrigger value="faturas" className="min-h-[44px] txt-corpo">
             Faturas
           </TabsTrigger>
-          <TabsTrigger value="previas" className="min-h-[44px] text-sm">
+          <TabsTrigger value="previas" className="min-h-[44px] txt-corpo">
             Prévias
           </TabsTrigger>
-          <TabsTrigger value="precos" className="min-h-[44px] text-sm">
+          <TabsTrigger value="precos" className="min-h-[44px] txt-corpo">
             Preços
           </TabsTrigger>
         </TabsList>
@@ -172,7 +172,7 @@ export function SuperAdminAssinaturas() {
         <TabsContent value="faturas" className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="competencia" className="text-base">
+              <Label htmlFor="competencia">
                 Competência
               </Label>
               <Input
@@ -184,7 +184,7 @@ export function SuperAdminAssinaturas() {
               />
             </div>
             <div className="flex-1 space-y-2">
-              <Label htmlFor="status" className="text-base">
+              <Label htmlFor="status">
                 Status
               </Label>
               <SimpleSelect
@@ -294,15 +294,15 @@ function FaturaCard({
             <span className="font-medium text-foreground">{fatura.sacado.nome}</span>
             <StatusFaturaBadge status={fatura.status} />
             {fatura.sacado.tipo === 'administradora' && (
-              <span className="text-xs text-muted-foreground">
+              <span className="txt-apoio text-muted-foreground">
                 carteira · {fatura.itens.length} condomínio(s)
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="txt-apoio text-muted-foreground">
             {fmtCompetencia(fatura.competencia)} · vence em {fmtData(fatura.vencimento)}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="txt-apoio text-muted-foreground">
             {fatura.quantidadeApartamentos} apartamento
             {fatura.quantidadeApartamentos === 1 ? '' : 's'}
             {fatura.precoAplicado !== null ? ` × ${fmtMoeda(fatura.precoAplicado)}` : ' · valor fixo'}
@@ -311,7 +311,7 @@ function FaturaCard({
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <span className="font-mono text-xl font-bold tabular text-foreground">
+          <span className="font-mono txt-numero-sm font-bold tabular text-foreground">
             {fmtMoeda(fatura.valor)}
           </span>
           {podeMexer && (
@@ -366,12 +366,12 @@ function PainelPrevias() {
       <Card>
         <CardContent className="flex items-center justify-between gap-3 p-4 md:p-5">
           <div>
-            <p className="text-sm font-medium text-foreground">Se o mês fechasse hoje</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="txt-corpo font-medium text-foreground">Se o mês fechasse hoje</p>
+            <p className="txt-apoio text-muted-foreground">
               {query.data.length} cliente(s) — condomínios diretos e administradoras
             </p>
           </div>
-          <span className="font-mono text-xl font-bold tabular text-foreground">
+          <span className="font-mono txt-numero-sm font-bold tabular text-foreground">
             {fmtMoeda(total)}
           </span>
         </CardContent>
@@ -383,12 +383,12 @@ function PainelPrevias() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium text-foreground">{previa.sacado.nome}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="txt-apoio text-muted-foreground">
                   {previa.sacado.tipo === 'administradora' ? 'Administradora' : 'Condomínio direto'}
                   {previa.condicao ? ' · preço especial' : ''}
                 </p>
               </div>
-              <span className="font-mono text-lg font-bold tabular text-foreground">
+              <span className="font-mono txt-numero-sm font-bold tabular text-foreground">
                 {fmtMoeda(previa.resultado.valor)}
               </span>
             </div>
@@ -415,8 +415,8 @@ function PainelPrecos() {
       <Card>
         <CardContent className="space-y-4 p-4 md:p-5">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Preço por apartamento</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h2 className="txt-subtitulo font-semibold text-foreground">Preço por apartamento</h2>
+            <p className="mt-1 txt-apoio text-muted-foreground">
               A faixa é escolhida pela quantidade e o preço dela vale para{' '}
               <strong>todos</strong> os apartamentos — não é escalonado por trecho. Para uma
               administradora, a quantidade é a soma da carteira inteira.
@@ -426,19 +426,19 @@ function PainelPrecos() {
           <ul className="divide-y divide-border rounded-lg border border-border">
             {query.data?.map((faixa) => (
               <li key={faixa.ordem} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="text-sm text-foreground">
+                <span className="txt-corpo text-foreground">
                   {faixa.ateQuantidade === null
                     ? 'Acima disso'
                     : `Até ${faixa.ateQuantidade} apartamentos`}
                 </span>
-                <span className="font-mono text-sm tabular text-foreground">
+                <span className="font-mono txt-corpo tabular text-foreground">
                   {fmtMoeda(faixa.precoApartamento)}
                 </span>
               </li>
             ))}
           </ul>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="txt-apoio text-muted-foreground">
             Mudar a tabela vale a partir da próxima geração. Fatura já emitida guarda o preço que
             foi cobrado e não é reescrita.
           </p>
@@ -528,7 +528,7 @@ function EditarFaixasDialog({
           return (
             <div key={i} className="space-y-3 rounded-lg border border-border p-3">
               <div className="space-y-2">
-                <Label htmlFor={`ate-${i}`} className="text-base">
+                <Label htmlFor={`ate-${i}`}>
                   {ehUltima ? 'Acima da faixa anterior' : 'Até quantos apartamentos'}
                 </Label>
                 <Input
@@ -543,7 +543,7 @@ function EditarFaixasDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`preco-${i}`} className="text-base">
+                <Label htmlFor={`preco-${i}`}>
                   Preço por apartamento (R$)
                 </Label>
                 <Input
@@ -645,7 +645,7 @@ function GerarFaturasDialog({
       onSubmit={() => gerar.mutate()}
     >
       <div className="space-y-2">
-        <Label htmlFor="gerar-competencia" className="text-base">
+        <Label htmlFor="gerar-competencia">
           Competência
         </Label>
         <Input
@@ -655,13 +655,13 @@ function GerarFaturasDialog({
           onChange={(e) => setCompetencia(e.target.value)}
           className="min-h-[48px]"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="txt-apoio text-muted-foreground">
           A assinatura é pós-paga: fatura-se o mês que fechou.
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="gerar-vencimento" className="text-base">
+        <Label htmlFor="gerar-vencimento">
           Dia do vencimento
         </Label>
         <Input
@@ -673,7 +673,7 @@ function GerarFaturasDialog({
           onChange={(e) => setDiaVencimento(e.target.value)}
           className="min-h-[48px]"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="txt-apoio text-muted-foreground">
           No mês seguinte à competência. Dia 31 em mês de 30 cai no último dia.
         </p>
       </div>

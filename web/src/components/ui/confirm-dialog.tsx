@@ -40,13 +40,13 @@ export function ConfirmDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription className="text-base text-foreground">
+          <AlertDialogDescription className="txt-corpo text-foreground">
             {description}
           </AlertDialogDescription>
           {children}
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-4 gap-2 sm:gap-0">
-          <AlertDialogCancel disabled={loading} className="min-h-[44px] text-base">
+          <AlertDialogCancel disabled={loading} className="min-h-[44px] txt-corpo">
             {cancelLabel}
           </AlertDialogCancel>
           <Button
@@ -57,7 +57,7 @@ export function ConfirmDialog({
             }}
             disabled={loading}
             size="lg"
-            className="min-h-[44px] text-base"
+            className="min-h-[44px] txt-corpo"
           >
             {loading ? "Processando..." : confirmLabel}
           </Button>

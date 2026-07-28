@@ -72,26 +72,26 @@ export function HistoricoVagaDialog({
             {/* Resumo de tudo */}
             <dl className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted/30 p-4 sm:grid-cols-4">
               <div>
-                <dt className="text-sm text-muted-foreground">Contratos</dt>
-                <dd className="font-mono text-lg font-semibold text-foreground">
+                <dt className="txt-apoio text-muted-foreground">Contratos</dt>
+                <dd className="font-mono txt-numero-sm font-semibold text-foreground">
                   {historico.resumo.totalContratos}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-muted-foreground">Recebido</dt>
-                <dd className="font-mono text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                <dt className="txt-apoio text-muted-foreground">Recebido</dt>
+                <dd className="font-mono txt-numero-sm font-semibold text-emerald-600 dark:text-emerald-400">
                   {fmtMoeda(historico.resumo.valorRecebido)}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-muted-foreground">Em aberto</dt>
-                <dd className="font-mono text-lg font-semibold text-amber-600 dark:text-amber-400">
+                <dt className="txt-apoio text-muted-foreground">Em aberto</dt>
+                <dd className="font-mono txt-numero-sm font-semibold text-amber-600 dark:text-amber-400">
                   {fmtMoeda(historico.resumo.valorEmAberto)}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-muted-foreground">Vencido</dt>
-                <dd className="font-mono text-lg font-semibold text-red-600 dark:text-red-400">
+                <dt className="txt-apoio text-muted-foreground">Vencido</dt>
+                <dd className="font-mono txt-numero-sm font-semibold text-red-600 dark:text-red-400">
                   {fmtMoeda(historico.resumo.valorVencido)}
                 </dd>
               </div>
@@ -107,10 +107,10 @@ export function HistoricoVagaDialog({
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-base font-semibold text-foreground">
+                      <p className="txt-corpo font-semibold text-foreground">
                         {nomeLocatario(locacao)}
                       </p>
-                      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <p className="flex items-center gap-1.5 txt-apoio text-muted-foreground">
                         <CalendarClock className="h-3.5 w-3.5" />
                         {fmtData(locacao.dataInicio)} →{' '}
                         {locacao.dataFim ? fmtData(locacao.dataFim) : 'em vigor'}
@@ -122,7 +122,7 @@ export function HistoricoVagaDialog({
                   </div>
 
                   {locacao.cobrancas.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="txt-apoio text-muted-foreground">
                       Nenhuma cobrança gerada para este contrato.
                     </p>
                   ) : (
@@ -135,7 +135,7 @@ export function HistoricoVagaDialog({
                               key={cobranca.id}
                               className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/20 px-3 py-2"
                             >
-                              <span className="flex items-center gap-2 text-sm">
+                              <span className="flex items-center gap-2 txt-corpo">
                                 <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
                                 <span className="text-foreground">
                                   {fmtCompetencia(cobranca.competencia)}
@@ -145,11 +145,11 @@ export function HistoricoVagaDialog({
                                 </span>
                               </span>
                               <span className="flex items-center gap-2">
-                                <span className="font-mono text-sm text-foreground">
+                                <span className="font-mono txt-corpo text-foreground">
                                   {fmtMoeda(cobranca.valor)}
                                 </span>
                                 {cobranca.pagoAt && (
-                                  <span className="font-mono text-xs text-muted-foreground">
+                                  <span className="font-mono txt-apoio text-muted-foreground">
                                     pago {fmtData(cobranca.pagoAt)}
                                   </span>
                                 )}
@@ -160,7 +160,7 @@ export function HistoricoVagaDialog({
                         })}
                       </ul>
 
-                      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                      <dl className="flex flex-wrap gap-x-6 gap-y-1 txt-corpo">
                         <div className="flex gap-2">
                           <dt className="text-muted-foreground">Cobrado:</dt>
                           <dd className="font-mono text-foreground">

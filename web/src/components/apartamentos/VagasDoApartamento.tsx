@@ -122,8 +122,8 @@ export function VagasDoApartamento({
       <div className="flex items-start gap-2">
         <Car className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div>
-          <p className="text-base font-medium text-foreground">Vagas de garagem da unidade</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="txt-corpo font-medium text-foreground">Vagas de garagem da unidade</p>
+          <p className="txt-apoio text-muted-foreground">
             A vaga fica com o apartamento, não com o morador.
           </p>
         </div>
@@ -219,7 +219,7 @@ export function VagasDoApartamento({
       {/* Vincular vaga já cadastrada */}
       {naoSelecionadas.length > 0 && (
         <div className="space-y-2">
-          <Label htmlFor="vaga-existente" className="text-base">
+          <Label htmlFor="vaga-existente">
             Vincular vaga já cadastrada
           </Label>
           <SimpleSelect
@@ -248,7 +248,7 @@ export function VagasDoApartamento({
 
       {/* Cadastrar vaga nova */}
       <div className="space-y-2">
-        <Label htmlFor="vaga-numero-nova" className="text-base">
+        <Label htmlFor="vaga-numero-nova">
           Cadastrar vaga nova
         </Label>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -281,7 +281,7 @@ export function VagasDoApartamento({
       </div>
 
       {modoCadastro && (
-        <p className="flex items-start gap-2 text-sm text-muted-foreground">
+        <p className="flex items-start gap-2 txt-apoio text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           As vagas são criadas junto com a unidade quando você salvar.
         </p>

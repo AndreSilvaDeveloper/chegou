@@ -32,7 +32,7 @@ export function CodigoStrip({ codigo, size = "sm", active = false, className }: 
         aria-hidden
         className="pointer-events-none absolute inset-x-3 top-0 border-t border-dashed border-border/70"
       />
-      <span className={cn("eyebrow", lg ? "text-xs" : "text-[10px]")}>Código de retirada</span>
+      <span className="eyebrow">Código de retirada</span>
 
       <div className={cn("relative overflow-hidden rounded-md", lg && "px-1")}>
         {active && (
@@ -47,7 +47,7 @@ export function CodigoStrip({ codigo, size = "sm", active = false, className }: 
               key={i}
               className={cn(
                 "inline-flex items-center justify-center rounded-md border border-border bg-card font-mono font-bold tabular text-foreground animate-code-in",
-                lg ? "h-14 w-11 text-3xl" : "h-8 w-6 text-lg"
+                lg ? "h-14 w-11 txt-numero" : "h-8 w-6 txt-subtitulo"
               )}
               style={{ animationDelay: `${i * 60}ms` }}
             >

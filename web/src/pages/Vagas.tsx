@@ -122,13 +122,13 @@ export function Vagas() {
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-3">
-          <TabsTrigger value="vagas" className="min-h-[44px] text-sm">
+          <TabsTrigger value="vagas" className="min-h-[44px] txt-corpo">
             Vagas ({vagas.length})
           </TabsTrigger>
-          <TabsTrigger value="locacoes" className="min-h-[44px] text-sm">
+          <TabsTrigger value="locacoes" className="min-h-[44px] txt-corpo">
             Locações ({vigentes})
           </TabsTrigger>
-          <TabsTrigger value="cobrancas" className="min-h-[44px] text-sm">
+          <TabsTrigger value="cobrancas" className="min-h-[44px] txt-corpo">
             Cobranças
           </TabsTrigger>
         </TabsList>
@@ -170,10 +170,10 @@ export function Vagas() {
                             <Icone className="h-5 w-5" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-lg font-semibold text-foreground">
+                            <p className="txt-subtitulo font-semibold text-foreground">
                               Vaga {vaga.numero}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="txt-apoio text-muted-foreground">
                               {TIPO_VAGA_LABEL[vaga.tipo]}
                             </p>
                           </div>
@@ -181,7 +181,7 @@ export function Vagas() {
                         <SituacaoBadge situacao={vaga.situacao} />
                       </div>
 
-                      <dl className="space-y-1 text-sm">
+                      <dl className="space-y-1 txt-corpo">
                         <div className="flex gap-2">
                           <dt className="text-muted-foreground">Local:</dt>
                           <dd className="text-foreground">{vaga.localizacao || 'Não informado'}</dd>
@@ -224,7 +224,7 @@ export function Vagas() {
         <TabsContent value="locacoes" className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-2 sm:max-w-xs sm:flex-1">
-              <Label htmlFor="loc-filtro" className="text-base">
+              <Label htmlFor="loc-filtro">
                 Mostrar
               </Label>
               <SimpleSelect
@@ -267,10 +267,10 @@ export function Vagas() {
                     <CardContent className="space-y-4 p-4 md:p-5">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-base font-semibold text-foreground">
+                          <p className="txt-corpo font-semibold text-foreground">
                             Vaga {locacao.vaga?.numero ?? '—'} · {nomeLocatario(locacao)}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="txt-apoio text-muted-foreground">
                             {locacao.locatarioTipo === 'externo' ? 'Pessoa externa' : 'Morador'}
                             {contatoLocatario(locacao) ? ` · ${contatoLocatario(locacao)}` : ''}
                           </p>
@@ -278,29 +278,29 @@ export function Vagas() {
                         <Badge variant={meta.variant}>{meta.label}</Badge>
                       </div>
 
-                      <dl className="grid grid-cols-2 gap-3 text-sm">
+                      <dl className="grid grid-cols-2 gap-3 txt-corpo">
                         <div>
                           <dt className="text-muted-foreground">Valor mensal</dt>
-                          <dd className="font-mono text-base font-semibold text-foreground">
+                          <dd className="font-mono txt-corpo font-semibold text-foreground">
                             {fmtMoeda(locacao.valorMensal)}
                           </dd>
                         </div>
                         <div>
                           <dt className="text-muted-foreground">Vencimento</dt>
-                          <dd className="font-mono text-base text-foreground">
+                          <dd className="font-mono txt-corpo text-foreground">
                             Todo dia {locacao.diaVencimento}
                           </dd>
                         </div>
                         <div>
                           <dt className="text-muted-foreground">Início</dt>
-                          <dd className="font-mono text-base text-foreground">
+                          <dd className="font-mono txt-corpo text-foreground">
                             {fmtData(locacao.dataInicio)}
                           </dd>
                         </div>
                         {encerrada && (
                           <div>
                             <dt className="text-muted-foreground">Encerrada em</dt>
-                            <dd className="font-mono text-base text-foreground">
+                            <dd className="font-mono txt-corpo text-foreground">
                               {fmtData(locacao.dataFim)}
                             </dd>
                           </div>

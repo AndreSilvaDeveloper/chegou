@@ -11,6 +11,101 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.16.2 — 2026-07-27
+
+Registrar encomenda ficou mais rápido no campo **Transportadora** e a
+**Descrição** deixou de ser uma linha só.
+
+### Adicionado
+- **Transportadora agora tem sugestões** — 28 das que mais aparecem numa
+  portaria (Correios, Mercado Livre, Shopee, Amazon, Loggi, Jadlog, J&T,
+  Braspress, Azul Cargo, Rodonaves, DHL/FedEx/UPS, iFood/Rappi, "Motoboy /
+  entrega particular"…), filtrando conforme se digita. Siglas também acham:
+  "spx" chega em Shopee, "sedex" em Correios, "ml" em Mercado Livre.
+- **`Combobox`** (`components/ui/combobox.tsx`), peça nova: campo de texto com
+  sugestões. Teclado completo (↓/↑, Enter, Esc), alvo de toque de 48px na lista,
+  e a lista **abre para cima** quando não cabe embaixo — o campo fica no meio de
+  um formulário longo e, no celular, o teclado comeria a lista.
+- **`lib/transportadoras.ts`**: a lista, com sigla de busca por item.
+
+### Alterado
+- **Descrição virou `Textarea` de 3 linhas.** Era um `Input` de uma linha, onde
+  "caixa grande, frágil, deixar na portaria" sumia da vista ao digitar.
+
+### Por quê
+- **A lista sugere, não obriga.** O que for digitado fora dela continua valendo,
+  com um aviso discreto ("Fora da lista — será registrado como você digitou").
+  Lista fechada faria o porteiro que recebeu de uma transportadora regional
+  escolher a errada ou deixar vazio — os dois piores desfechos para quem depois
+  lê o relatório.
+- **O ganho real é no relatório.** `/relatorios` agrupa as encomendas por
+  transportadora; com digitação livre, "Correios", "correios" e "CORREIOS" eram
+  três linhas. As sugestões fazem o caminho comum cair sempre na mesma grafia.
+- **O leitor de código e a lista não podem divergir.** `detectarTransportadora()`
+  preenche o campo sozinho ao escanear o pacote. Se devolvesse "Azul Cargo
+  Express" com a lista dizendo "Azul Cargo", o mesmo pacote teria duas grafias
+  conforme fosse escaneado ou digitado — e o relatório voltaria a se dividir.
+  O detector passou a devolver `TransportadoraNome`, tipo derivado da lista:
+  **nome fora dela não compila** (verificado quebrando de propósito).
+
+## 0.16.1 — 2026-07-27
+
+Todo texto do painel passa a sair de uma **escala tipográfica** única. Antes o
+tamanho era decidido tela a tela: título de tela em três medidas diferentes,
+título de card em quatro, número de KPI em quatro, e o mesmo papel de "texto
+secundário" espalhado entre `text-sm`, `text-xs`, `text-[11px]` e `text-[10px]`.
+Duas telas escritas em meses diferentes não saíam do mesmo tamanho.
+
+### Adicionado
+- **Escala tipográfica em `web/src/styles.css`** — uma classe por papel, cada
+  uma já com a medida do celular e a do desktop:
+
+  | Classe | Celular | Desktop | Papel |
+  |---|---|---|---|
+  | `txt-numero` | 30px | 36px | KPI, número em destaque |
+  | `txt-numero-sm` | 20px | 24px | valor numérico em linha (total, contador) |
+  | `txt-titulo` | 24px | 30px | título da tela |
+  | `txt-secao` | 18px | 20px | título de card, diálogo, seção |
+  | `txt-subtitulo` | 16px | 18px | nome do item no card, subtítulo de bloco |
+  | `txt-corpo` | 16px | 14px | texto padrão, campo, botão, tabela |
+  | `txt-apoio` | 14px | 14px | descrição, dica, texto secundário |
+  | `txt-nota` | 12px | 12px | chrome: badge, legenda de gráfico, atalho |
+  | `eyebrow` | 11px | 11px | rótulo mono maiúsculo (já existia) |
+
+- **A regra virou documentação e skill**: seção "Escala tipográfica" no
+  `CLAUDE.md` raiz, tabela + checklist em `web/src/CLAUDE.md`, e a skill
+  `tela-frontend` agora manda escolher a classe pelo papel antes de escrever a
+  tela. Regra 20 da lista de "Regras que DEVEM ser seguidas".
+
+### Alterado
+- **21 páginas e ~40 componentes migrados** — 423 linhas trocadas
+  automaticamente e o resto a mão. Não sobrou nenhum `text-sm`, `text-lg`,
+  `md:text-2xl` nem `text-[11px]` em `web/src/**/*.tsx`.
+- **Os componentes de `components/ui/` passaram a carregar a classe certa**
+  (`CardTitle`, `DialogTitle`, `Label`, `Input`, `Button`, `Badge`, `Table`,
+  `TabsTrigger`, `PageHeader`, `StatCard`, `EmptyState`…). Com isso os overrides
+  repetidos nas telas (`<Label className="text-base">` em 30 lugares) saíram —
+  era por ali que a divergência voltava.
+- **Texto secundário que estava em 12px subiu para 14px.** Descrição, dica e
+  mensagem de erro em lista eram `text-xs`; pelo público do sistema, 12px só
+  serve para chrome (badge, legenda de gráfico), não para frase que precisa ser
+  lida. O que sobrou em `txt-nota` é só chrome.
+
+### Por quê
+- **O corpo encolhe do celular (16px) para o desktop (14px) de propósito.** No
+  celular o porteiro está em pé, com o aparelho na mão e muitas vezes com
+  presbiopia — 16px é o mínimo confortável, e é também o que impede o iOS de dar
+  zoom ao focar um campo. No desktop a mesma pessoa está sentada, mais perto e
+  com mais informação de uma vez. O `Input` já fazia isso (`text-base
+  md:text-sm`); a escala só estendeu a regra para o resto do painel.
+- **`txt-apoio` não encolhe** porque já é secundário pela cor; encolher também o
+  levaria a 12px no desktop.
+- As classes definem **só tamanho e entrelinha**. Peso, cor e família continuam
+  utilitários à parte, e utilitário do Tailwind ainda vence a classe (camada
+  `utilities` vem depois de `components`) — a saída de emergência existe, mas
+  pede comentário. Hoje há uma única exceção: `file:text-sm` no `Input`, porque
+  variante do Tailwind alcança utilitário e não classe da escala.
+
 ## 0.16.0 — 2026-07-27
 
 A administradora passa a configurar os condomínios da carteira dela, sem

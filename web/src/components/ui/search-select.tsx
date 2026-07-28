@@ -108,7 +108,7 @@ export function SearchSelect({
         type="button"
         disabled={disabled}
         onClick={() => setAberto((a) => !a)}
-        className="flex h-12 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-12 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 txt-corpo ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={cn('truncate text-left', !selecionada && 'text-muted-foreground')}>
           {selecionada ? selecionada.label : placeholder}
@@ -141,9 +141,9 @@ export function SearchSelect({
 
           <ul className="max-h-64 overflow-y-auto py-1" role="listbox">
             {carregando ? (
-              <li className="px-3 py-6 text-center text-sm text-muted-foreground">Buscando…</li>
+              <li className="px-3 py-6 text-center txt-apoio text-muted-foreground">Buscando…</li>
             ) : filtradas.length === 0 ? (
-              <li className="px-3 py-6 text-center text-sm text-muted-foreground">
+              <li className="px-3 py-6 text-center txt-apoio text-muted-foreground">
                 Nada encontrado para "{termo}"
               </li>
             ) : (
@@ -155,14 +155,14 @@ export function SearchSelect({
                     aria-selected={o.value === value}
                     onClick={() => escolher(o.value)}
                     className={cn(
-                      'flex min-h-[48px] w-full items-center justify-between gap-2 px-3 py-2 text-left text-base hover:bg-accent',
+                      'flex min-h-[48px] w-full items-center justify-between gap-2 px-3 py-2 text-left txt-corpo hover:bg-accent',
                       o.value === value && 'bg-accent/60',
                     )}
                   >
                     <span className="min-w-0">
                       <span className="block truncate">{o.label}</span>
                       {o.hint && (
-                        <span className="block truncate text-sm text-muted-foreground">
+                        <span className="block truncate txt-apoio text-muted-foreground">
                           {o.hint}
                         </span>
                       )}
@@ -175,7 +175,7 @@ export function SearchSelect({
           </ul>
 
           {rodape && (
-            <p className="border-t border-border px-3 py-2 text-sm text-muted-foreground">
+            <p className="border-t border-border px-3 py-2 txt-apoio text-muted-foreground">
               {rodape}
             </p>
           )}

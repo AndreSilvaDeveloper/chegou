@@ -144,7 +144,7 @@ export function SuperAdminTenant() {
                 <TipoIcon className="h-7 w-7" />
               </div>
               <div className="min-w-0">
-                <h2 className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">
+                <h2 className="truncate txt-titulo font-bold tracking-tight text-foreground">
                   {tenant.nome}
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -180,7 +180,7 @@ export function SuperAdminTenant() {
             <TabsTrigger
               key={t.key}
               value={t.key}
-              className="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
+              className="flex items-center justify-center gap-2 rounded-lg py-2.5 txt-corpo data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
             >
               <t.icon className="h-4 w-4" />
               <span>{t.label}</span>
@@ -245,7 +245,7 @@ export function SuperAdminTenant() {
                     />
                     <div>
                       <p className="font-medium text-destructive">Permitir Acesso (Condomínio Ativo)</p>
-                      <p className="text-sm text-destructive/80 mt-1">Se você desmarcar esta opção, TODOS os usuários deste condomínio perderão acesso imediato ao sistema.</p>
+                      <p className="txt-corpo text-destructive/80 mt-1">Se você desmarcar esta opção, TODOS os usuários deste condomínio perderão acesso imediato ao sistema.</p>
                     </div>
                   </label>
                 </div>
@@ -276,8 +276,8 @@ export function SuperAdminTenant() {
                 {/* Tipo */}
                 <section className="space-y-3">
                   <div>
-                    <h3 className="text-base font-semibold text-foreground">Tipo de condomínio</h3>
-                    <p className="text-sm text-muted-foreground">Define a nomenclatura das unidades e os recursos disponíveis.</p>
+                    <h3 className="txt-subtitulo font-semibold text-foreground">Tipo de condomínio</h3>
+                    <p className="txt-apoio text-muted-foreground">Define a nomenclatura das unidades e os recursos disponíveis.</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <OptionCard active={config.tipo === 'residencial'} onClick={() => escolherTipo('residencial')} icon={Home} title="Residencial" description="Prédio ou casas de moradia." />
@@ -291,8 +291,8 @@ export function SuperAdminTenant() {
                 {/* Estrutura de blocos */}
                 <section className="space-y-3">
                   <div>
-                    <h3 className="text-base font-semibold text-foreground">Estrutura de blocos</h3>
-                    <p className="text-sm text-muted-foreground">Controla se o cadastro de unidades pede a identificação do bloco.</p>
+                    <h3 className="txt-subtitulo font-semibold text-foreground">Estrutura de blocos</h3>
+                    <p className="txt-apoio text-muted-foreground">Controla se o cadastro de unidades pede a identificação do bloco.</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <OptionCard active={config.estruturaBlocos === 'unico'} onClick={() => setConfig({ ...config, estruturaBlocos: 'unico' })} icon={Building2} title="Bloco único" description="Um único prédio ou torre." />
@@ -305,8 +305,8 @@ export function SuperAdminTenant() {
                 {/* Módulos */}
                 <section className="space-y-3">
                   <div>
-                    <h3 className="text-base font-semibold text-foreground">Módulos ativos</h3>
-                    <p className="text-sm text-muted-foreground">Habilite recursos adicionais para este condomínio.</p>
+                    <h3 className="txt-subtitulo font-semibold text-foreground">Módulos ativos</h3>
+                    <p className="txt-apoio text-muted-foreground">Habilite recursos adicionais para este condomínio.</p>
                   </div>
                   <div className="grid gap-3">
                     <ModuleToggle icon={Car} title="Vagas de garagem" description="Gestão de vagas e locação avulsa." checked={config.moduloVagas} onChange={(v) => setConfig({ ...config, moduloVagas: v })} />
@@ -319,10 +319,10 @@ export function SuperAdminTenant() {
                 {/* Janela de envio */}
                 <section className="space-y-3">
                   <div>
-                    <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+                    <h3 className="flex items-center gap-2 txt-subtitulo font-semibold text-foreground">
                       <Clock className="h-4 w-4 text-primary" /> Janela de envio no WhatsApp
                     </h3>
-                    <p className="text-sm text-muted-foreground">Notificações só são disparadas dentro deste horário (recomendado 8h–21h).</p>
+                    <p className="txt-apoio text-muted-foreground">Notificações só são disparadas dentro deste horário (recomendado 8h–21h).</p>
                   </div>
                   <div className="grid max-w-md gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
@@ -337,7 +337,7 @@ export function SuperAdminTenant() {
                 </section>
               </CardContent>
               <CardFooter className="bg-muted/50 py-4 flex items-center justify-between">
-                <p className="hidden items-center gap-1.5 text-sm text-muted-foreground sm:flex">
+                <p className="hidden items-center gap-1.5 txt-apoio text-muted-foreground sm:flex">
                   <Power className="h-3.5 w-3.5" /> As mudanças afetam telas em todo o sistema.
                 </p>
                 <Button type="submit" disabled={savingConfig} className="ml-auto">

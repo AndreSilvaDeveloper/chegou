@@ -168,6 +168,81 @@
 }
 
 @layer components {
+  /* =======================================================================
+     ESCALA TIPOGRÁFICA — a única fonte de tamanho de texto do painel
+     -----------------------------------------------------------------------
+     NUNCA use `text-sm`, `text-xs`, `text-lg`… solto numa tela. Escolha a
+     classe pelo PAPEL do texto; o tamanho no celular e no desktop vem junto.
+     Ter uma classe por papel é o que faz duas telas escritas em meses
+     diferentes saírem do mesmo tamanho.
+
+       classe            celular  desktop  papel
+       .txt-numero        30px     36px    KPI, número em destaque
+       .txt-numero-sm     20px     24px    valor numérico em linha (total)
+       .txt-titulo        24px     30px    título da tela (um por tela)
+       .txt-secao         18px     20px    título de card, diálogo, seção
+       .txt-subtitulo     16px     18px    destaque dentro do card
+       .txt-corpo         16px     14px    texto padrão, campo, botão, tabela
+       .txt-apoio         14px     14px    descrição, dica, texto secundário
+       .txt-nota          12px     12px    chrome: badge, atalho, legenda
+       .eyebrow           11px     11px    rótulo mono maiúsculo
+
+     POR QUE O CORPO ENCOLHE DO CELULAR PARA O DESKTOP (16 → 14)
+     Quem mais usa é o porteiro, em pé, com o celular na mão e muitas vezes
+     com presbiopia: no celular o texto precisa dos 16px. No desktop a mesma
+     pessoa está sentada, mais perto da tela e com mais informação por vez —
+     14px é o tamanho confortável ali. É a mesma regra que o campo de
+     formulário já seguia (`text-base md:text-sm`), agora valendo para tudo.
+     16px no celular também é o que impede o iOS de dar zoom ao focar um campo.
+
+     POR QUE `.txt-apoio` NÃO ENCOLHE
+     Texto de apoio já é secundário pela cor (`text-muted-foreground`). Se ele
+     também encolhesse, chegaria a 12px no desktop — abaixo do que essa mesma
+     pessoa lê sem esforço. A hierarquia contra o corpo vem da cor, e no
+     celular também do tamanho (14 contra 16).
+
+     `.txt-nota` é para chrome, não para conteúdo: badge, atalho de menu,
+     legenda de gráfico. Nenhuma frase que o usuário precise ler para
+     trabalhar deve ficar nele.
+
+     Cada classe define só o que é função do TAMANHO: corpo da fonte, entrelinha
+     e o espaçamento de letra que acompanha (texto grande pede letra mais junta).
+     Peso (`font-semibold`), cor (`text-muted-foreground`) e família
+     (`font-mono`) continuam utilitários à parte — assim a mesma medida serve a
+     vários pesos, e o `<h3 className="txt-subtitulo font-semibold">` de uma tela
+     é igual ao de outra.
+
+     Utilitário do Tailwind vence a classe (camada `utilities` vem depois de
+     `components`), então um `text-lg` pontual ainda sobrepõe quando preciso —
+     mas isso é exceção, e exceção pede comentário dizendo o porquê. A única no
+     projeto hoje é o `file:text-sm` do `Input`: variante do Tailwind (`file:`,
+     `hover:`…) alcança utilitário, não classe daqui.
+     ======================================================================= */
+  .txt-numero {
+    @apply text-3xl leading-none tracking-tight md:text-4xl;
+  }
+  .txt-numero-sm {
+    @apply text-xl leading-none tracking-tight md:text-2xl;
+  }
+  .txt-titulo {
+    @apply text-2xl leading-tight tracking-tight md:text-3xl;
+  }
+  .txt-secao {
+    @apply text-lg leading-snug tracking-tight md:text-xl;
+  }
+  .txt-subtitulo {
+    @apply text-base leading-snug md:text-lg;
+  }
+  .txt-corpo {
+    @apply text-base leading-normal md:text-sm;
+  }
+  .txt-apoio {
+    @apply text-sm leading-normal;
+  }
+  .txt-nota {
+    @apply text-xs leading-normal;
+  }
+
   /* --- Eyebrow: mono, uppercase, tracked — the control-desk section label --- */
   .eyebrow {
     @apply font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground;

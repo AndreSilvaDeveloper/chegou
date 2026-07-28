@@ -45,7 +45,7 @@ function DetailItem({
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="txt-apoio font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
         <div className="mt-0.5 font-medium text-foreground">{children}</div>
       </div>
     </div>
@@ -72,7 +72,7 @@ function TabButton({
       type="button"
       onClick={onSelect}
       className={cn(
-        'flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-md text-sm font-medium transition-all',
+        'flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-md txt-corpo font-medium transition-all',
         ativo ? 'bg-card text-foreground shadow-panel' : 'text-muted-foreground hover:text-foreground',
       )}
     >
@@ -202,7 +202,7 @@ export function DetalheEncomenda() {
           description={enc.descricao || 'Detalhes da encomenda'}
           className="mb-0 border-0 pb-0"
         >
-          <Badge variant={conf.variant} className="text-sm py-1 px-3">
+          <Badge variant={conf.variant} className="txt-apoio py-1 px-3">
             <StatusIcon className="mr-2 h-4 w-4" />
             {conf.label}
           </Badge>
@@ -210,13 +210,13 @@ export function DetalheEncomenda() {
       </div>
 
       {enc.notificacao?.status === 'failed' && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive-foreground">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 txt-corpo text-destructive-foreground">
           <div className="font-semibold flex items-center mb-1">
             <XCircle className="mr-2 h-4 w-4" />
             Falha na Notificação do WhatsApp
           </div>
           <p>A mensagem não foi entregue ao morador{enc.notificacao.errorMessage ? ` (${enc.notificacao.errorMessage})` : ''}.</p>
-          <p className="mt-2 text-xs opacity-80">
+          <p className="mt-2 txt-apoio opacity-80">
             Dica: confira em WhatsApp se a conexão do condomínio está ativa e se o número do morador tem WhatsApp.
           </p>
         </div>
@@ -233,20 +233,20 @@ export function DetalheEncomenda() {
                     <KeyRound className="h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Entregar encomenda</CardTitle>
+                    <CardTitle>Entregar encomenda</CardTitle>
                     <CardDescription>Confirme a retirada pelo morador</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 pt-0 md:pt-0">
                 {/* Passo a passo didático */}
-                <ol className="space-y-2 rounded-lg bg-muted/50 p-3 text-sm">
+                <ol className="space-y-2 rounded-lg bg-muted/50 p-3 txt-corpo">
                   <li className="flex gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">1</span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary txt-nota font-bold text-primary-foreground">1</span>
                     <span className="text-muted-foreground">Peça ao morador o <span className="font-semibold text-foreground">código de 4 dígitos</span> que ele recebeu no WhatsApp.</span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">2</span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary txt-nota font-bold text-primary-foreground">2</span>
                     <span className="text-muted-foreground">Digite abaixo e toque em <span className="font-semibold text-foreground">Confirmar</span>.</span>
                   </li>
                 </ol>
@@ -263,7 +263,7 @@ export function DetalheEncomenda() {
                       <Label htmlFor="codigo-retirada">Código de 4 dígitos</Label>
                       <Input
                         id="codigo-retirada"
-                        className="h-20 text-center font-mono text-5xl tracking-[0.4em]"
+                        className="h-20 text-center font-mono txt-numero tracking-[0.4em]"
                         placeholder="0000"
                         maxLength={4}
                         pattern="\d{4}"
@@ -272,7 +272,7 @@ export function DetalheEncomenda() {
                         onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))}
                         autoFocus
                       />
-                      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                      <p className="flex items-center justify-center gap-1.5 txt-apoio text-muted-foreground">
                         <MessageCircle className="h-3.5 w-3.5" /> O morador recebeu este código no WhatsApp.
                       </p>
                     </div>
@@ -281,17 +281,17 @@ export function DetalheEncomenda() {
                       <Label htmlFor="documento-retirada">Número do Documento</Label>
                       <Input
                         id="documento-retirada"
-                        className="h-14 text-lg"
+                        className="h-14"
                         placeholder="CPF, RG, etc..."
                         value={documento}
                         onChange={(e) => setDocumento(e.target.value)}
                         autoFocus
                       />
-                      <p className="text-xs text-muted-foreground">Use quando o morador não tiver o código em mãos.</p>
+                      <p className="txt-apoio text-muted-foreground">Use quando o morador não tiver o código em mãos.</p>
                     </div>
                   )}
 
-                  <Button type="submit" disabled={saving} size="lg" className="h-14 w-full text-base font-semibold">
+                  <Button type="submit" disabled={saving} size="lg" className="h-14 w-full txt-corpo font-semibold">
                     {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
                     Confirmar Entrega
                   </Button>
@@ -307,18 +307,18 @@ export function DetalheEncomenda() {
                 )}>
                   <StatusIcon className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-bold">{conf.label}</h3>
-                {enc.retiradaAt && <p className="text-sm text-muted-foreground mt-1">Em {formatDateTime(enc.retiradaAt)}</p>}
+                <h3 className="txt-secao font-bold">{conf.label}</h3>
+                {enc.retiradaAt && <p className="txt-apoio text-muted-foreground mt-1">Em {formatDateTime(enc.retiradaAt)}</p>}
 
                 {enc.retiradaDocumento && (
-                  <div className="mt-4 rounded-lg bg-muted p-3 text-sm">
+                  <div className="mt-4 rounded-lg bg-muted p-3 txt-corpo">
                     <span className="text-muted-foreground block mb-1">Documento apresentado:</span>
                     <span className="font-mono font-medium">{enc.retiradaDocumento}</span>
                   </div>
                 )}
 
                 {enc.cancelamentoMotivo && (
-                  <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-left">
+                  <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 txt-corpo text-left">
                     <span className="text-destructive font-medium block mb-1">Motivo do Cancelamento:</span>
                     {enc.cancelamentoMotivo}
                   </div>
@@ -330,7 +330,7 @@ export function DetalheEncomenda() {
           {/* Linha do tempo (vertical) */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Linha do Tempo</CardTitle>
+              <CardTitle className="eyebrow">Linha do Tempo</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 md:pt-0">
               <ol className="relative space-y-6">
@@ -356,8 +356,8 @@ export function DetalheEncomenda() {
                       </div>
                       <div className="pt-1">
                         <p className={cn('font-medium leading-tight', ev.done ? 'text-foreground' : 'text-muted-foreground')}>{ev.label}</p>
-                        <p className="text-xs text-muted-foreground">{ev.hint}</p>
-                        <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                        <p className="txt-apoio text-muted-foreground">{ev.hint}</p>
+                        <p className="mt-0.5 txt-apoio font-medium text-muted-foreground">
                           {ev.date ? formatDateTime(ev.date) : 'Pendente'}
                         </p>
                       </div>
@@ -387,9 +387,9 @@ export function DetalheEncomenda() {
               {ativa && (
                 podeVerCodigo ? (
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                    <div className="mb-2 flex items-center gap-2 txt-corpo font-medium text-foreground">
                       <ShieldCheck className="h-4 w-4 text-primary" /> Código enviado ao morador
-                      <Badge variant="outline" className="ml-auto text-[11px]">Visível para administração</Badge>
+                      <Badge variant="outline" className="ml-auto">Visível para administração</Badge>
                     </div>
                     <CodigoStrip codigo={enc.codigoRetirada} size="lg" active={enc.status === 'notificado'} />
                   </div>
@@ -398,7 +398,7 @@ export function DetalheEncomenda() {
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
                       <Lock className="h-5 w-5" />
                     </div>
-                    <div className="text-sm">
+                    <div className="txt-corpo">
                       <p className="font-medium text-foreground">O código fica só com o morador</p>
                       <p className="mt-0.5 text-muted-foreground">
                         Ele recebeu os 4 dígitos por WhatsApp. Na hora da retirada, peça o código e digite no campo ao lado.
@@ -410,7 +410,7 @@ export function DetalheEncomenda() {
 
               <div className="grid gap-6 sm:grid-cols-2">
                 <DetailItem icon={Building2} label="Apartamento">
-                  <span className="font-mono text-xl font-bold">{enc.apartamento?.identificador}</span>
+                  <span className="font-mono txt-numero-sm font-bold">{enc.apartamento?.identificador}</span>
                 </DetailItem>
 
                 <DetailItem icon={User} label="Destinatário">
@@ -436,7 +436,7 @@ export function DetalheEncomenda() {
 
               {enc.notificacao && (
                 <div className="pt-4 border-t">
-                  <div className="text-sm font-medium mb-2">Status do WhatsApp</div>
+                  <div className="txt-corpo font-medium mb-2">Status do WhatsApp</div>
                   <NotifBadge notif={enc.notificacao} showDetail />
                 </div>
               )}

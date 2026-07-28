@@ -100,6 +100,8 @@ três condomínios). Rode `npm run test:e2e` ao mexer em guard, role ou rota nov
 ### Tipografia
 - **Font principal**: Poppins (Google Fonts)
 - **Font monospace**: JetBrains Mono (códigos, telefones)
+- **Tamanho vem da escala `txt-*`**, nunca de `text-sm`/`text-lg` solto — ver
+  "Escala tipográfica" no Design System abaixo
 
 ### Infraestrutura
 | Serviço | Uso |
@@ -453,6 +455,36 @@ se separa do card sozinho.
 | Borda | `#D7D0C6` | `#2A2A2A` |
 | Sucesso / Aviso / Erro | Emerald / Amber / Red (mantidos) | idem |
 
+### Escala tipográfica — uma classe por papel
+
+Assim como nenhuma cor é escrita em hexadecimal, **nenhum tamanho de fonte é
+escrito à mão**. A escala vive em `web/src/styles.css` e cada classe é um papel,
+já com a medida do celular e a do desktop:
+
+| Classe | Celular | Desktop | Papel |
+|---|---|---|---|
+| `txt-numero` | 30px | 36px | KPI, número em destaque |
+| `txt-numero-sm` | 20px | 24px | valor numérico em linha (total, contador) |
+| `txt-titulo` | 24px | 30px | título da tela — um por tela |
+| `txt-secao` | 18px | 20px | título de card, diálogo, seção |
+| `txt-subtitulo` | 16px | 18px | nome do item no card, subtítulo de bloco |
+| `txt-corpo` | 16px | 14px | texto padrão, campo, botão, tabela |
+| `txt-apoio` | 14px | 14px | descrição, dica, texto secundário |
+| `txt-nota` | 12px | 12px | chrome: badge, legenda de gráfico, atalho |
+| `eyebrow` | 11px | 11px | rótulo mono maiúsculo acima do título |
+
+**Por que o corpo encolhe de 16 para 14 no desktop**: no celular o porteiro está
+em pé, com o aparelho na mão e muitas vezes com presbiopia — 16px é o mínimo
+confortável, e é também o que impede o iOS de dar zoom ao focar um campo. No
+desktop a mesma pessoa está sentada, mais perto da tela e com mais informação de
+uma vez. É a regra que o `Input` já seguia (`text-base md:text-sm`), agora
+valendo para tudo. Já `txt-apoio` não encolhe: ele é secundário pela **cor**, e
+encolher também o levaria a 12px no desktop.
+
+Os componentes de `web/src/components/ui/` já trazem a classe certa (título de
+card, label, campo, botão, badge, tabela) — **repetir a classe na tela é ruído**
+e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAUDE.md).
+
 ### Componentes shadcn/ui Utilizados
 - Button, Input, Label, Select, Textarea
 - Card, Badge, Avatar
@@ -489,7 +521,8 @@ se separa do card sozinho.
 7. **FAB (Floating Action Button)**: Ação principal acessível no canto inferior direito no mobile
 
 ### Acessibilidade para Usuários Mais Velhos
-8. **Fonte mínima**: `text-base` (16px) para texto, `text-lg` (18px) para labels importantes
+8. **Fonte mínima**: `txt-corpo` (16px no celular) para texto; nada que precise
+   ser lido para trabalhar vai abaixo de `txt-apoio`. Ver "Escala tipográfica"
 9. **Contraste alto**: Ratio mínimo 4.5:1 (WCAG AA) — testar com ferramentas de contraste
 10. **Botões grandes**: Classes `py-3 px-6` mínimo para ações primárias no mobile
 11. **Ícones com labels**: SEMPRE acompanhar ícones com texto descritivo (nunca ícone sozinho)
@@ -566,6 +599,8 @@ se separa do card sozinho.
 | `FormDialog` | `web/src/components/ui/form-dialog.tsx` | Casca de formulário em diálogo (rolagem, 48px, salvando) |
 | `PhoneInput` | `web/src/components/ui/phone-input.tsx` | Telefone mascarado `(32) 99999-9999` → E.164 |
 | `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
+| `Combobox` | `web/src/components/ui/combobox.tsx` | Campo com sugestões que **aceita valor fora da lista** (transportadora) |
+| `TRANSPORTADORAS` | `web/src/lib/transportadoras.ts` | Transportadoras do Brasil + o tipo que amarra o leitor de código à lista |
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
 | `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
@@ -654,36 +689,40 @@ passaria a acontecer no meio do que o porteiro estiver digitando.
 17. **SEMPRE** usar touch targets de no mínimo 48x48px em botões e links
 18. **SEMPRE** acompanhar ícones com texto descritivo
 19. **NUNCA** usar placeholder como substituto de label em formulários
-20. **NUNCA** usar gestos complexos (swipe, long-press) — usar botões explícitos
-21. **SEMPRE** testar responsividade em viewport 375px (menor tela suportada)
+20. **SEMPRE** tirar o tamanho de texto da escala (`txt-numero`, `txt-titulo`,
+    `txt-secao`, `txt-subtitulo`, `txt-corpo`, `txt-apoio`, `txt-nota`,
+    `eyebrow`) — **NUNCA** `text-sm`/`text-lg`/`md:text-xl` soltos nem
+    `text-[13px]`. Ver "Escala tipográfica"
+21. **NUNCA** usar gestos complexos (swipe, long-press) — usar botões explícitos
+22. **SEMPRE** testar responsividade em viewport 375px (menor tela suportada)
 
 ### Acesso e multitenant
-22. **SEMPRE** perguntar quais perfis acessam uma funcionalidade nova, antes de
+23. **SEMPRE** perguntar quais perfis acessam uma funcionalidade nova, antes de
     implementar (ver "Regra de ouro para funcionalidade nova")
-23. **NUNCA** ler `X-Tenant-Id` fora do `TenantScopeGuard` — nas rotas, só `@TenantId()`
-24. **SEMPRE** validar id de outra entidade que venha no corpo com
+24. **NUNCA** ler `X-Tenant-Id` fora do `TenantScopeGuard` — nas rotas, só `@TenantId()`
+25. **SEMPRE** validar id de outra entidade que venha no corpo com
     `assertRefDoTenant()` (`src/common/tenant-scope/tenant-ref.ts`)
-25. **NUNCA** aceitar `tenantId` vindo do corpo da request — em `create()`, o
+26. **NUNCA** aceitar `tenantId` vindo do corpo da request — em `create()`, o
     `tenantId` vem **depois** do spread do DTO
-26. **SEMPRE** rodar `npm run test:e2e` ao mexer em guard, role, rota nova ou escopo
+27. **SEMPRE** rodar `npm run test:e2e` ao mexer em guard, role, rota nova ou escopo
 
 ### Dados de contato
-27. **NUNCA** pedir `+55` ao usuário — telefone se digita `(32) 99999-9999`.
+28. **NUNCA** pedir `+55` ao usuário — telefone se digita `(32) 99999-9999`.
     No DTO, `@TelefoneE164()`; na tela, `PhoneInput`; na listagem,
     `formatarTelefone()`. O banco guarda **sempre** E.164
 
 ### Documentação viva
-28. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
+29. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
     regras, campos). Doc desatualizada é pior que doc inexistente
-29. **SEMPRE** atualizar a tabela "O que cada perfil faz" ao mudar um `@Roles`
-30. **SEMPRE** criar o `CLAUDE.md` junto com o módulo novo — nunca "depois"
+30. **SEMPRE** atualizar a tabela "O que cada perfil faz" ao mudar um `@Roles`
+31. **SEMPRE** criar o `CLAUDE.md` junto com o módulo novo — nunca "depois"
 
 ### Versionamento
-31. **SEMPRE** subir a versão (`npm run versao correcao|recurso|maior`) na
+32. **SEMPRE** subir a versão (`npm run versao correcao|recurso|maior`) na
     mesma alteração — bug é `CORREÇÃO`, funcionalidade grande é `RECURSO`,
     virada de produto é `MAIOR` (ver "Versionamento")
-32. **SEMPRE** registrar a mudança no `CHANGELOG.md`, no commit da alteração
-33. **NUNCA** editar a versão só em um dos `package.json` — use o script, que
+33. **SEMPRE** registrar a mudança no `CHANGELOG.md`, no commit da alteração
+34. **NUNCA** editar a versão só em um dos `package.json` — use o script, que
     mantém raiz e `web/` no mesmo número
 
 ---

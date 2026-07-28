@@ -122,8 +122,8 @@ export function SuperAdmin() {
               <Building2 className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <div className="font-semibold text-base">{t.nome}</div>
-              <div className="font-mono text-xs text-muted-foreground">{t.slug}</div>
+              <div className="font-semibold txt-corpo">{t.nome}</div>
+              <div className="font-mono txt-apoio text-muted-foreground">{t.slug}</div>
             </div>
           </div>
         );
@@ -136,7 +136,7 @@ export function SuperAdmin() {
         const t = row.original;
         if (!t.cidade && !t.estado) return <span className="text-muted-foreground">—</span>;
         return (
-          <div className="flex items-center gap-1.5 text-sm">
+          <div className="flex items-center gap-1.5 txt-corpo">
             <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="truncate max-w-[150px]">{[t.cidade, t.estado].filter(Boolean).join('/')}</span>
           </div>
@@ -229,7 +229,7 @@ export function SuperAdmin() {
           
           <form onSubmit={submit} className="space-y-6 pt-2">
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+              <h3 className="txt-subtitulo font-medium text-foreground flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-primary" /> Dados do Condomínio
               </h3>
               
@@ -244,12 +244,12 @@ export function SuperAdmin() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="slug">Slug (URL) *</Label>
-                  <Input id="slug" className="font-mono text-sm" placeholder="residencial-aurora" value={form.slug} onChange={e => setForm({...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} required />
+                  <Input id="slug" className="font-mono txt-corpo" placeholder="residencial-aurora" value={form.slug} onChange={e => setForm({...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'')})} required />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="cnpj">CNPJ (Opcional)</Label>
-                  <Input id="cnpj" className="font-mono text-sm" placeholder="Apenas números" value={form.cnpj} onChange={e => setForm({...form, cnpj: e.target.value.replace(/\D/g, '')})} maxLength={14} />
+                  <Input id="cnpj" className="font-mono txt-corpo" placeholder="Apenas números" value={form.cnpj} onChange={e => setForm({...form, cnpj: e.target.value.replace(/\D/g,'')})} maxLength={14} />
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2">
@@ -266,7 +266,7 @@ export function SuperAdmin() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+              <h3 className="txt-subtitulo font-medium text-foreground flex items-center gap-2">
                 <Users className="h-4 w-4 text-primary" /> Síndico Inicial
               </h3>
               

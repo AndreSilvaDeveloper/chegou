@@ -167,8 +167,8 @@ export function EquipeManager({
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
             <div>
-              <span className={`font-semibold text-base ${!u.ativo && 'text-muted-foreground'}`}>{u.nome}</span>
-              {u.id === meuId && <Badge variant="outline" className="ml-2 text-xs py-0 h-5">Você</Badge>}
+              <span className={`font-semibold txt-corpo ${!u.ativo &&'text-muted-foreground'}`}>{u.nome}</span>
+              {u.id === meuId && <Badge variant="outline" className="ml-2 txt-nota py-0 h-5">Você</Badge>}
             </div>
           </div>
         );
@@ -270,7 +270,7 @@ export function EquipeManager({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="telefone" className="text-base">Telefone (Opcional)</Label>
+                <Label htmlFor="telefone">Telefone (Opcional)</Label>
                 <PhoneInput
                   id="telefone"
                   value={form.telefone}
@@ -281,7 +281,7 @@ export function EquipeManager({
                 <Label htmlFor="role">Papel de Acesso *</Label>
                 <select 
                   id="role"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 txt-apoio ring-offset-background file:border-0 file:bg-transparent file: file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={form.role} 
                   onChange={e => setForm({...form, role: e.target.value as UserRole})} 
                   required

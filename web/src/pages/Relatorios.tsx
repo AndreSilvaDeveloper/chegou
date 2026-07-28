@@ -173,7 +173,7 @@ function SecaoCard({
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="text-base md:text-lg">{title}</CardTitle>
+        <CardTitle>{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="pt-0 md:pt-0">{children}</CardContent>
@@ -203,7 +203,7 @@ function RankList({
   const max = items.reduce((acc, i) => Math.max(acc, i.value), 0);
 
   if (!items.length) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyLabel}</p>;
+    return <p className="py-6 text-center txt-apoio text-muted-foreground">{emptyLabel}</p>;
   }
 
   return (
@@ -211,10 +211,10 @@ function RankList({
       {items.map((item) => (
         <li key={item.label} className="space-y-1.5">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="min-w-0 truncate text-sm font-medium text-foreground">{item.label}</span>
-            <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-foreground">
+            <span className="min-w-0 truncate txt-corpo font-medium text-foreground">{item.label}</span>
+            <span className="shrink-0 font-mono txt-corpo font-semibold tabular-nums text-foreground">
               {formatValue(item.value)}
-              {item.hint && <span className="ml-2 text-xs font-normal text-muted-foreground">{item.hint}</span>}
+              {item.hint && <span className="ml-2 txt-apoio font-normal text-muted-foreground">{item.hint}</span>}
             </span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -391,7 +391,7 @@ export function Relatorios() {
           <Card>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-base">Período</Label>
+                <Label>Período</Label>
                 <div className="flex flex-wrap gap-2">
                   {PRESETS.map((p) => (
                     <button
@@ -399,7 +399,7 @@ export function Relatorios() {
                       type="button"
                       onClick={() => setPreset(p.key)}
                       className={cn(
-                        'min-h-[48px] rounded-lg border px-4 text-sm font-medium transition-colors',
+                        'min-h-[48px] rounded-lg border px-4 txt-corpo font-medium transition-colors',
                         preset === p.key
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-background text-muted-foreground hover:text-foreground',
@@ -412,7 +412,7 @@ export function Relatorios() {
                     type="button"
                     onClick={() => setPreset('custom')}
                     className={cn(
-                      'min-h-[48px] rounded-lg border px-4 text-sm font-medium transition-colors',
+                      'min-h-[48px] rounded-lg border px-4 txt-corpo font-medium transition-colors',
                       preset === 'custom'
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-background text-muted-foreground hover:text-foreground',
@@ -426,7 +426,7 @@ export function Relatorios() {
               {preset === 'custom' && (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="rel-desde" className="text-base">
+                    <Label htmlFor="rel-desde">
                       Data inicial
                     </Label>
                     <Input
@@ -438,7 +438,7 @@ export function Relatorios() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="rel-ate" className="text-base">
+                    <Label htmlFor="rel-ate">
                       Data final
                     </Label>
                     <Input
@@ -455,7 +455,7 @@ export function Relatorios() {
 
               {tab === 'encomendas' && (
                 <div className="space-y-2">
-                  <Label htmlFor="rel-bloco" className="text-base">
+                  <Label htmlFor="rel-bloco">
                     Bloco
                   </Label>
                   <SimpleSelect
@@ -468,7 +468,7 @@ export function Relatorios() {
                 </div>
               )}
 
-              <p className="text-sm text-muted-foreground">
+              <p className="txt-apoio text-muted-foreground">
                 Analisando de <span className="font-medium text-foreground">{fmtData(desde)}</span> até{' '}
                 <span className="font-medium text-foreground">{fmtData(ate)}</span>.
               </p>
@@ -628,33 +628,33 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
               <Send className="h-4 w-4 shrink-0" /> Moradores avisados
             </div>
-            <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-foreground">
+            <p className="mt-2 font-mono txt-numero font-bold tabular-nums text-foreground">
               {resumo.taxaNotificacao}%
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 txt-apoio text-muted-foreground">
               {fmtInt(resumo.notificadas)} de {fmtInt(resumo.recebidas)} encomendas
             </p>
           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
               <Hourglass className="h-4 w-4 shrink-0" /> Tempo até avisar
             </div>
-            <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-foreground">
+            <p className="mt-2 font-mono txt-numero font-bold tabular-nums text-foreground">
               {fmtMinutos(resumo.minutosAteNotificar)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Do registro ao envio no WhatsApp</p>
+            <p className="mt-1 txt-apoio text-muted-foreground">Do registro ao envio no WhatsApp</p>
           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
               <XCircle className="h-4 w-4 shrink-0" /> Canceladas e devolvidas
             </div>
-            <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-foreground">
+            <p className="mt-2 font-mono txt-numero font-bold tabular-nums text-foreground">
               {fmtInt(resumo.canceladas + resumo.devolvidas)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 txt-apoio text-muted-foreground">
               {fmtInt(resumo.canceladas)} canceladas · {fmtInt(resumo.devolvidas)} devolvidas
             </p>
           </div>
@@ -771,13 +771,13 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
                         <div className="min-w-0">
                           <div className="truncate font-medium text-foreground">{e.destinatario || 'Não informado'}</div>
                           {(e.transportadora || e.descricao) && (
-                            <div className="truncate text-xs text-muted-foreground">
+                            <div className="truncate txt-apoio text-muted-foreground">
                               {e.transportadora || e.descricao}
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                      <TableCell className="whitespace-nowrap txt-apoio text-muted-foreground">
                         {new Date(e.criadaEm).toLocaleDateString('pt-BR', {
                           day: '2-digit',
                           month: '2-digit',
@@ -809,7 +809,7 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SecaoCard title="Apartamentos que mais recebem" description="Top 10 unidades no período.">
           {!data.topApartamentos.length ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma encomenda no período.</p>
+            <p className="py-6 text-center txt-apoio text-muted-foreground">Nenhuma encomenda no período.</p>
           ) : (
             <TabelaScroll>
               <Table className="min-w-[460px]">
@@ -986,10 +986,10 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
           <div className="space-y-5">
             <div>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-sm font-medium text-foreground">Moradores alcançáveis</span>
-                <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+                <span className="txt-corpo font-medium text-foreground">Moradores alcançáveis</span>
+                <span className="font-mono txt-numero-sm font-bold tabular-nums text-foreground">
                   {fmtInt(alcance.alcancaveis)}
-                  <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  <span className="ml-1 txt-apoio font-normal text-muted-foreground">
                     / {fmtInt(alcance.moradores)}
                   </span>
                 </span>
@@ -1000,33 +1000,33 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
                   style={{ width: `${alcance.percentual ?? 0}%` }}
                 />
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 txt-apoio text-muted-foreground">
                 {fmtPct(alcance.percentual)} do cadastro ativo recebe notificações.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
                   <PhoneOff className="h-4 w-4 shrink-0" /> Sem telefone
                 </div>
-                <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-foreground">
+                <p className="mt-2 font-mono txt-numero-sm font-bold tabular-nums text-foreground">
                   {fmtInt(alcance.semTelefone)}
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
                   <XCircle className="h-4 w-4 shrink-0" /> Optaram por não receber
                 </div>
-                <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-foreground">
+                <p className="mt-2 font-mono txt-numero-sm font-bold tabular-nums text-foreground">
                   {fmtInt(alcance.optOut)}
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
                   <Building2 className="h-4 w-4 shrink-0" /> Unidades sem titular
                 </div>
-                <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-foreground">
+                <p className="mt-2 font-mono txt-numero-sm font-bold tabular-nums text-foreground">
                   {fmtInt(alcance.apartamentosSemPrincipal)}
                 </p>
               </div>
@@ -1048,7 +1048,7 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
 
         <SecaoCard title="Por tipo de mensagem" description="Volume e falhas de cada motivo de disparo.">
           {!data.porTipo.length ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Nenhum disparo no período.</p>
+            <p className="py-6 text-center txt-apoio text-muted-foreground">Nenhum disparo no período.</p>
           ) : (
             <TabelaScroll>
               <Table className="min-w-[460px]">
@@ -1099,9 +1099,9 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
                 >
                   <div className="flex min-w-0 items-start gap-2">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
-                    <span className="min-w-0 break-words text-sm text-foreground">{e.erro}</span>
+                    <span className="min-w-0 break-words txt-corpo text-foreground">{e.erro}</span>
                   </div>
-                  <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
+                  <span className="shrink-0 font-mono txt-corpo font-semibold tabular-nums text-red-600 dark:text-red-400">
                     {fmtInt(e.total)}
                   </span>
                 </li>
@@ -1134,7 +1134,7 @@ function AbaVagas({ data }: { data: RelatorioVagas }) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardContent className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+        <CardContent className="flex items-center gap-2 py-4 txt-apoio text-muted-foreground">
           <Clock className="h-4 w-4 shrink-0" />
           Este painel mostra a situação atual da garagem — não depende do período selecionado.
         </CardContent>
@@ -1208,7 +1208,7 @@ function AbaVagas({ data }: { data: RelatorioVagas }) {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full txt-corpo">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="py-2 pr-4 font-medium">Vaga</th>
@@ -1314,13 +1314,13 @@ function AbaVagas({ data }: { data: RelatorioVagas }) {
                     <TableRow key={c.id}>
                       <TableCell>
                         <div className="font-mono font-medium">{c.numero}</div>
-                        <div className="text-xs text-muted-foreground">{TIPO_VAGA_LABEL[c.tipo] ?? c.tipo}</div>
+                        <div className="txt-apoio text-muted-foreground">{TIPO_VAGA_LABEL[c.tipo] ?? c.tipo}</div>
                       </TableCell>
                       <TableCell>
                         <div className="min-w-0">
                           <div className="truncate font-medium text-foreground">{c.morador || 'Não informado'}</div>
                           {c.apartamento && (
-                            <div className="font-mono text-xs text-muted-foreground">{c.apartamento}</div>
+                            <div className="font-mono txt-apoio text-muted-foreground">{c.apartamento}</div>
                           )}
                         </div>
                       </TableCell>
@@ -1333,7 +1333,7 @@ function AbaVagas({ data }: { data: RelatorioVagas }) {
                       <TableCell className="whitespace-nowrap text-right font-mono text-muted-foreground">
                         dia {c.diaVencimento}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-right text-sm text-muted-foreground">
+                      <TableCell className="whitespace-nowrap text-right txt-apoio text-muted-foreground">
                         {fmtData(c.dataInicio)}
                       </TableCell>
                     </TableRow>

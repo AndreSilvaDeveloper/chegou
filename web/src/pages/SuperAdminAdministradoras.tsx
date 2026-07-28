@@ -95,20 +95,20 @@ export function SuperAdminAdministradoras() {
             <Card key={adm.id}>
               <CardContent className="space-y-4 p-4 md:p-5">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-lg font-semibold text-foreground">{adm.nome}</p>
+                  <p className="txt-subtitulo font-semibold text-foreground">{adm.nome}</p>
                   <Badge variant={adm.ativo ? 'success' : 'secondary'}>
                     {adm.ativo ? 'Ativa' : 'Inativa'}
                   </Badge>
                 </div>
 
-                <dl className="grid grid-cols-2 gap-3 text-sm">
+                <dl className="grid grid-cols-2 gap-3 txt-corpo">
                   <div>
                     <dt className="text-muted-foreground">Condomínios</dt>
-                    <dd className="font-mono text-base text-foreground">{adm.qtdCondominios}</dd>
+                    <dd className="font-mono txt-corpo text-foreground">{adm.qtdCondominios}</dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Acessos</dt>
-                    <dd className="font-mono text-base text-foreground">{adm.qtdUsuarios}</dd>
+                    <dd className="font-mono txt-corpo text-foreground">{adm.qtdUsuarios}</dd>
                   </div>
                 </dl>
 
@@ -137,7 +137,7 @@ export function SuperAdminAdministradoras() {
 
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="adm-nome" className="text-base">
+              <Label htmlFor="adm-nome">
                 Nome
               </Label>
               <Input
@@ -149,7 +149,7 @@ export function SuperAdminAdministradoras() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="adm-cnpj" className="text-base">
+              <Label htmlFor="adm-cnpj">
                 CNPJ
               </Label>
               <Input
@@ -278,13 +278,13 @@ function CarteiraDialog({
           <div className="space-y-6">
             {/* ---------------- condomínios ---------------- */}
             <section className="space-y-3">
-              <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <h3 className="flex items-center gap-2 txt-subtitulo font-semibold text-foreground">
                 <Building2 className="h-4 w-4" />
                 Condomínios ({detalhe?.condominios.length ?? 0})
               </h3>
 
               {detalhe?.condominios.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="txt-apoio text-muted-foreground">
                   Nenhum condomínio nesta carteira ainda.
                 </p>
               ) : (
@@ -296,7 +296,7 @@ function CarteiraDialog({
                     >
                       <div className="min-w-0">
                         <p className="font-medium text-foreground">{tenant.nome}</p>
-                        <p className="text-sm text-muted-foreground">{tenant.slug}</p>
+                        <p className="txt-apoio text-muted-foreground">{tenant.slug}</p>
                       </div>
                       <Button
                         variant="outline"
@@ -312,7 +312,7 @@ function CarteiraDialog({
               )}
 
               <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                <Label htmlFor="vincular-cond" className="text-base">
+                <Label htmlFor="vincular-cond">
                   Vincular condomínio existente
                 </Label>
                 <SimpleSelect
@@ -343,13 +343,13 @@ function CarteiraDialog({
 
             {/* ---------------- acessos ---------------- */}
             <section className="space-y-3">
-              <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <h3 className="flex items-center gap-2 txt-subtitulo font-semibold text-foreground">
                 <Users className="h-4 w-4" />
                 Acessos ({detalhe?.usuarios.length ?? 0})
               </h3>
 
               {detalhe?.usuarios.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="txt-apoio text-muted-foreground">
                   Nenhum acesso criado — sem isso a administradora não consegue entrar.
                 </p>
               ) : (
@@ -361,7 +361,7 @@ function CarteiraDialog({
                     >
                       <div className="min-w-0">
                         <p className="font-medium text-foreground">{u.nome}</p>
-                        <p className="break-all text-sm text-muted-foreground">{u.email}</p>
+                        <p className="break-all txt-apoio text-muted-foreground">{u.email}</p>
                       </div>
                       <Badge variant={u.ativo ? 'success' : 'secondary'}>
                         {u.ativo ? 'Ativo' : 'Inativo'}
@@ -372,9 +372,9 @@ function CarteiraDialog({
               )}
 
               <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
-                <p className="text-sm font-medium text-foreground">Novo acesso</p>
+                <p className="txt-corpo font-medium text-foreground">Novo acesso</p>
                 <div className="space-y-2">
-                  <Label htmlFor="acesso-nome" className="text-base">
+                  <Label htmlFor="acesso-nome">
                     Nome
                   </Label>
                   <Input
@@ -384,7 +384,7 @@ function CarteiraDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="acesso-email" className="text-base">
+                  <Label htmlFor="acesso-email">
                     E-mail
                   </Label>
                   <Input
@@ -395,7 +395,7 @@ function CarteiraDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="acesso-senha" className="text-base">
+                  <Label htmlFor="acesso-senha">
                     Senha provisória
                   </Label>
                   <Input

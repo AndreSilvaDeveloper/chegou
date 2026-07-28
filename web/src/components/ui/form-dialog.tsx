@@ -40,7 +40,7 @@ interface FormDialogProps {
  *   submitLabel="Cadastrar vaga" saving={salvar.isPending}
  *   onSubmit={() => salvar.mutate(form)}>
  *   <div className="space-y-2">
- *     <Label htmlFor="numero" className="text-base">Número</Label>
+ * <Label htmlFor="numero">Número</Label>
  *     <Input id="numero" value={form.numero} onChange={...} />
  *   </div>
  * </FormDialog>

@@ -69,28 +69,28 @@ export function Login() {
             <img src="/logo-mark.png" alt="Chegou" className="h-7 w-7" />
           </div>
           <div className="leading-none">
-            <span className="text-xl font-extrabold tracking-tight text-foreground">chegou</span>
-            <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">central de portaria</span>
+            <span className="txt-secao font-extrabold tracking-tight text-foreground">chegou</span>
+            <span className="eyebrow ml-2">central de portaria</span>
           </div>
         </div>
 
         <div className="relative z-10 space-y-8">
           <p className="eyebrow">A encomenda chegou</p>
-          <h2 className="max-w-md text-3xl font-bold leading-tight tracking-tight text-foreground lg:text-4xl">
+          <h2 className="txt-titulo max-w-md font-bold text-foreground">
             A portaria registra.<br />O morador recebe no WhatsApp.
           </h2>
 
           {/* Signature: o fluxo do código */}
           <div className="flex items-center gap-5">
             <CodigoStrip codigo="4821" size="lg" active />
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 txt-apoio text-muted-foreground">
               <MessageSquare className="h-5 w-5 text-emerald-500" />
               <span>Enviado ao morador<br />para retirada segura</span>
             </div>
           </div>
         </div>
 
-        <p className="relative z-10 font-mono text-xs text-muted-foreground">
+        <p className="relative z-10 font-mono txt-apoio text-muted-foreground">
           Sem app para o morador — tudo onde ele já está.
         </p>
       </div>
@@ -105,8 +105,8 @@ export function Login() {
               </div>
             </div>
             <p className="eyebrow hidden md:block">Acesso restrito</p>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">Entrar na central</h1>
-            <p className="text-sm text-muted-foreground md:text-base">
+            <h1 className="txt-titulo text-foreground">Entrar na central</h1>
+            <p className="txt-apoio text-muted-foreground">
               Acesse para gerenciar as encomendas do condomínio.
             </p>
           </div>
@@ -122,14 +122,14 @@ export function Login() {
               <motion.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-lg border border-destructive/30 bg-destructive/10 p-3.5 text-sm font-medium text-destructive"
+                className="rounded-lg border border-destructive/30 bg-destructive/10 p-3.5 txt-corpo font-medium text-destructive"
               >
                 {error}
               </motion.div>
             )}
 
             <motion.div variants={itemVariants} className="space-y-2">
-              <Label htmlFor="email" className="text-base md:text-sm">E-mail</Label>
+              <Label htmlFor="email">E-mail</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -147,7 +147,7 @@ export function Login() {
             </motion.div>
 
             <motion.div variants={itemVariants} className="space-y-2">
-              <Label htmlFor="password" className="text-base md:text-sm">Senha</Label>
+              <Label htmlFor="password">Senha</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -173,7 +173,7 @@ export function Login() {
             </motion.div>
 
             <motion.div variants={itemVariants} className="pt-2">
-              <Button type="submit" size="lg" className="w-full text-base font-semibold" disabled={loading}>
+              <Button type="submit" size="lg" className="w-full txt-corpo font-semibold" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />

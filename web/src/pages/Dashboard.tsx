@@ -95,7 +95,7 @@ export function Dashboard() {
                 type="button"
                 onClick={() => setView(v)}
                 className={cn(
-                  'min-h-[36px] rounded-md px-4 text-sm font-medium transition-colors',
+                  'min-h-[36px] rounded-md px-4 txt-corpo font-medium transition-colors',
                   view === v ? 'bg-card text-foreground shadow-panel' : 'text-muted-foreground hover:text-foreground',
                 )}
               >

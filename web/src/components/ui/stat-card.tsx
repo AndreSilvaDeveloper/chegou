@@ -42,14 +42,14 @@ export function StatCard({
       <div className="flex items-start justify-between gap-3 p-5 pl-6 md:p-6 md:pl-7">
         <div className="min-w-0 flex-1">
           <p className="eyebrow truncate">{title}</p>
-          <p className="mt-3 font-mono text-3xl font-bold tabular leading-none tracking-tight text-foreground md:text-4xl">
+          <p className="mt-3 font-mono txt-numero font-bold tabular leading-none tracking-tight text-foreground">
             {value}
           </p>
           {description && (
-            <p className="mt-2 text-xs text-muted-foreground">{description}</p>
+            <p className="mt-2 txt-apoio text-muted-foreground">{description}</p>
           )}
           {trend && (
-            <p className={cn("mt-2 inline-flex items-center gap-1 text-xs font-medium", styles.trend)}>
+            <p className={cn("mt-2 inline-flex items-center gap-1 txt-nota font-medium", styles.trend)}>
               <Trend className="h-3.5 w-3.5" />
               <span className="tabular">{Math.abs(trend.value)}%</span>
               <span className="text-muted-foreground">{trend.label}</span>

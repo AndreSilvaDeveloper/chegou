@@ -109,11 +109,11 @@ export function ScannerModal({
         </div>
         <div id={CONTAINER_ID} className="min-h-[200px] w-full overflow-hidden rounded-lg bg-black" />
         {error ? (
-          <div className="flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+          <div className="flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 txt-corpo text-red-600 dark:text-red-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="txt-apoio text-muted-foreground">
             Aponte para o QR code ou o código de barras da etiqueta. O código é capturado automaticamente.
           </p>
         )}

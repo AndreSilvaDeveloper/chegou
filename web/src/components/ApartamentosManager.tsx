@@ -179,7 +179,7 @@ export function ApartamentosManager({
         return (
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span className="font-mono font-semibold text-base">{a.identificador}</span>
+            <span className="font-mono font-semibold txt-corpo">{a.identificador}</span>
           </div>
         );
       },
@@ -261,17 +261,17 @@ export function ApartamentosManager({
               {/* Condomínio de bloco único não tem bloco para informar. */}
               {usaBloco && (
                 <div className="space-y-2">
-                  <Label htmlFor="bloco" className="text-base">Bloco *</Label>
+                  <Label htmlFor="bloco">Bloco *</Label>
                   <Input id="bloco" placeholder="Ex: A" value={form.bloco} onChange={e => setForm({...form, bloco: e.target.value})} required />
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="numero" className="text-base">Número *</Label>
+                <Label htmlFor="numero">Número *</Label>
                 <Input id="numero" placeholder="Ex: 101" value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} autoFocus required />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="observacoes" className="text-base">Observações (Opcional)</Label>
+              <Label htmlFor="observacoes">Observações (Opcional)</Label>
               <Input id="observacoes" placeholder="Informações adicionais" value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})} />
             </div>
 

@@ -93,7 +93,7 @@ export function PrecosDialog({
             const Icone = TIPO_VAGA_ICON[tipo];
             return (
               <div key={tipo} className="space-y-2">
-                <Label htmlFor={`preco-${tipo}`} className="flex items-center gap-2 text-base">
+                <Label htmlFor={`preco-${tipo}`} className="flex items-center gap-2">
                   <Icone className="h-4 w-4 text-muted-foreground" />
                   {TIPO_VAGA_LABEL[tipo]}
                 </Label>
@@ -111,7 +111,7 @@ export function PrecosDialog({
             );
           })}
 
-          <p className="flex items-start gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-700 dark:text-sky-300">
+          <p className="flex items-start gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 txt-corpo text-sky-700 dark:text-sky-300">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             Deixe em branco o tipo que o condomínio não aluga — ele sai da tabela.
           </p>

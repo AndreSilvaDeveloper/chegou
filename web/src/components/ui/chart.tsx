@@ -36,7 +36,7 @@ const ChartContainer = React.forwardRef<
         ref={ref}
         data-chart={chartId}
         className={cn(
-          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-tooltip-cursor]:stroke-border [&_.recharts-surface]:outline-hidden",
+          "flex aspect-video justify-center txt-nota [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-tooltip-cursor]:stroke-border [&_.recharts-surface]:outline-hidden",
           className,
         )}
         {...props}
@@ -84,7 +84,7 @@ const ChartTooltipContent = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'grid min-w-[10rem] items-start gap-1.5 rounded-lg border border-border/50 bg-card px-3 py-2 text-xs shadow-panel-lg',
+        'grid min-w-[10rem] items-start gap-1.5 rounded-lg border border-border/50 bg-card px-3 py-2 txt-nota shadow-panel-lg',
         className,
       )}
     >
@@ -124,7 +124,7 @@ const ChartLegendContent = React.forwardRef<
         const key = String(item.dataKey ?? item.value ?? i);
         const cfg = config[key];
         return (
-          <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div key={i} className="flex items-center gap-1.5 txt-nota text-muted-foreground">
             <span className="h-2.5 w-2.5 rounded-[3px]" style={{ backgroundColor: `var(--color-${key}, ${item.color})` }} />
             {cfg?.label ?? item.value}
           </div>

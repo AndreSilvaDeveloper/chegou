@@ -85,8 +85,8 @@ export function WhatsappConnectionCard() {
         <CardContent className="flex items-start gap-3">
           <ShieldQuestion className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
           <div>
-            <p className="text-base font-semibold text-foreground">Integração WhatsApp não configurada</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="txt-corpo font-semibold text-foreground">Integração WhatsApp não configurada</p>
+            <p className="mt-1 txt-apoio text-muted-foreground">
               O gateway de WhatsApp (OpenWA) ainda não está habilitado neste ambiente. Fale com o administrador da plataforma.
             </p>
           </div>
@@ -112,24 +112,24 @@ export function WhatsappConnectionCard() {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-semibold text-foreground">WhatsApp do condomínio</h3>
+                <h3 className="txt-secao font-semibold text-foreground">WhatsApp do condomínio</h3>
                 <Badge variant={meta.badge} className="gap-1.5">
                   <span className={cn('h-2 w-2 rounded-full', meta.dot)} />
                   {meta.label}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 txt-apoio text-muted-foreground">
                 {conn?.connected
                   ? 'Número conectado e pronto para enviar as notificações.'
                   : 'Conecte o número do condomínio para disparar as mensagens no WhatsApp.'}
               </p>
               {conn?.connected && conn.phone && (
-                <p className="mt-2 font-mono text-sm text-foreground">
+                <p className="mt-2 font-mono txt-corpo text-foreground">
                   {conn.pushName ? `${conn.pushName} · ` : ''}+{conn.phone}
                 </p>
               )}
               {conn?.state === 'error' && conn.lastError && (
-                <p className="mt-2 flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
+                <p className="mt-2 flex items-center gap-1.5 txt-corpo text-red-600 dark:text-red-400">
                   <AlertTriangle className="h-4 w-4 shrink-0" /> {conn.lastError}
                 </p>
               )}
@@ -194,21 +194,21 @@ export function WhatsappConnectionCard() {
                   ) : (
                     <div className="flex flex-col items-center gap-2 text-zinc-400">
                       <Loader2 className="h-8 w-8 animate-spin" />
-                      <span className="text-sm">Gerando QR Code…</span>
+                      <span className="txt-corpo">Gerando QR Code…</span>
                     </div>
                   )}
                 </div>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+                  <div className="flex items-center gap-2 txt-corpo font-semibold text-foreground">
                     <QrCode className="h-5 w-5" /> Como conectar
                   </div>
-                  <ol className="space-y-2 text-sm text-muted-foreground">
+                  <ol className="space-y-2 txt-apoio text-muted-foreground">
                     <li>1. Abra o <span className="font-medium text-foreground">WhatsApp</span> no celular do condomínio.</li>
                     <li>2. Toque em <span className="font-medium text-foreground">Configurações → Aparelhos conectados</span>.</li>
                     <li>3. Toque em <span className="font-medium text-foreground">Conectar um aparelho</span>.</li>
                     <li>4. Aponte a câmera para este QR Code.</li>
                   </ol>
-                  <p className="text-xs text-muted-foreground">O código é atualizado automaticamente. A tela muda sozinha ao conectar.</p>
+                  <p className="txt-apoio text-muted-foreground">O código é atualizado automaticamente. A tela muda sozinha ao conectar.</p>
                 </div>
               </div>
             </motion.div>
@@ -217,7 +217,7 @@ export function WhatsappConnectionCard() {
 
         {/* Confirmação de conexão bem-sucedida (transitório visual) */}
         {conn?.connected && (
-          <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-3 txt-corpo font-medium text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
             Tudo certo — as notificações serão enviadas por este número.
           </div>

@@ -161,7 +161,7 @@ export function CobrancasPanel() {
       {/* Filtros — empilhados no celular, lado a lado no desktop */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="cob-competencia" className="text-base">
+          <Label htmlFor="cob-competencia">
             Mês de referência
           </Label>
           <Input
@@ -172,7 +172,7 @@ export function CobrancasPanel() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cob-status" className="text-base">
+          <Label htmlFor="cob-status">
             Situação
           </Label>
           <SimpleSelect
@@ -252,33 +252,33 @@ export function CobrancasPanel() {
                 <CardContent className="space-y-4 p-4 md:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-base font-semibold text-foreground">
+                      <p className="txt-corpo font-semibold text-foreground">
                         Vaga {cobranca.locacao?.vaga?.numero ?? '—'}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="txt-apoio text-muted-foreground">
                         {cobranca.locacao ? nomeLocatario(cobranca.locacao) : 'Locação removida'}
                       </p>
                     </div>
                     <Badge variant={meta.variant}>{meta.label}</Badge>
                   </div>
 
-                  <dl className="grid grid-cols-2 gap-3 text-sm">
+                  <dl className="grid grid-cols-2 gap-3 txt-corpo">
                     <div>
                       <dt className="text-muted-foreground">Valor</dt>
-                      <dd className="font-mono text-base font-semibold text-foreground">
+                      <dd className="font-mono txt-corpo font-semibold text-foreground">
                         {fmtMoeda(cobranca.valor)}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-muted-foreground">Vencimento</dt>
-                      <dd className="font-mono text-base text-foreground">
+                      <dd className="font-mono txt-corpo text-foreground">
                         {fmtData(cobranca.vencimento)}
                       </dd>
                     </div>
                     {cobranca.status === 'paga' && (
                       <div className="col-span-2">
                         <dt className="text-muted-foreground">Pago em</dt>
-                        <dd className="font-mono text-base text-foreground">
+                        <dd className="font-mono txt-corpo text-foreground">
                           {fmtData(cobranca.pagoAt)} — {fmtMoeda(cobranca.valorPago)}
                         </dd>
                       </div>
@@ -362,7 +362,7 @@ export function CobrancasPanel() {
         }
       >
         <div className="mt-4 space-y-2 text-left">
-          <Label htmlFor="cancelar-motivo" className="text-base">
+          <Label htmlFor="cancelar-motivo">
             Motivo (opcional)
           </Label>
           <Textarea
@@ -426,7 +426,7 @@ function PagamentoDialog({
 
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="pag-valor" className="text-base">
+            <Label htmlFor="pag-valor">
               Valor recebido (R$)
             </Label>
             <Input
@@ -441,7 +441,7 @@ function PagamentoDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pag-data" className="text-base">
+            <Label htmlFor="pag-data">
               Data do pagamento
             </Label>
             <Input
@@ -453,7 +453,7 @@ function PagamentoDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pag-obs" className="text-base">
+            <Label htmlFor="pag-obs">
               Observações
             </Label>
             <Textarea

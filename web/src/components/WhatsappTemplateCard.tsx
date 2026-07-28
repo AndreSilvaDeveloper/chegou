@@ -96,7 +96,7 @@ export function WhatsappTemplateCard() {
       <CardContent className="space-y-6 pt-0 md:pt-0">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-base font-semibold text-foreground">1. Quando a encomenda chega</h3>
+            <h3 className="txt-subtitulo font-semibold text-foreground">1. Quando a encomenda chega</h3>
             <OrigemBadge personalizado={Boolean(cfg.templateEncomenda)} />
           </div>
           <TemplateEditor
@@ -115,7 +115,7 @@ export function WhatsappTemplateCard() {
 
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-base font-semibold text-foreground">2. Quando a encomenda é retirada</h3>
+            <h3 className="txt-subtitulo font-semibold text-foreground">2. Quando a encomenda é retirada</h3>
             <OrigemBadge personalizado={Boolean(cfg.templateRetirada)} />
           </div>
           <TemplateEditor

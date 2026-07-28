@@ -86,10 +86,10 @@ export function AvisoVencimentoFaixa({ aviso }: { aviso: AvisoVencimento }) {
       <Icone className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
       <div className="min-w-0 space-y-1">
         <p className="font-semibold">{titulo}</p>
-        <p className="text-sm">{fraseDoAviso(aviso)}</p>
+        <p className="txt-corpo">{fraseDoAviso(aviso)}</p>
 
         {aviso.quantidadeEmAberto > 1 && (
-          <p className="text-sm">
+          <p className="txt-corpo">
             São {aviso.quantidadeEmAberto} faturas em aberto, somando{' '}
             {fmtMoeda(aviso.totalEmAberto)}.
           </p>
@@ -98,7 +98,7 @@ export function AvisoVencimentoFaixa({ aviso }: { aviso: AvisoVencimento }) {
         {/* A baixa ainda é manual: sem esta linha, quem acabou de pagar acha
             que o pagamento não foi registrado e abre chamado. */}
         {urgente && (
-          <p className="text-sm opacity-80">
+          <p className="txt-corpo opacity-80">
             Já pagou? O registro é feito manualmente e pode levar até um dia útil para aparecer
             aqui.
           </p>
@@ -135,7 +135,7 @@ export function ComoFoiCalculado({ resultado }: { resultado: ResultadoAssinatura
         : null;
 
   return (
-    <div className="space-y-1.5 text-sm text-muted-foreground">
+    <div className="space-y-1.5 txt-apoio text-muted-foreground">
       <p className="text-foreground">{base}</p>
       {origem && <p>{origem}</p>}
       {desconto > 0 && <p>Desconto aplicado: −{fmtMoeda(desconto)}</p>}

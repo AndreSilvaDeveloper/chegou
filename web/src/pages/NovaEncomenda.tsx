@@ -8,8 +8,11 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { SimpleSelect } from '@/components/ui/simple-select';
+import { Combobox } from '@/components/ui/combobox';
+import { OPCOES_TRANSPORTADORA, type TransportadoraNome } from '@/lib/transportadoras';
 import {
   Camera, Package, Building2, User, Truck, FileText, ArrowRight, ArrowLeft, CheckCircle2,
   Loader2, Image as ImageIcon, X, AlertTriangle, ScanLine, Keyboard, Layers, DoorClosed,
@@ -22,7 +25,15 @@ import { toast } from 'sonner';
 
 const CORREIOS_RE = /^[A-Z]{2}\d{9}[A-Z]{2}$/i;
 
-function detectarTransportadora(raw: string): string | undefined {
+/**
+ * Adivinha a transportadora pelo que foi escaneado.
+ *
+ * O retorno é `TransportadoraNome`, o tipo derivado de `TRANSPORTADORAS`: um
+ * nome que não esteja na lista **não compila**. É o que garante que o pacote
+ * escaneado e o digitado à mão fiquem com a mesma grafia — sem isso o relatório
+ * por transportadora se dividiria em duas linhas para a mesma empresa.
+ */
+function detectarTransportadora(raw: string): TransportadoraNome | undefined {
   const s = raw.trim();
   if (/^https?:\/\//i.test(s)) {
     const u = s.toLowerCase();
@@ -323,7 +334,7 @@ export function NovaEncomenda() {
               <s.icon className="h-5 w-5" />
             </div>
             <span className={cn(
-              'text-xs font-medium hidden sm:block',
+              'txt-apoio font-medium hidden sm:block',
               step >= s.num ? 'text-primary' : 'text-muted-foreground',
             )}>
               {s.label}
@@ -350,8 +361,8 @@ export function NovaEncomenda() {
                     <ScanLine className="h-8 w-8" />
                   </div>
                   <div>
-                    <p className="text-lg font-semibold text-foreground">Escanear código</p>
-                    <p className="mt-1 text-sm text-muted-foreground">QR code ou código de barras</p>
+                    <p className="txt-subtitulo font-semibold text-foreground">Escanear código</p>
+                    <p className="mt-1 txt-apoio text-muted-foreground">QR code ou código de barras</p>
                   </div>
                 </button>
 
@@ -364,8 +375,8 @@ export function NovaEncomenda() {
                     <Keyboard className="h-8 w-8" />
                   </div>
                   <div>
-                    <p className="text-lg font-semibold text-foreground">Cadastro manual</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="txt-subtitulo font-semibold text-foreground">Cadastro manual</p>
+                    <p className="mt-1 txt-apoio text-muted-foreground">
                       {precisaBloco ? 'Escolher bloco e apartamento' : 'Digitar o apartamento'}
                     </p>
                   </div>
@@ -405,7 +416,7 @@ export function NovaEncomenda() {
                           className="flex flex-col items-center justify-center gap-1.5 rounded-xl border p-4 transition-all hover:border-primary hover:bg-primary/5"
                         >
                           <Layers className="h-6 w-6 text-muted-foreground" />
-                          <span className="text-lg font-bold text-foreground">{b}</span>
+                          <span className="txt-secao font-bold text-foreground">{b}</span>
                         </button>
                       ))}
                     </div>
@@ -417,7 +428,7 @@ export function NovaEncomenda() {
                   <div className="space-y-4">
                     {blocoSel && (
                       <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-2 txt-corpo">
                           <Layers className="h-4 w-4 text-primary" />
                           <span className="text-muted-foreground">Bloco</span>
                           <Badge variant="outline" className="font-mono">{blocoSel}</Badge>
@@ -429,13 +440,13 @@ export function NovaEncomenda() {
                     )}
 
                     <div className="space-y-2">
-                      <Label htmlFor="numero" className="flex items-center gap-2 text-base">
+                      <Label htmlFor="numero" className="flex items-center gap-2">
                         <DoorClosed className="h-4 w-4 text-muted-foreground" /> Número do apartamento
                       </Label>
                       <div className="relative">
                         <Input
                           id="numero"
-                          className="h-16 text-center text-3xl font-bold tracking-widest md:h-20 md:text-4xl"
+                          className="h-16 text-center txt-numero font-bold tracking-widest md:h-20"
                           inputMode="numeric"
                           placeholder="Ex: 101"
                           value={numeroInput}
@@ -460,7 +471,7 @@ export function NovaEncomenda() {
                             className="group flex flex-col items-center justify-center gap-1 rounded-xl border p-4 transition-all hover:border-primary hover:bg-primary/5"
                           >
                             <Building2 className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary" />
-                            <span className="font-mono text-lg font-bold text-foreground">{a.identificador}</span>
+                            <span className="font-mono txt-numero-sm font-bold text-foreground">{a.identificador}</span>
                           </button>
                         ))}
                       </div>
@@ -469,7 +480,7 @@ export function NovaEncomenda() {
                     {/* Nenhum encontrado → oferecer cadastro */}
                     {novoApto && (
                       <div className="space-y-3 rounded-xl border border-dashed bg-muted/40 p-4">
-                        <div className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                        <div className="flex items-start gap-2.5 txt-apoio text-muted-foreground">
                           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                           <span>
                             Apartamento <span className="font-semibold text-foreground">{[novoApto.bloco, novoApto.numero].filter(Boolean).join('-')}</span> ainda não existe. Deseja cadastrá-lo agora?
@@ -511,7 +522,7 @@ export function NovaEncomenda() {
                     <CardTitle>Dados do Pacote</CardTitle>
                     <CardDescription>Escaneie ou digite os dados da encomenda.</CardDescription>
                   </div>
-                  <Badge variant="outline" className="shrink-0 gap-1.5 whitespace-nowrap border-primary/20 bg-primary/5 px-2.5 py-1 font-mono text-sm text-primary sm:text-base">
+                  <Badge variant="outline" className="shrink-0 gap-1.5 whitespace-nowrap border-primary/20 bg-primary/5 px-2.5 py-1 font-mono txt-apoio text-primary">
                     <DoorClosed className="h-3.5 w-3.5" />
                     {selectedApto?.identificador}
                   </Badge>
@@ -536,7 +547,7 @@ export function NovaEncomenda() {
                     />
                   </div>
                 ) : (
-                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 txt-corpo text-amber-700 dark:text-amber-400">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <span><span className="font-semibold">Sem moradores:</span> a encomenda será salva, mas a notificação no WhatsApp só será enviada quando um morador for cadastrado no apartamento.</span>
                   </div>
@@ -572,10 +583,10 @@ export function NovaEncomenda() {
                           aria-pressed={ativo}
                           onClick={() => setTipo(ativo ? null : opt.valor)}
                           className={cn(
-                            'flex h-14 items-center justify-center gap-2.5 rounded-xl border-2 text-base font-medium transition-all',
+                            'flex h-12 items-center justify-center gap-2.5 rounded-xl border-1 txt-corpo font-medium transition-all',
                             ativo
                               ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary/20'
-                              : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted/40',
+                              : 'border-border bg-[#FBF9F6] dark:bg-[#121212] text-foreground hover:border-primary/40 text-muted-foreground',
                           )}
                         >
                           <opt.icon className={cn('h-5 w-5', ativo ? 'text-primary' : 'text-muted-foreground')} />
@@ -586,14 +597,27 @@ export function NovaEncomenda() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><Truck className="h-4 w-4 text-muted-foreground" /> Transportadora</Label>
-                    <Input className="h-12" placeholder="Ex: Correios, Loggi" value={transportadora} onChange={(e) => setTransportadora(e.target.value)} />
+                    <Label htmlFor="transportadora" className="flex items-center gap-2"><Truck className="h-4 w-4 text-muted-foreground" /> Transportadora</Label>
+                    <Combobox
+                      id="transportadora"
+                      value={transportadora}
+                      onValueChange={setTransportadora}
+                      options={OPCOES_TRANSPORTADORA}
+                      placeholder="Ex: Correios, Loggi"
+                      avisoForaDaLista="Fora da lista — será registrado como você digitou."
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" /> Descrição</Label>
-                    <Input className="h-12" placeholder="Ex: Caixa grande, frágil" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+                    <Label htmlFor="descricao" className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" /> Descrição</Label>
+                    <Textarea
+                      id="descricao"
+                      rows={3}
+                      placeholder="Ex: Caixa grande, frágil"
+                      value={descricao}
+                      onChange={(e) => setDescricao(e.target.value)}
+                    />
                   </div>
                 </div>
 
@@ -654,14 +678,14 @@ export function NovaEncomenda() {
               <CardContent className="pt-0 md:pt-0">
                 <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
                   <div className="flex items-center justify-between border-b pb-3">
-                    <div className="text-sm text-muted-foreground">Destino</div>
+                    <div className="txt-apoio text-muted-foreground">Destino</div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{moradores.find(m => m.id === moradorId)?.nome || 'Qualquer morador'}</span>
-                      <Badge variant="default" className="font-mono text-base">{selectedApto?.identificador}</Badge>
+                      <Badge variant="default" className="font-mono txt-apoio">{selectedApto?.identificador}</Badge>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 txt-corpo">
                     <div>
                       <div className="text-muted-foreground mb-1">Rastreio</div>
                       <div className="font-mono font-medium">{codigoRastreio || '—'}</div>
@@ -682,7 +706,7 @@ export function NovaEncomenda() {
 
                   {fotoPreview && (
                     <div className="pt-2 border-t">
-                      <div className="text-sm text-muted-foreground mb-2">Foto anexada</div>
+                      <div className="txt-apoio text-muted-foreground mb-2">Foto anexada</div>
                       <img src={fotoPreview} alt="Preview" className="h-20 rounded-md border shadow-xs" />
                     </div>
                   )}

@@ -74,7 +74,7 @@ export function Avisos() {
       ) : avisosQuery.data?.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground min-h-[300px]">
           <Megaphone className="h-12 w-12 mb-4 text-muted" />
-          <h3 className="text-xl font-semibold text-foreground mb-2">Nenhum aviso enviado</h3>
+          <h3 className="txt-secao font-semibold text-foreground mb-2">Nenhum aviso enviado</h3>
           <p>Crie o seu primeiro aviso para se comunicar com os moradores.</p>
           <Button className="mt-4" variant="outline">Criar Aviso</Button>
         </Card>

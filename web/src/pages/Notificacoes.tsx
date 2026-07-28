@@ -107,7 +107,7 @@ export function Notificacoes() {
         return (
           <div className="min-w-0">
             <div className="font-medium text-foreground">{n.destinatarioNome || 'Desconhecido'}</div>
-            <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 font-mono txt-apoio text-muted-foreground">
               <Phone className="h-3 w-3" /> {n.destinatarioTelefone || '—'}
             </div>
           </div>
@@ -121,7 +121,7 @@ export function Notificacoes() {
         const n = row.original as Notificacao;
         const identificador = n.morador?.apartamento?.identificador || n.variaveisJson?.unidade;
         return identificador ? (
-          <div className="flex items-center gap-1.5 text-sm">
+          <div className="flex items-center gap-1.5 txt-corpo">
             <Home className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="font-medium">{identificador}</span>
           </div>
@@ -146,7 +146,7 @@ export function Notificacoes() {
               {meta.label}
             </Badge>
             {n.status === 'falha' && n.erroMensagem && (
-              <p className="max-w-[220px] truncate text-xs text-red-600 dark:text-red-400" title={n.erroMensagem}>
+              <p className="max-w-[220px] truncate txt-apoio text-red-600 dark:text-red-400" title={n.erroMensagem}>
                 {n.erroMensagem}
               </p>
             )}
@@ -160,7 +160,7 @@ export function Notificacoes() {
       cell: ({ row }: any) => {
         const n = row.original as Notificacao;
         return (
-          <div className="space-y-0.5 text-xs">
+          <div className="space-y-0.5 txt-apoio">
             <div className="text-muted-foreground">Criada: <span className="text-foreground">{fmt(n.createdAt)}</span></div>
             {n.status === 'enviada' && (
               <div className="text-muted-foreground">Enviada: <span className="text-emerald-600 dark:text-emerald-400">{fmt(n.enviadaAt)}</span></div>

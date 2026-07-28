@@ -93,15 +93,15 @@ function CobrancaEhDaAdministradora({ nome }: { nome: string }) {
           <Briefcase className="h-7 w-7" />
         </div>
         <div className="max-w-md space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="txt-secao font-semibold text-foreground">
             A cobrança é com a sua administradora
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="txt-apoio text-muted-foreground">
             Este condomínio faz parte da carteira de <strong>{nome}</strong>. A assinatura do
             Chegou é faturada diretamente para ela, junto com os demais condomínios que administra
             — por isso não existe cobrança separada aqui.
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="txt-apoio text-muted-foreground">
             Dúvidas sobre valores ou pagamento? Fale com a administradora.
           </p>
         </div>
@@ -162,7 +162,7 @@ function ContaAtual({
       <Card>
         <CardContent className="space-y-4 p-5 md:p-6">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Como chegamos nesse valor</h2>
+            <h2 className="txt-subtitulo font-semibold text-foreground">Como chegamos nesse valor</h2>
             <div className="mt-2">
               <ComoFoiCalculado resultado={resultado} />
             </div>
@@ -170,8 +170,8 @@ function ContaAtual({
 
           {condicao && (
             <div className="rounded-lg border border-border bg-muted p-4">
-              <p className="text-sm font-medium text-foreground">Você tem um preço especial</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="txt-corpo font-medium text-foreground">Você tem um preço especial</p>
+              <p className="mt-1 txt-apoio text-muted-foreground">
                 {MODO_LABEL[condicao.modo]}
                 {condicao.descontoPercentual
                   ? ` · desconto de ${condicao.descontoPercentual}%`
@@ -183,10 +183,10 @@ function ContaAtual({
 
           {ehAdministradora && resultado.itens.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-foreground">
+              <h3 className="txt-subtitulo font-semibold text-foreground">
                 Composição por condomínio
               </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 txt-apoio text-muted-foreground">
                 O total da carteira define a faixa de preço — por isso o valor por apartamento cai
                 conforme ela cresce.
               </p>
@@ -197,12 +197,12 @@ function ContaAtual({
                     className="flex items-center justify-between gap-3 px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{item.nome}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate txt-corpo font-medium text-foreground">{item.nome}</p>
+                      <p className="txt-apoio text-muted-foreground">
                         {item.apartamentos} apartamento{item.apartamentos === 1 ? '' : 's'}
                       </p>
                     </div>
-                    <span className="shrink-0 font-mono text-sm tabular text-foreground">
+                    <span className="shrink-0 font-mono txt-corpo tabular text-foreground">
                       {fmtMoeda(item.subtotal)}
                     </span>
                   </li>
@@ -229,7 +229,7 @@ function HistoricoFaturas({ faturas }: { faturas: AssinaturaFatura[] }) {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-base font-semibold text-foreground">Faturas</h2>
+      <h2 className="txt-subtitulo font-semibold text-foreground">Faturas</h2>
       {/* Cards no celular, não tabela: em 375px uma tabela financeira ou corta
           coluna ou vira rolagem horizontal. */}
       <div className="space-y-3">
@@ -243,13 +243,13 @@ function HistoricoFaturas({ faturas }: { faturas: AssinaturaFatura[] }) {
                   </span>
                   <StatusFaturaBadge status={fatura.status} />
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="txt-apoio text-muted-foreground">
                   Vence em {fmtData(fatura.vencimento)}
                   {fatura.status === 'paga' && fatura.pagaEm
                     ? ` · paga em ${fmtData(fatura.pagaEm.slice(0, 10))}`
                     : ''}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="txt-apoio text-muted-foreground">
                   {fatura.quantidadeApartamentos} apartamento
                   {fatura.quantidadeApartamentos === 1 ? '' : 's'}
                   {fatura.precoAplicado !== null
@@ -258,7 +258,7 @@ function HistoricoFaturas({ faturas }: { faturas: AssinaturaFatura[] }) {
                   {fatura.desconto > 0 ? ` · desconto de ${fmtMoeda(fatura.desconto)}` : ''}
                 </p>
               </div>
-              <span className="shrink-0 font-mono text-xl font-bold tabular text-foreground">
+              <span className="shrink-0 font-mono txt-numero-sm font-bold tabular text-foreground">
                 {fmtMoeda(fatura.valor)}
               </span>
             </CardContent>

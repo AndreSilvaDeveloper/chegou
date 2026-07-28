@@ -24,7 +24,7 @@ interface StatusDotProps {
  */
 export function StatusDot({ tone, label, pulse, className }: StatusDotProps) {
   return (
-    <span className={cn("inline-flex items-center gap-2 text-sm font-medium text-foreground/80", className)}>
+    <span className={cn("inline-flex items-center gap-2 txt-corpo font-medium text-foreground/80", className)}>
       <span className="relative flex h-2.5 w-2.5">
         {pulse && (
           <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-60 animate-pulse-dot", TONE[tone])} />

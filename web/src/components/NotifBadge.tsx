@@ -20,7 +20,7 @@ export function NotifBadge({ notif, showDetail }: { notif?: NotificacaoResumo | 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider',
+        'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono txt-nota font-medium uppercase tracking-wider',
         m.cls,
       )}
       title={notif.errorMessage ?? undefined}

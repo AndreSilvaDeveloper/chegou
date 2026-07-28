@@ -118,7 +118,7 @@ export function Encomendas() {
               type="button"
               onClick={() => setFiltro(f.key)}
               className={cn(
-                'min-h-[40px] whitespace-nowrap rounded-lg px-0.5 py-2 text-center text-xs font-semibold transition-colors sm:px-5 sm:text-sm',
+                'min-h-[40px] whitespace-nowrap rounded-lg px-0.5 py-2 text-center txt-apoio font-semibold transition-colors sm:px-5',
                 filtro === f.key
                   ? 'bg-primary text-primary-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground',
@@ -137,11 +137,11 @@ export function Encomendas() {
           </div>
           <div className="grid grid-cols-2 gap-2 lg:flex">
             <div className="relative">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-xs font-medium text-muted-foreground">De</span>
+              <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 txt-apoio font-medium text-muted-foreground">De</span>
               <Input className="h-9 pl-8" type="date" title="Data inicial" value={desde} onChange={(e) => setDesde(e.target.value)} />
             </div>
             <div className="relative">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-xs font-medium text-muted-foreground">Até</span>
+              <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 txt-apoio font-medium text-muted-foreground">Até</span>
               <Input className="h-9 pl-9" type="date" title="Data final" value={ate} onChange={(e) => setAte(e.target.value)} />
             </div>
           </div>
@@ -166,13 +166,13 @@ export function Encomendas() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-2xl font-bold tracking-tight text-foreground">
+                          <span className="font-mono txt-numero-sm font-bold tracking-tight text-foreground">
                             {e.apartamento?.identificador}
                           </span>
                           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                         </div>
                         {e.destinatarioNome && (
-                          <p className="mt-1 flex items-center gap-1 text-sm font-medium text-foreground">
+                          <p className="mt-1 flex items-center gap-1 txt-corpo font-medium text-foreground">
                             <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                             <span className="truncate">{e.destinatarioNome}</span>
                           </p>
@@ -184,9 +184,9 @@ export function Encomendas() {
                       {pendente && <CodigoStrip codigo={e.codigoRetirada} active={e.status === 'notificado'} />}
                     </div>
 
-                    <div className="mt-auto space-y-1.5 border-t border-border pt-3 text-sm">
+                    <div className="mt-auto space-y-1.5 border-t border-border pt-3 txt-corpo">
                       <p className="line-clamp-1 font-medium text-foreground">{e.descricao || 'Sem descrição'}</p>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 txt-apoio text-muted-foreground">
                         {e.transportadora && (
                           <span className="inline-flex items-center gap-1">
                             <Truck className="h-3.5 w-3.5" />{e.transportadora}
@@ -200,7 +200,7 @@ export function Encomendas() {
                     </div>
 
                     {e.notificacao?.status === 'failed' && (
-                      <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                      <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 txt-apoio font-medium text-destructive">
                         <NotifBadge notif={e.notificacao} />
                       </div>
                     )}

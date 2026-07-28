@@ -83,6 +83,7 @@ chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
 | Indicador numérico | `StatCard` |
 | Select | `SimpleSelect` |
 | Select com lista grande | `SearchSelect` (busca por digitação; use `onSearchChange` para buscar no servidor) |
+| Campo com sugestões, mas que aceita o que for digitado | `Combobox` (ver abaixo) |
 | Telefone | `PhoneInput` — digita `(32) 99999-9999`, entrega E.164. **Nunca peça `+55`** |
 | Telefone em listagem | `formatarTelefone()` de `@/lib/telefone` |
 | Erro de request | `toast.error(mensagemErro(err, 'Não foi possível …'))` |
@@ -91,6 +92,70 @@ chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
 Regras fixas: mobile-first (base = celular, `sm:`/`md:` amplia), `min-h-[48px]`
 em botão de ação, ícone **sempre** com texto, `Label` sempre visível, ícones só
 do Lucide, dark mode em tudo, testar em 375px.
+
+### Tamanho de texto: use a escala, nunca `text-sm`
+
+A escala vive em `styles.css` (bloco "ESCALA TIPOGRÁFICA"). Cada classe é um
+**papel**, e já carrega o tamanho do celular e o do desktop — por isso não se
+escreve `text-sm`, `text-xs`, `md:text-lg` nem `text-[13px]` em tela nenhuma:
+
+| Classe | Celular | Desktop | Papel |
+|---|---|---|---|
+| `txt-numero` | 30px | 36px | KPI, número em destaque |
+| `txt-numero-sm` | 20px | 24px | valor numérico em linha (total, contador) |
+| `txt-titulo` | 24px | 30px | título da tela (um por tela) |
+| `txt-secao` | 18px | 20px | título de card, diálogo, seção |
+| `txt-subtitulo` | 16px | 18px | nome do item no card, subtítulo de bloco |
+| `txt-corpo` | 16px | 14px | texto padrão, campo, botão, tabela |
+| `txt-apoio` | 14px | 14px | descrição, dica, texto secundário |
+| `txt-nota` | 12px | 12px | chrome: badge, legenda de gráfico, atalho |
+| `eyebrow` | 11px | 11px | rótulo mono maiúsculo |
+
+**O corpo encolhe do celular para o desktop (16 → 14) de propósito.** No celular
+o porteiro está em pé, com o aparelho na mão e frequentemente com presbiopia:
+16px é o mínimo confortável — e é também o que impede o iOS de dar zoom ao focar
+um campo. No desktop a mesma pessoa está sentada, mais perto e com mais
+informação na tela; 14px é o tamanho certo ali. O `Input` já fazia isso
+(`text-base md:text-sm`); a escala só estendeu a regra para o resto.
+
+`txt-apoio` **não** encolhe: ele já é secundário pela cor, e encolher também o
+levaria a 12px no desktop. A hierarquia contra o corpo vem da cor, e no celular
+também do tamanho.
+
+**Quem já traz a classe** (não repita): `PageHeader` (título + descrição),
+`CardTitle`/`DialogTitle`/`SheetTitle`/`AlertDialogTitle` e suas descrições,
+`Label`, `Input`, `Textarea`, `Button`, `Badge`, `Table`, `TabsTrigger`,
+`EmptyState`, `StatCard`, `SimpleSelect`, `SearchSelect`, `StatusDot`.
+Escrever `<Label className="txt-corpo">` de novo é ruído — e é assim que a
+próxima pessoa troca por outro tamanho sem perceber que saiu do padrão.
+
+Utilitário do Tailwind ainda vence a classe (camada `utilities` vem depois de
+`components`), então dá para escapar num caso pontual — mas escreva o porquê no
+código. Hoje só existe uma exceção: `file:text-sm` no `Input`, porque variante
+do Tailwind (`file:`, `hover:`…) alcança utilitário e não classe da escala.
+
+### `Combobox` e `SearchSelect` não são a mesma coisa
+
+| | `SearchSelect` | `Combobox` |
+|---|---|---|
+| O valor | **tem** de ser um item da lista | pode ser qualquer texto |
+| Gatilho | botão que mostra o rótulo | `Input` de verdade — o que está no campo É o valor |
+| Onde se digita | campo de busca dentro da lista | no próprio campo |
+| Use para | apartamento, morador (o id precisa existir) | transportadora (a lista é atalho, não regra) |
+
+O caso que originou o `Combobox` é **transportadora** em `NovaEncomenda`: lista
+fechada faria o porteiro que recebeu de uma transportadora regional escolher a
+errada ou deixar vazio — os dois piores desfechos para quem depois lê o
+relatório por transportadora. A lista existe para o caminho comum cair sempre na
+mesma grafia; o resto continua digitável, com aviso de que está fora da lista.
+
+**A lista mora em `lib/transportadoras.ts`, e o nome tem de bater com o que o
+leitor de código devolve.** `detectarTransportadora()` (em `NovaEncomenda.tsx`)
+preenche o campo sozinho ao escanear o pacote; se ele devolvesse "Azul Cargo
+Express" e a lista dissesse "Azul Cargo", o mesmo pacote ficaria com grafias
+diferentes conforme fosse escaneado ou digitado, e o relatório se dividiria em
+duas linhas. O detector devolve o tipo `TransportadoraNome`, derivado da lista —
+**nome fora dela não compila**. Ao mexer numa das pontas, rode `npx tsc`.
 
 ### Diálogo: a margem e a rolagem já vêm do `DialogContent`
 
@@ -170,6 +235,13 @@ Cor fixa (`bg-[#...]`) quebra o dark mode e a troca de tema — não use.
 
 - [ ] Tela nova → rota + menu + `@Roles` da API combinando (veja a skill
       `tela-frontend`).
+- [ ] Texto novo → classe da escala (`txt-*`), nunca `text-sm`/`text-[13px]`.
+      Confira com:
+      ```bash
+      grep -rnP "(?<![\w-])((sm|md|lg|xl):)?text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl)(?![\w-])|text-\[[0-9]" web/src --include="*.tsx"
+      ```
+      A única linha esperada é o `file:text-sm` do `Input` (variante do Tailwind
+      não alcança classe da escala). Qualquer outra é regressão.
 - [ ] Campo novo vindo da API → atualize `api/types.ts`.
 - [ ] Componente reaproveitável → `components/ui/` e registre em "Peças
       reutilizáveis" no `CLAUDE.md` raiz.

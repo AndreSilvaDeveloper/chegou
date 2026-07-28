@@ -111,7 +111,7 @@ export function WhatsappEnvioCard() {
       <CardContent className="space-y-6 pt-0 md:pt-0">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="intervalo" className="text-base">Espera entre mensagens</Label>
+            <Label htmlFor="intervalo">Espera entre mensagens</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="intervalo"
@@ -123,19 +123,19 @@ export function WhatsappEnvioCard() {
                 value={form.intervaloSegundos}
                 onChange={(e) => setForm({ ...form, intervaloSegundos: num(e.target.value, cfg.intervaloSegundos) })}
                 disabled={saveMutation.isPending}
-                className="min-h-[48px] max-w-[10rem] text-base"
+                className="min-h-[48px] max-w-[10rem] txt-corpo"
               />
-              <span className="text-base text-muted-foreground">segundos</span>
+              <span className="txt-corpo text-muted-foreground">segundos</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="txt-apoio text-muted-foreground">
               Mínimo de {limites.intervaloMinimoSegundos}s. Aumentar deixa o envio mais lento e mais
               seguro; o sistema ainda soma até {cfg.jitterSegundos}s aleatórios a cada mensagem.
             </p>
-            {erros.intervalo && <p className="text-sm font-medium text-destructive">{erros.intervalo}</p>}
+            {erros.intervalo && <p className="txt-corpo font-medium text-destructive">{erros.intervalo}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="limite" className="text-base">Limite por dia</Label>
+            <Label htmlFor="limite">Limite por dia</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="limite"
@@ -147,19 +147,19 @@ export function WhatsappEnvioCard() {
                 value={form.limiteDiario}
                 onChange={(e) => setForm({ ...form, limiteDiario: num(e.target.value, cfg.limiteDiario) })}
                 disabled={saveMutation.isPending}
-                className="min-h-[48px] max-w-[10rem] text-base"
+                className="min-h-[48px] max-w-[10rem] txt-corpo"
               />
-              <span className="text-base text-muted-foreground">mensagens</span>
+              <span className="txt-corpo text-muted-foreground">mensagens</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="txt-apoio text-muted-foreground">
               De {limites.limiteDiarioMinimo} a {limites.limiteDiarioMaximo} por dia. O que passar
               disso é enviado no dia seguinte, não se perde.
             </p>
-            {erros.limite && <p className="text-sm font-medium text-destructive">{erros.limite}</p>}
+            {erros.limite && <p className="txt-corpo font-medium text-destructive">{erros.limite}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="inicio" className="text-base">Enviar a partir de</Label>
+            <Label htmlFor="inicio">Enviar a partir de</Label>
             <Input
               id="inicio"
               type="time"
@@ -168,12 +168,12 @@ export function WhatsappEnvioCard() {
               value={form.horarioEnvioInicio}
               onChange={(e) => setForm({ ...form, horarioEnvioInicio: e.target.value })}
               disabled={saveMutation.isPending}
-              className="min-h-[48px] max-w-[10rem] text-base"
+              className="min-h-[48px] max-w-[10rem] txt-corpo"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="fim" className="text-base">Enviar até</Label>
+            <Label htmlFor="fim">Enviar até</Label>
             <Input
               id="fim"
               type="time"
@@ -182,17 +182,17 @@ export function WhatsappEnvioCard() {
               value={form.horarioEnvioFim}
               onChange={(e) => setForm({ ...form, horarioEnvioFim: e.target.value })}
               disabled={saveMutation.isPending}
-              className="min-h-[48px] max-w-[10rem] text-base"
+              className="min-h-[48px] max-w-[10rem] txt-corpo"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="txt-apoio text-muted-foreground">
               A janela precisa ficar entre {limites.janelaMinima} e {limites.janelaMaxima}. Fora
               dela, a mensagem espera a próxima abertura.
             </p>
-            {erros.janela && <p className="text-sm font-medium text-destructive">{erros.janela}</p>}
+            {erros.janela && <p className="txt-corpo font-medium text-destructive">{erros.janela}</p>}
           </div>
         </div>
 
-        <p className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+        <p className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5 txt-apoio text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             Com {form.intervaloSegundos}s de espera e a janela de {form.horarioEnvioInicio} às{' '}

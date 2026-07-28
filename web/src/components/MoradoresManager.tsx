@@ -222,8 +222,8 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
         return (
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-semibold text-base">{m.nome}</span>
-            {m.principal && <Badge variant="secondary" className="ml-2 text-xs py-0 h-5"><Star className="mr-1 h-3 w-3 text-amber-500 fill-amber-500" /> Principal</Badge>}
+            <span className="font-semibold txt-corpo">{m.nome}</span>
+            {m.principal && <Badge variant="secondary" className="ml-2 txt-nota py-0 h-5"><Star className="mr-1 h-3 w-3 text-amber-500 fill-amber-500" /> Principal</Badge>}
           </div>
         );
       },
@@ -233,7 +233,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
       header: "Apto",
       cell: ({ row }) => {
         const apto = row.original.apartamento?.identificador;
-        return apto ? <Badge variant="outline" className="font-mono text-base">{apto}</Badge> : <span className="text-muted-foreground">—</span>;
+        return apto ? <Badge variant="outline" className="font-mono txt-corpo">{apto}</Badge> : <span className="text-muted-foreground">—</span>;
       },
     },
     {
@@ -252,7 +252,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
         <Badge variant="success">
           <MessageSquare className="mr-1 h-3 w-3" /> WhatsApp
         </Badge>
-      ) : <span className="text-muted-foreground text-sm">Não recebe</span>,
+      ) : <span className="text-muted-foreground txt-apoio">Não recebe</span>,
     },
     {
       id: "actions",
@@ -315,11 +315,11 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
           <form onSubmit={submitForm} className="space-y-4 pt-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="nome" className="text-base">Nome *</Label>
+                <Label htmlFor="nome">Nome *</Label>
                 <Input id="nome" placeholder="Nome completo" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} autoFocus required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="apartamento" className="text-base">Apartamento *</Label>
+                <Label htmlFor="apartamento">Apartamento *</Label>
                 <SearchSelect
                   id="apartamento"
                   value={form.apartamentoId}
@@ -340,16 +340,16 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="telefone" className="text-base">Telefone WhatsApp *</Label>
+                <Label htmlFor="telefone">Telefone WhatsApp *</Label>
                 <PhoneInput
                   id="telefone"
                   value={form.telefoneE164}
                   onChange={(e164) => setForm({ ...form, telefoneE164: e164 })}
                 />
-                <p className="text-sm text-muted-foreground">É por aqui que ele recebe o aviso da encomenda.</p>
+                <p className="txt-apoio text-muted-foreground">É por aqui que ele recebe o aviso da encomenda.</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="documento" className="text-base">Documento (Opcional)</Label>
+                <Label htmlFor="documento">Documento (Opcional)</Label>
                 <Input id="documento" placeholder="CPF ou RG" value={form.documento} onChange={e => setForm({...form, documento: e.target.value})} />
               </div>
             </div>
@@ -368,8 +368,8 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
                   onChange={e => setForm({...form, principal: e.target.checked})} 
                 />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Morador principal</p>
-                  <p className="text-xs text-muted-foreground">Contato preferencial do apartamento.</p>
+                  <p className="txt-corpo font-medium leading-none">Morador principal</p>
+                  <p className="txt-apoio text-muted-foreground">Contato preferencial do apartamento.</p>
                 </div>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
@@ -380,8 +380,8 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
                   onChange={e => setForm({...form, receberWhatsapp: e.target.checked})} 
                 />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Notificações por WhatsApp</p>
-                  <p className="text-xs text-muted-foreground">Receberá mensagens quando encomendas chegarem.</p>
+                  <p className="txt-corpo font-medium leading-none">Notificações por WhatsApp</p>
+                  <p className="txt-apoio text-muted-foreground">Receberá mensagens quando encomendas chegarem.</p>
                 </div>
               </label>
             </div>

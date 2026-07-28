@@ -64,8 +64,8 @@ export function TemplateEditor({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor={id} className="text-base">{titulo}</Label>
-        {ajuda && <p className="text-sm text-muted-foreground">{ajuda}</p>}
+        <Label htmlFor={id}>{titulo}</Label>
+        {ajuda && <p className="txt-apoio text-muted-foreground">{ajuda}</p>}
         <Textarea
           id={id}
           ref={ref}
@@ -74,10 +74,10 @@ export function TemplateEditor({
           disabled={disabled}
           rows={9}
           placeholder="Deixe em branco para usar o modelo padrão do sistema."
-          className="font-mono text-sm leading-relaxed"
+          className="font-mono txt-corpo leading-relaxed"
         />
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
+          <p className="txt-apoio text-muted-foreground">
             Toque numa variável para inseri-la no texto. Apagar tudo volta ao modelo padrão.
           </p>
           <Button
@@ -86,7 +86,7 @@ export function TemplateEditor({
             size="sm"
             disabled={disabled}
             onClick={() => onChange(templatePadrao)}
-            className="h-8 text-xs"
+            className="h-8 txt-nota"
           >
             <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Restaurar padrão
           </Button>
@@ -94,7 +94,7 @@ export function TemplateEditor({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm text-muted-foreground">Variáveis disponíveis</Label>
+        <Label className="txt-apoio text-muted-foreground">Variáveis disponíveis</Label>
         <div className="flex flex-wrap gap-2">
           {variaveis.map((v) => (
             <button
@@ -104,7 +104,7 @@ export function TemplateEditor({
               onClick={() => inserirToken(v.token)}
               title={`${v.descricao} (ex.: ${v.exemplo})`}
               className={cn(
-                'rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 font-mono text-xs text-foreground transition-colors',
+                'rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 font-mono txt-nota text-foreground transition-colors',
                 'hover:border-primary/50 hover:bg-primary/10 disabled:opacity-50',
               )}
             >
@@ -115,10 +115,10 @@ export function TemplateEditor({
       </div>
 
       <div className="space-y-2">
-        <Label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Label className="flex items-center gap-1.5 txt-apoio text-muted-foreground">
           <MessageSquare className="h-4 w-4" /> Prévia
         </Label>
-        <div className="whitespace-pre-wrap rounded-xl border border-border bg-emerald-500/5 p-4 text-sm leading-relaxed text-foreground">
+        <div className="whitespace-pre-wrap rounded-xl border border-border bg-emerald-500/5 p-4 txt-corpo leading-relaxed text-foreground">
           {preview || <span className="text-muted-foreground">Sua mensagem aparecerá aqui…</span>}
         </div>
       </div>
