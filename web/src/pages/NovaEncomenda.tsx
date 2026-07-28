@@ -26,23 +26,19 @@ import { toast } from 'sonner';
 const CORREIOS_RE = /^[A-Z]{2}\d{9}[A-Z]{2}$/i;
 
 /**
-<<<<<<< Updated upstream
  * Adivinha a transportadora pelo que foi escaneado.
  *
  * O retorno é `TransportadoraNome`, o tipo derivado de `TRANSPORTADORAS`: um
  * nome que não esteja na lista **não compila**. É o que garante que o pacote
  * escaneado e o digitado à mão fiquem com a mesma grafia — sem isso o relatório
  * por transportadora se dividiria em duas linhas para a mesma empresa.
- */
-function detectarTransportadora(raw: string): TransportadoraNome | undefined {
- /*
- * Detecta a transportadora pelo conteúdo do QR / código de barras.
  *
  * Existe um primo disto no backend (`src/modules/etiquetas/parser/
  * transportadoras.ts`), que roda sobre o texto da etiqueta lido por OCR —
  * outra entrada, outro problema, mas a mesma lista de transportadoras.
  * Ao acrescentar uma nova, mexa nos dois.
  */
+function detectarTransportadora(raw: string): TransportadoraNome | undefined {
   const s = raw.trim();
   if (/^https?:\/\//i.test(s)) {
     const u = s.toLowerCase();

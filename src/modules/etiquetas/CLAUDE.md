@@ -48,7 +48,7 @@ Frontend: `web/src/pages/SuperAdminEtiquetas.tsx` (`/admin/etiquetas`).
 
 ## Dados
 
-`etiqueta_amostras` (migration 025) é **tabela de plataforma**: `tenant_id` é
+`etiqueta_amostras` (migration 026) é **tabela de plataforma**: `tenant_id` é
 nulável, ao contrário da regra geral do projeto. Uma etiqueta da Shopee é igual
 em qualquer condomínio, e o que se aprende com ela vale para todos — o
 `tenant_id` guarda só a origem quando a amostra nasceu de uma leitura real.

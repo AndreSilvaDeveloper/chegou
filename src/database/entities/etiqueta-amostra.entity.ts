@@ -38,7 +38,7 @@ export interface CamposEtiqueta {
  * Amostra de etiqueta usada para afinar o parser.
  *
  * Dado de plataforma: `tenantId` é nulável e serve só para saber de onde a
- * amostra veio. Ver a migration 025 para o porquê.
+ * amostra veio. Ver a migration 026 para o porquê.
  */
 @Entity('etiqueta_amostras')
 export class EtiquetaAmostra {

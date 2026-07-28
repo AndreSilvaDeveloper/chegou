@@ -748,7 +748,6 @@ export interface MinhaAssinatura {
   aviso: AvisoVencimento | null;
 }
 
-<<<<<<< Updated upstream
 // ---- Autocadastro de morador (QR Code) ----
 
 /** Unidade como a página pública de autocadastro precisa dela. */
@@ -764,7 +763,8 @@ export interface DadosAutocadastro {
   condominioNome: string;
   estruturaBlocos: 'unico' | 'multiplos';
   unidades: UnidadeAutocadastro[];
-=======
+}
+
 // ---------------------------------------------------------------------------
 // Leitura de etiqueta — banco de amostras (superadmin)
 // ---------------------------------------------------------------------------
@@ -868,8 +868,4 @@ export interface PlacarEtiquetas {
 export interface UploadAmostrasResposta {
   criadas: EtiquetaAmostra[];
   falhas: { arquivo: string; erro: string }[];
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 }
