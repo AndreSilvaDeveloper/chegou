@@ -2,7 +2,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { AuthenticatedUser } from '../api/client';
-import { Apartamento, Encomenda, Morador } from '../api/types';
+import { Apartamento, Encomenda, LeituraEtiqueta, Morador } from '../api/types';
+import { mensagemErro } from '@/lib/erros';
 import { ScannerModal } from '../components/ScannerModal';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -111,6 +112,11 @@ export function NovaEncomenda() {
   // Status UI
   const [saving, setSaving] = useState(false);
   const [scanTarget, setScanTarget] = useState<'destino' | 'pacote' | null>(null);
+  const [lendoEtiqueta, setLendoEtiqueta] = useState(false);
+  // A leitura de etiqueta é de quem está na portaria. A administradora também
+  // registra encomenda, mas não tem essa rota (`@Roles` em etiquetas.controller)
+  // — sem isto ela veria o botão e tomaria 403.
+  const [podeLerEtiqueta, setPodeLerEtiqueta] = useState(false);
 
   // Novo apto (quando não existe)
   const [novoApto, setNovoApto] = useState<{ bloco: string; numero: string } | null>(null);
@@ -121,6 +127,7 @@ export function NovaEncomenda() {
     api.get<AuthenticatedUser>('/auth/me')
       .then((me) => {
         setEstruturaBlocos(me.config?.estruturaBlocos === 'multiplos' ? 'multiplos' : 'unico');
+        setPodeLerEtiqueta(me.role === 'porteiro' || me.role === 'sindico');
       })
       .catch(() => {});
   }, []);
@@ -179,6 +186,70 @@ export function NovaEncomenda() {
     setBlocoSel(null);
     setNumeroInput('');
     setNovoApto(null);
+  };
+
+  /**
+   * Foto da etiqueta -> OCR -> preenche o que der.
+   *
+   * Tudo que vem da leitura é sugestão: campo que o porteiro já preencheu não é
+   * sobrescrito, e nada é salvo sem ele passar pela revisão. Quando a unidade
+   * não é identificada com segurança, cai no cadastro manual com o que foi lido
+   * — melhor pedir confirmação do que entregar no apartamento errado.
+   */
+  const handleEtiqueta = async (file: File) => {
+    setScanTarget(null);
+    setLendoEtiqueta(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await api.upload<LeituraEtiqueta>('/etiquetas/ler', fd);
+
+      const preenchidos: string[] = [];
+
+      if (r.campos.codigoRastreio && !codigoRastreio.trim()) {
+        setCodigoRastreio(r.campos.codigoRastreio);
+        preenchidos.push('rastreio');
+      }
+      if (r.campos.transportadora && !transportadora.trim()) {
+        setTransportadora(r.campos.transportadora);
+        preenchidos.push('transportadora');
+      }
+      // A própria foto vira a foto do pacote: é o registro do que chegou e
+      // poupa o porteiro de fotografar duas vezes. Só quando não há outra.
+      if (!foto) {
+        setFoto(file);
+        setFotoPreview(URL.createObjectURL(file));
+      }
+
+      if (r.apartamento) {
+        setSelectedApto(r.apartamento);
+        preenchidos.unshift(`apartamento ${r.apartamento.identificador}`);
+        if (r.moradorId) {
+          setMoradorId(r.moradorId);
+          preenchidos.push(`destinatário ${r.moradorNome ?? ''}`.trim());
+        }
+        setStep(2);
+        toast.success(`Etiqueta lida — ${preenchidos.join(', ')}`);
+        return;
+      }
+
+      // Sem unidade identificada: leva para o manual já com o que foi lido.
+      irParaManual();
+      if (estruturaBlocos === 'multiplos' && r.campos.bloco) setBlocoSel(r.campos.bloco);
+      if (r.campos.numero) setNumeroInput(r.campos.numero);
+
+      if (r.linhasLidas === 0) {
+        toast.error('Não consegui ler nada na foto. Tente com mais luz, sem sombra e sem cortar as bordas.');
+      } else if (preenchidos.length) {
+        toast.message(`Lido: ${preenchidos.join(', ')}. Confirme o apartamento.`);
+      } else {
+        toast.message('Não identifiquei o apartamento na etiqueta. Confirme na mão.');
+      }
+    } catch (err) {
+      toast.error(mensagemErro(err, 'Não foi possível ler a etiqueta'));
+    } finally {
+      setLendoEtiqueta(false);
+    }
   };
 
   const handleScan = async (text: string) => {
@@ -366,8 +437,14 @@ export function NovaEncomenda() {
                     <ScanLine className="h-8 w-8" />
                   </div>
                   <div>
-                    <p className="txt-subtitulo font-semibold text-foreground">Escanear código</p>
-                    <p className="mt-1 txt-apoio text-muted-foreground">QR code ou código de barras</p>
+                    <p className="txt-subtitulo font-semibold text-foreground">
+                      {podeLerEtiqueta ? 'Escanear ou fotografar' : 'Escanear código'}
+                    </p>
+                    <p className="mt-1 txt-apoio text-muted-foreground">
+                      {podeLerEtiqueta
+                        ? 'Código de barras, QR ou foto da etiqueta'
+                        : 'QR code ou código de barras'}
+                    </p>
                   </div>
                 </button>
 
@@ -732,7 +809,25 @@ export function NovaEncomenda() {
         )}
       </AnimatePresence>
 
-      {scanTarget && <ScannerModal onResult={handleScan} onClose={() => setScanTarget(null)} />}
+      {scanTarget && (
+        <ScannerModal
+          onResult={handleScan}
+          onEtiqueta={podeLerEtiqueta ? handleEtiqueta : undefined}
+          onClose={() => setScanTarget(null)}
+        />
+      )}
+
+      {/* O OCR leva alguns segundos. Sem um bloqueio explícito o porteiro toca
+          de novo achando que não funcionou, e sobem duas leituras. */}
+      {lendoEtiqueta && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 backdrop-blur-xs">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-8 py-7 text-center shadow-panel-lg">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="txt-subtitulo font-semibold text-foreground">Lendo a etiqueta...</p>
+            <p className="txt-apoio text-muted-foreground">Isso leva alguns segundos.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

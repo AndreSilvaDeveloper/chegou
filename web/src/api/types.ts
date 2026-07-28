@@ -869,3 +869,14 @@ export interface UploadAmostrasResposta {
   criadas: EtiquetaAmostra[];
   falhas: { arquivo: string; erro: string }[];
 }
+
+/** Resultado de `POST /etiquetas/ler` — leitura da etiqueta na portaria. */
+export interface LeituraEtiqueta {
+  campos: CamposEtiqueta;
+  /** Unidade que casou com o que foi lido. `null` = o porteiro escolhe. */
+  apartamento: Apartamento | null;
+  moradorId: string | null;
+  moradorNome: string | null;
+  /** Linhas que o OCR conseguiu ler. `0` explica um resultado vazio. */
+  linhasLidas: number;
+}

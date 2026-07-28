@@ -227,6 +227,7 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Módulos contratados e plano do condomínio | ✅ | — | — | — |
 | Assinatura: tabela de preços, preço especial, gerar e dar baixa em fatura | ✅ | — | — | — |
 | Banco de amostras de etiqueta (calibrar a leitura por foto) | ✅ | — | — | — |
+| Ler etiqueta por foto ao registrar encomenda | — | — | ✅ | ✅ |
 | Carteira própria (listar/criar/editar condomínios) | — | ✅ | — | — |
 | Configurar condomínio da carteira: cadastro, tipo, blocos, janela de envio | ✅ | ✅⁵ | — | — |
 | Assinatura própria: quanto paga e as faturas (só leitura) | — | ✅³ | ✅⁴ | — |

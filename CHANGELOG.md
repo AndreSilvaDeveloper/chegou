@@ -11,6 +11,39 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.19.0 — 2026-07-28
+
+**A leitura de etiqueta chegou à portaria.** No "Escanear" do cadastro de
+encomenda, o porteiro agora pode fotografar a etiqueta inteira: o OCR lê e os
+campos que o parser entendeu já vêm preenchidos. O resto ele completa à mão.
+
+### Adicionado
+- **`POST /etiquetas/ler`** (`porteiro`, `sindico`): foto → OCR → parser →
+  de-para com o cadastro do condomínio. Devolve os campos lidos, o apartamento
+  que casou, o morador destinatário e quantas linhas o OCR conseguiu ler.
+- **"Fotografar a etiqueta"** dentro do modal de scan, ao lado do leitor de
+  código de barras — que continua ali, e continua melhor para código de rastreio.
+- Preenche apartamento, destinatário, transportadora e rastreio; **a própria
+  foto vira a foto do pacote** quando ainda não há nenhuma.
+
+### Regras
+- **Nada é sobrescrito**: campo já preenchido pelo porteiro fica como está.
+- **Nada é salvo sozinho** — a leitura preenche, o porteiro revisa e confirma.
+- **Unidade não identificada cai no cadastro manual** com bloco e número
+  pré-preenchidos, nunca num apartamento "mais provável". Em condomínio de
+  múltiplos blocos o mesmo número existe em vários: chutar seria entregar no
+  bloco errado.
+- **Morador só casa com nome idêntico ou primeiro+último nome batendo**, entre
+  os moradores daquela unidade. Na dúvida, o porteiro escolhe — notificar o
+  morador errado é pior que digitar o nome.
+- **A administradora não tem a leitura** (só porteiro e síndico). Ela registra
+  encomenda, mas isto foi definido como ferramenta de portaria; o botão fica
+  escondido para ela, em vez de aparecer e dar 403.
+
+### Nota
+- O parser ainda está em calibração: quanto mais amostras conferidas em
+  `/admin/etiquetas`, mais campos ele acerta. Espere preencher pouco no começo.
+
 ## 0.18.2 — 2026-07-28
 
 Rodada de acertos na importação e na listagem de Apartamentos, depois de importar

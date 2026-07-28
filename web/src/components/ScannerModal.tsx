@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { X, ScanLine, AlertTriangle } from 'lucide-react';
+import { X, ScanLine, AlertTriangle, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const CONTAINER_ID = 'scanner-region';
@@ -42,13 +42,21 @@ function stopSafely(scanner: Html5Qrcode | null): Promise<void> {
 
 export function ScannerModal({
   onResult,
+  onEtiqueta,
   onClose,
 }: {
   onResult: (text: string) => void;
+  /**
+   * Quando informado, mostra a opção de fotografar a etiqueta inteira (OCR).
+   * O modal só entrega o arquivo — quem faz upload e aplica o resultado é a
+   * tela, que é dona do formulário.
+   */
+  onEtiqueta?: (file: File) => void;
   onClose: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<Html5Qrcode | null>(null);
+  const fotoRef = useRef<HTMLInputElement | null>(null);
   const done = useRef(false);
 
   useEffect(() => {
@@ -117,6 +125,43 @@ export function ScannerModal({
             Aponte para o QR code ou o código de barras da etiqueta. O código é capturado automaticamente.
           </p>
         )}
+
+        {onEtiqueta && (
+          <>
+            <div className="flex items-center gap-2 pt-1">
+              <span className="h-px flex-1 bg-border" />
+              <span className="txt-nota text-muted-foreground">ou</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <input
+              ref={fotoRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                // Cópia antes de zerar: `files` é lista viva e limpar o input a
+                // esvazia. Zerar é o que permite refotografar a mesma etiqueta.
+                const arquivo = e.target.files?.[0];
+                e.target.value = '';
+                if (arquivo) onEtiqueta(arquivo);
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-[48px] w-full"
+              onClick={() => fotoRef.current?.click()}
+            >
+              <Camera className="mr-2 h-5 w-5" /> Fotografar a etiqueta
+            </Button>
+            <p className="txt-apoio text-muted-foreground">
+              Lê a etiqueta inteira e preenche apartamento, destinatário e transportadora.
+              Enquadre a etiqueta toda, sem cortar as bordas.
+            </p>
+          </>
+        )}
+
         <Button type="button" variant="outline" onClick={onClose} className="w-full">
           Fechar / digitar manualmente
         </Button>

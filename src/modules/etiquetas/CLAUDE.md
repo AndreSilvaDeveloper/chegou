@@ -3,9 +3,16 @@
 Ler a etiqueta do pacote com a câmera e preencher os campos da encomenda
 sozinho, em vez de o porteiro digitar.
 
-**Estado atual: só o banco de amostras.** A leitura na portaria ainda não
-existe — ela depende de o parser acertar, e o parser só acerta depois de ver
-etiqueta real. Este módulo é a ferramenta que torna isso mensurável.
+Duas frentes sobre o mesmo parser:
+
+- **Portaria** (`POST /etiquetas/ler`): o porteiro fotografa, os campos que o
+  parser entendeu já vêm preenchidos e ele completa o resto à mão.
+- **Banco de amostras** (`/admin/etiquetas`, superadmin): mede o quanto o parser
+  acerta contra etiquetas reais. É o que torna a melhoria mensurável em vez de
+  achismo.
+
+O parser ainda está em calibração — por isso a leitura **nunca salva sozinha**,
+sempre preenche e pede confirmação.
 
 ## As três peças
 
@@ -30,6 +37,23 @@ A separação entre OCR e parser é deliberada: trocar uma regex não pode
 significar rebuildar a imagem do serviço de OCR.
 
 ## Rotas e perfis
+
+### Portaria
+
+| Rota | admin | sindico | porteiro |
+|---|:---:|:---:|:---:|
+| `POST /etiquetas/ler` (foto → campos preenchidos) | — | ✅ | ✅ |
+
+**A administradora fica de fora de propósito.** Ela registra encomenda, mas a
+leitura foi definida como ferramenta de quem está na portaria. Para liberar:
+`@Roles` em `etiquetas.controller.ts` **e** `podeLerEtiqueta` em
+`web/src/pages/NovaEncomenda.tsx` — os dois, senão ela vê o botão e toma 403.
+
+Devolve `{ campos, apartamento, moradorId, moradorNome, linhasLidas }`. Tudo é
+**sugestão**: a tela preenche o que veio, preserva o que o porteiro já digitou e
+só grava depois da revisão.
+
+### Banco de amostras
 
 Todas `@Roles('superadmin')` — é ferramenta de plataforma, não de condomínio.
 
@@ -59,7 +83,24 @@ regressão.
 reenviar a imagem** — cada leitura custa 1–3s de CPU, e reprocessar 200
 amostras a cada ajuste de regex seria inviável.
 
-## Regras de negócio
+## Regras da leitura na portaria
+
+1. **Nada é sobrescrito.** Campo que o porteiro já preencheu fica como está — a
+   leitura só completa o que está vazio.
+2. **Duas tentativas para achar a unidade**: com o bloco lido e sem ele (a
+   segunda cobre o condomínio de bloco único cuja etiqueta menciona um bloco).
+   **Não existe uma terceira** procurando o número em todos os blocos: em
+   condomínio de múltiplos blocos o mesmo número existe em vários, e escolher
+   um seria entregar no bloco errado.
+3. **Morador só casa com nome idêntico ou primeiro+último nome batendo**, e
+   apenas entre os moradores daquela unidade. "Ana Silva" e "Ana Souza" moram no
+   mesmo prédio; na dúvida devolve `null` e o porteiro escolhe.
+4. **Sem unidade identificada, cai no cadastro manual** com bloco e número
+   pré-preenchidos — nunca num apartamento "mais provável".
+5. **A foto da etiqueta vira a foto do pacote** quando ainda não há nenhuma:
+   é o registro do que chegou e evita fotografar duas vezes.
+
+## Regras do banco de amostras
 
 1. **O placar só conta amostra com gabarito.** Sem isso ele despencaria toda vez
    que alguém subisse fotos novas, e ninguém confiaria no número.
