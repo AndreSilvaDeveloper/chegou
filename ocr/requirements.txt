@@ -1,8 +1,16 @@
-# Versões travadas de propósito: a API do PaddleOCR mudou de forma entre 2.x e
-# 3.x (`.ocr()` virou `.predict()`, com outro formato de retorno). Subir sem
-# testar quebra o `_normalizar_saida`.
-paddlepaddle==2.6.2
-paddleocr==2.9.1
+# RapidOCR = os modelos PP-OCR (os mesmos do PaddleOCR) rodando em ONNX Runtime.
+#
+# Por que não `paddleocr`: a wheel do PaddlePaddle aborta com "double free or
+# corruption" na inicialização em parte dos servidores (runtime nativo brigando
+# com a glibc/CPU do host). Ela também traz ~2 GB para servir um modelo de 15 MB
+# e exige baixar os modelos no build. O ONNX Runtime não tem nada disso.
+#
+# Travado no 1.4.x (1.4.4 é a última): a linha seguinte do projeto mudou de
+# NOME de pacote (`rapidocr`) e de API, então não vem por engano num rebuild.
+# Exige Python < 3.13 — é por isso que o Dockerfile usa 3.11 e não a última.
+rapidocr-onnxruntime>=1.4,<1.5
+onnxruntime>=1.17,<2
+
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 python-multipart==0.0.20

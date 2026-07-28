@@ -27,7 +27,7 @@ foto ──▶ serviço OCR (container `ocr`) ──▶ linhas de texto
 | Banco de amostras | `admin-etiquetas.*` | Mede o parser contra etiquetas reais |
 
 A separação entre OCR e parser é deliberada: trocar uma regex não pode
-significar rebuildar uma imagem Python de 2 GB.
+significar rebuildar a imagem do serviço de OCR.
 
 ## Rotas e perfis
 
@@ -115,5 +115,6 @@ pode carregar um objeto postado nos Correios; quem manda é o que está escrito.
       (`web/src/pages/NovaEncomenda.tsx`), que roda sobre QR/código de barras.
 - [ ] Campo novo em `CamposEtiqueta` → entidade, `CAMPOS_ETIQUETA` (back e
       front), DTO do gabarito e a tela de conferência. O placar se ajusta sozinho.
-- [ ] Trocou versão do `paddleocr` → confira `_normalizar_saida` em `ocr/app.py`;
-      a 3.x mudou o formato de retorno e a quebra é silenciosa (zero linhas).
+- [ ] Trocou versão do `rapidocr-onnxruntime` → confira `_normalizar_saida` em
+      `ocr/app.py`. Está travado em 1.4.x: a linha seguinte mudou de nome de
+      pacote (`rapidocr`) e de API, e a quebra é silenciosa (zero linhas).

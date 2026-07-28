@@ -1,5 +1,5 @@
 """
-Serviço de OCR do Chegou — PaddleOCR atrás de um HTTP simples.
+Serviço de OCR do Chegou — RapidOCR (modelos PP-OCR em ONNX) atrás de um HTTP simples.
 
 Existe para a API (NestJS) não precisar de Python: ela manda a imagem da
 etiqueta, recebe as linhas de texto com posição e confiança, e faz a
@@ -21,7 +21,7 @@ import time
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from PIL import Image, ImageOps
-from paddleocr import PaddleOCR
+from rapidocr_onnxruntime import RapidOCR
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("ocr")
@@ -30,21 +30,22 @@ log = logging.getLogger("ocr")
 # 2000px na maior aresta ainda resolve dígito pequeno de etiqueta térmica.
 MAX_LADO = int(os.getenv("OCR_MAX_LADO", "2000"))
 # Abaixo disso o texto é ruído: some da resposta para o parser não ter que filtrar.
+# Vai TAMBÉM como `text_score` na chamada: o RapidOCR filtra por conta própria em
+# 0.5, e sem passar isto qualquer valor menor aqui não teria efeito nenhum.
 CONFIANCA_MINIMA = float(os.getenv("OCR_CONFIANCA_MINIMA", "0.35"))
 
-app = FastAPI(title="Chegou OCR", version="1.0.0")
+app = FastAPI(title="Chegou OCR", version="2.0.0")
 
-# Carregado uma vez no start (o construtor baixa/abre os modelos — caro).
-# `use_angle_cls` porque etiqueta fotografada de lado é a regra, não a exceção.
-_ocr = PaddleOCR(use_angle_cls=True, lang="pt", show_log=False)
+# Carregado uma vez no start. Os modelos vêm dentro da wheel — sem download.
+_ocr = RapidOCR()
 
 
 def _abrir(conteudo: bytes) -> np.ndarray:
-    """Bytes -> RGB numpy, respeitando a orientação EXIF.
+    """Bytes -> BGR numpy, respeitando a orientação EXIF.
 
-    O `exif_transpose` não é detalhe: celular grava a foto no sensor e a
-    rotação vai só no metadado. Sem isso, metade das etiquetas chega deitada e
-    o OCR devolve lixo.
+    O `exif_transpose` não é detalhe: celular grava a foto na orientação do
+    sensor e a rotação vai só no metadado. Sem isso, metade das etiquetas chega
+    deitada e o OCR devolve lixo.
     """
     try:
         img = Image.open(io.BytesIO(conteudo))
@@ -59,28 +60,27 @@ def _abrir(conteudo: bytes) -> np.ndarray:
         novo = (max(1, int(img.width * escala)), max(1, int(img.height * escala)))
         img = img.resize(novo, Image.LANCZOS)
 
-    return np.array(img)
+    # RapidOCR roda sobre OpenCV, que assume BGR. Inverter o canal aqui evita
+    # depender do que a lib faz por dentro com um array RGB.
+    return np.array(img)[:, :, ::-1].copy()
 
 
 def _normalizar_saida(bruto) -> list[dict]:
-    """Achata o retorno do PaddleOCR para `[{texto, confianca, box}]`.
+    """Achata o retorno do RapidOCR para `[{texto, confianca, box}]`.
 
-    O formato varia entre versões da lib; por isso o try/except por item em vez
-    de confiar na forma. Item que não encaixa é descartado, não derruba a
-    requisição — perder uma linha é melhor que perder a etiqueta inteira.
+    Formato de origem: `[[box_4_pontos, texto, confianca], ...]`, ou `None`
+    quando não achou texto nenhum.
+
+    O try/except por item é proposital: item fora do formato é descartado, não
+    derruba a requisição — perder uma linha é melhor que perder a etiqueta.
     """
     linhas: list[dict] = []
     if not bruto:
         return linhas
 
-    # 2.x devolve uma lista por imagem; mandamos uma imagem só.
-    paginas = bruto[0] if len(bruto) == 1 and isinstance(bruto[0], list) else bruto
-    if not paginas:
-        return linhas
-
-    for item in paginas:
+    for item in bruto:
         try:
-            caixa, (texto, confianca) = item[0], item[1]
+            caixa, texto, confianca = item[0], item[1], item[2]
             texto = (texto or "").strip()
             if not texto or float(confianca) < CONFIANCA_MINIMA:
                 continue
@@ -122,7 +122,7 @@ async def ocr(file: UploadFile = File(...)):
 
     inicio = time.monotonic()
     imagem = _abrir(conteudo)
-    bruto = _ocr.ocr(imagem, cls=True)
+    bruto, _elapse = _ocr(imagem, text_score=CONFIANCA_MINIMA)
     linhas = _normalizar_saida(bruto)
     ms = int((time.monotonic() - inicio) * 1000)
 

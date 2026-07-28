@@ -19,7 +19,8 @@ está no ar** — ela depende de o parser acertar, e o parser só acerta depois 
 ver etiqueta de verdade.
 
 ### Adicionado
-- **Serviço de OCR próprio** (`ocr/`): PaddleOCR num container à parte, com
+- **Serviço de OCR próprio** (`ocr/`): RapidOCR (modelos PP-OCRv4 em ONNX
+  Runtime) num container à parte, com
   `POST /ocr`. Roda dentro do servidor — nenhuma foto de etiqueta, que tem nome
   e endereço de morador, sai da nossa infra. Registrado no `docker-compose.yml`
   da raiz e no `deploy/`, então sobe sozinho no `./deploy.sh`.
@@ -34,12 +35,15 @@ ver etiqueta de verdade.
   `OCR_TIMEOUT_MS`.
 
 ### Notas
-- **O primeiro deploy com isto demora muito mais que o normal**: a imagem do OCR
-  compila dependência nativa e baixa os modelos no build (vários minutos, ~2 GB).
-  Os deploys seguintes usam cache.
 - Sem `OCR_BASE_URL` o módulo responde 503 e o resto da API não sente — o
-  container de OCR é o mais pesado da stack (~1,5 GB de RAM em pico) e precisa
-  poder ficar de fora num servidor apertado.
+  container de OCR pode ficar de fora num servidor apertado.
+- **PaddleOCR foi a primeira escolha e não funcionou**: a wheel do PaddlePaddle
+  aborta com `double free or corruption` na inicialização em parte dos
+  servidores, e ainda pesava ~2 GB para servir um modelo de 15 MB. O RapidOCR
+  usa **os mesmos modelos** convertidos para ONNX, embutidos na wheel (build sem
+  download, ~400 MB de imagem, ~300–500 MB de RAM).
+- `rapidocr-onnxruntime` está travado em **1.4.x** e exige **Python < 3.13** — é
+  por isso que o Dockerfile usa 3.11. Ver `ocr/README.md`.
 
 ## 0.17.0 — 2026-07-28
 

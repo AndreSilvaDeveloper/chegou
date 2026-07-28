@@ -89,13 +89,13 @@ services:
       "
     restart: "no"
 
-  # ---- OCR de etiquetas (PaddleOCR) ----
+  # ---- OCR de etiquetas (RapidOCR / ONNX Runtime) ----
   # A porta é publicada como a do postgres/redis/minio: em dev é comum rodar a
   # API fora do Docker (`npm run start:dev`), e aí `http://ocr:8000` não resolve
   # — o nome do serviço só existe na rede do compose. Em produção
   # (`deploy/docker-compose.yml`) o serviço NÃO publica porta: lá só a API fala
   # com ele, e o OCR não tem autenticação nenhuma.
-  # O primeiro build demora (baixa os modelos); depois é cache. Ver ocr/README.md.
+  # Os modelos vêm dentro da wheel: build sem download. Ver ocr/README.md.
   ocr:
     build:
       context: ./ocr
