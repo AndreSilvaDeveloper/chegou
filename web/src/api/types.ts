@@ -514,7 +514,13 @@ export interface TemplateVariavel {
   exemplo: string;
 }
 
-/** Config de disparo/modelos de mensagem do próprio condomínio (endpoint do síndico). */
+/**
+ * Config de disparo/modelos de mensagem de um condomínio.
+ *
+ * A mesma forma serve às duas telas: a do condomínio (`/whatsapp/config`) e a
+ * da plataforma (`/admin/tenants/:id/whatsapp/config`). O que muda vem dentro
+ * da resposta — `limites` e `jitterEditavel` —, nunca do lado do cliente.
+ */
 export interface WhatsappTenantConfig {
   /** Texto salvo pelo condomínio; vazio = está usando o padrão do sistema. */
   templateEncomenda: string;
@@ -528,7 +534,7 @@ export interface WhatsappTenantConfig {
   limiteDiario: number;
   horarioEnvioInicio: string;
   horarioEnvioFim: string;
-  /** Faixas que o condomínio pode escolher; vêm do backend, não replique aqui. */
+  /** Faixas de quem está editando; vêm do backend, não replique aqui. */
   limites: {
     intervaloMinimoSegundos: number;
     janelaMinima: string;
@@ -536,35 +542,8 @@ export interface WhatsappTenantConfig {
     limiteDiarioMinimo: number;
     limiteDiarioMaximo: number;
   };
-}
-
-/** Linha do painel WhatsApp do super admin (por condomínio). */
-export interface AdminWhatsappCondominio {
-  id: string;
-  nome: string;
-  slug: string;
-  ativo: boolean;
-  provisionado: boolean;
-  status: string | null;
-  conectado: boolean;
-  numero: string | null;
-  disparosEncomenda: number;
-  disparosAviso: number;
-  intervaloSegundos: number;
-  jitterSegundos: number;
-  limiteDiario: number;
-  horarioEnvioInicio: string;
-  horarioEnvioFim: string;
-  templateEncomenda: string;
-  templateRetirada: string;
-}
-
-export interface AdminWhatsappResponse {
-  variaveis: TemplateVariavel[];
-  templatePadrao: string;
-  variaveisRetirada: TemplateVariavel[];
-  templatePadraoRetirada: string;
-  condominios: AdminWhatsappCondominio[];
+  /** O jitter é editável nesta tela? Só na da plataforma. */
+  jitterEditavel: boolean;
 }
 
 export type TipoNotificacao = 'encomenda' | 'cobranca_vaga' | 'cobranca_condominio' | 'aviso' | 'lembrete';
@@ -745,6 +724,43 @@ export interface MinhaAssinatura {
   conta: PreviaAssinatura | null;
   faturas: AssinaturaFatura[];
   /** `null` quando não há vencimento por perto nem atraso. */
+  aviso: AvisoVencimento | null;
+}
+
+/**
+ * A participação de um condomínio numa fatura que não é dele.
+ *
+ * Condomínio de carteira é uma **linha** da fatura da administradora, não um
+ * sacado. Sem isso a tela dele mostraria histórico vazio.
+ */
+export interface ParticipacaoEmFatura {
+  faturaId: string;
+  competencia: string;
+  vencimento: string;
+  status: StatusFatura;
+  apartamentos: number;
+  subtotal: number;
+  /** O total da fatura inteira, para o item ser lido em proporção. */
+  valorFatura: number;
+  /** Quem recebeu a cobrança. */
+  sacadoNome: string;
+}
+
+/** A aba "Assinatura" de um condomínio, numa resposta só. */
+export interface ContaDoCondominio {
+  responsavel: ResponsavelPeloCondominio;
+  /** `null` quando quem paga é a administradora. */
+  conta: PreviaAssinatura | null;
+  /** Quanto este condomínio soma hoje na conta de quem paga por ele. */
+  participacaoAtual: { apartamentos: number; subtotal: number } | null;
+  /** Dia negociado com este condomínio. `null` = segue o padrão. */
+  diaVencimento: number | null;
+  diaVencimentoPadrao: number;
+  condicoes: AssinaturaCondicao[];
+  /** Faturas próprias — vazio quando o condomínio é de carteira. */
+  faturas: AssinaturaFatura[];
+  /** Faturas da administradora em que ele entrou — vazio quando é direto. */
+  participacoes: ParticipacaoEmFatura[];
   aviso: AvisoVencimento | null;
 }
 

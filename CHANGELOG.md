@@ -11,6 +11,91 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.21.0 — 2026-07-30
+
+**O condomínio virou o lugar onde tudo sobre ele é resolvido.** Antes, para
+atender um cliente, a plataforma pulava entre um painel de WhatsApp com todos os
+condomínios juntos e uma tela de assinaturas com todos os clientes juntos.
+Agora `/admin/condominios/:id` tem sete abas e as duas novas — **Assinatura** e
+**WhatsApp** — respondem por aquele condomínio, sem precisar "entrar" nele.
+
+### Adicionado
+- **Aba WhatsApp do condomínio** (`/admin/tenants/:tenantId/whatsapp`): conexão
+  (QR, reconectar, desconectar), modelos de mensagem e ritmo de envio, operados
+  pela plataforma. Existe por suporte: o QR e o "desconectar" eram só do
+  síndico, então, quando o número caía, a plataforma não tinha como reconectar
+  sem pedir a senha do cliente.
+  - As faixas de edição **mudam com quem edita**: o síndico continua preso às
+    regras anti-bloqueio (intervalo ≥ 60s, janela 08:00–21:00, 20 a 300/dia); a
+    plataforma edita livre e ainda ajusta o `jitter`, que o condomínio nem
+    enxerga. A tela é a mesma — ela valida pelo que o `GET` devolve em `limites`
+    e `jitterEditavel`, em vez de repetir os números.
+  - **Janela invertida continua recusada nos dois escopos**: não é uma licença
+    da plataforma, é fila parada — nenhuma mensagem sairia.
+- **Aba Assinatura do condomínio** (`/admin/assinaturas/condominios/:tenantId`):
+  quanto ele custa e por quê, preço especial, dia de vencimento e o histórico de
+  cobrança, numa resposta só.
+  - **Condomínio de carteira deixou de mostrar histórico vazio.** Ele não tem
+    fatura própria — é uma *linha* da fatura da administradora —, e agora a tela
+    mostra exatamente isso: em quais faturas dela ele entrou, com o subtotal
+    dele ao lado do total, e quanto ele pesa na conta hoje.
+- **Dia de vencimento por condomínio** (`tenants.assinatura_dia_vencimento`,
+  migration 027): o cliente que negociou "eu pago dia 5" passa a ter o dia dele
+  na geração do lote. Sem isso, atendê-lo exigiria gerar a competência duas
+  vezes, o que a idempotência da geração impede.
+  - `NULL` (o caso da maioria) segue o dia pedido na geração, ou o padrão da
+    plataforma — dia 10. A tela diz qual é o padrão que ele está seguindo.
+  - **Não muda fatura já emitida**: o vencimento dela é fotografia. Vale da
+    próxima geração em diante.
+  - Recusado em condomínio de carteira: quem vence lá é a administradora, e
+    aceitar o dia daria a impressão de um combinado que nunca seria aplicado.
+- **A administradora vê a assinatura de cada condomínio da carteira**
+  (`/minha-administradora/condominios/:tenantId/assinatura`), em leitura: quanto
+  aquele condomínio pesa na conta dela e o que já foi cobrado. Negociar preço e
+  vencimento continua só do superadmin.
+- **Abas Assinatura e WhatsApp também em `/meus-condominios/:id`**, a tela da
+  administradora — a de assinatura em leitura, a de WhatsApp editável (é
+  operacional do condomínio, o mesmo que ela já fazia entrando nele).
+
+### Alterado
+- **Os três cards de WhatsApp (conexão, modelos, envio) aceitam `basePath`** e
+  são empilhados por `WhatsappCondominioPanel`, usado pelas três telas que
+  mostram isso. Card novo entra uma vez e aparece nas três. Mesma ideia do
+  `AssinaturaCondominioPanel`, que muda de endpoint pelo `podeEditar`.
+- Chaves de query do WhatsApp passaram a carregar o `basePath` — sem isso, a
+  config de um condomínio apareceria na aba de outro.
+
+### Removido
+- **Painel consolidado `/admin/whatsapp`** (tela, controller e serviço). Sessão,
+  modelos e ritmo são de **um** condomínio de cada vez; a lista de todos junta
+  não era onde o problema era resolvido. O item some do menu da Plataforma.
+- **Provisionamento em lote** (`provisionMissing`): existia para aquele painel, e
+  o status da conexão já provisiona sozinho quando a instância falta.
+
+---
+
+## 0.20.1 — 2026-07-30
+
+### Adicionado
+- **"Lembrar meus dados" na tela de login**: caixa de seleção que guarda e-mail
+  e senha no aparelho e traz os campos preenchidos no próximo acesso. O porteiro
+  entra e sai do painel várias vezes por turno, quase sempre no mesmo celular da
+  portaria — digitar e-mail e senha em teclado de celular era o atrito do
+  começo de cada uso.
+  - A caixa vem **desmarcada** e diz o que faz ("só marque se ele for seu"): a
+    senha fica em texto puro no `localStorage`, e quem marca precisa saber.
+  - Grava **só depois do login dar certo** — senha errada não vira senha salva.
+  - Desmarcar apaga na hora, sem esperar um login novo.
+- **`Checkbox` / `CheckboxField`** (`web/src/components/ui/checkbox.tsx`): caixa
+  de seleção do design system, sem dependência nova, com o texto dentro de um
+  alvo de toque de 48px.
+
+### Alterado
+- Campos de e-mail e senha do login agora declaram `autoComplete`, para o
+  gerenciador de senhas do navegador funcionar como o usuário espera.
+
+---
+
 ## 0.20.0 — 2026-07-30
 
 **A leitura de etiqueta passou de protótipo a ferramenta.** A foto agora é

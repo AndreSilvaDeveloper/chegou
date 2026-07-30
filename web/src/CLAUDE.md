@@ -72,6 +72,21 @@ Na tela da administradora, plano, `ativo` e os módulos aparecem **de leitura**,
 com o motivo. Some-los faria o cliente achar que Vagas não existe e abrir
 chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
 
+As duas telas têm **sete abas**, e as duas últimas são painéis inteiros
+compartilhados, na mesma pasta:
+
+| Aba | Painel | Superadmin | Administradora |
+|---|---|---|---|
+| Assinatura | `AssinaturaCondominioPanel` | edita preço especial e vencimento (`podeEditar`) | só leitura |
+| WhatsApp | `WhatsappCondominioPanel` | edita, sem as travas anti-bloqueio | edita, com as travas do condomínio |
+
+O que troca o endpoint é `podeEditar` (assinatura) e `basePath` (WhatsApp) —
+`''` fala com as rotas do condomínio da sessão, `/admin/tenants/:id` com as da
+plataforma. É o mesmo mecanismo de `ApartamentosManager` e `MoradoresManager`.
+
+No celular as sete abas ficam 2 por linha (`grid-cols-2 sm:grid-cols-4
+lg:grid-cols-7`): o alvo de toque não encolhe para caber tudo numa fita.
+
 ## Padrões de tela
 
 | Situação | Use |
@@ -81,6 +96,7 @@ chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
 | Formulário | `FormDialog` (`components/ui/form-dialog.tsx`) |
 | Ação destrutiva | `ConfirmDialog` (nunca `confirm()`) |
 | Indicador numérico | `StatCard` |
+| Escolha de sim/não numa linha | `CheckboxField` (caixa + texto, alvo de 48px). `Switch` é para liga/desliga que vale na hora |
 | Select | `SimpleSelect` |
 | Select com lista grande | `SearchSelect` (busca por digitação; use `onSearchChange` para buscar no servidor) |
 | Campo com sugestões, mas que aceita o que for digitado | `Combobox` (ver abaixo) |

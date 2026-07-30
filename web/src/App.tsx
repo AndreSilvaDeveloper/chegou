@@ -24,7 +24,6 @@ const Vagas = React.lazy(() => import('./pages/Vagas').then(m => ({ default: m.V
 const Avisos = React.lazy(() => import('./pages/Avisos').then(m => ({ default: m.Avisos })));
 const Notificacoes = React.lazy(() => import('./pages/Notificacoes').then(m => ({ default: m.Notificacoes })));
 const Whatsapp = React.lazy(() => import('./pages/Whatsapp').then(m => ({ default: m.Whatsapp })));
-const AdminWhatsapp = React.lazy(() => import('./pages/AdminWhatsapp').then(m => ({ default: m.AdminWhatsapp })));
 const Assinatura = React.lazy(() => import('./pages/Assinatura').then(m => ({ default: m.Assinatura })));
 const SuperAdminAssinaturas = React.lazy(() => import('./pages/SuperAdminAssinaturas').then(m => ({ default: m.SuperAdminAssinaturas })));
 const SuperAdminEtiquetas = React.lazy(() => import('./pages/SuperAdminEtiquetas').then(m => ({ default: m.SuperAdminEtiquetas })));
@@ -52,7 +51,9 @@ export default function App() {
           <Route path="/moradores" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Moradores /></ProtectedRoute>} />
           <Route path="/equipe" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Equipe /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdmin /></ProtectedRoute>} />
-          <Route path="/admin/whatsapp" element={<ProtectedRoute allowedRoles={['superadmin']}><AdminWhatsapp /></ProtectedRoute>} />
+          {/* O WhatsApp do condomínio é uma aba de `/admin/condominios/:id` —
+              não há mais painel consolidado: a sessão, os modelos e o ritmo são
+              de um condomínio de cada vez. */}
           <Route path="/admin/condominios/:id" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminTenant /></ProtectedRoute>} />
           <Route path="/admin/administradoras" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminAdministradoras /></ProtectedRoute>} />
           <Route path="/admin/assinaturas" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminAssinaturas /></ProtectedRoute>} />

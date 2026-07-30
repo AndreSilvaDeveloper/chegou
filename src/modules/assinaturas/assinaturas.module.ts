@@ -11,6 +11,7 @@ import {
 } from '../../database/entities';
 import { AdminAssinaturasController } from './admin-assinaturas.controller';
 import {
+  AdministradoraCondominioAssinaturaController,
   AssinaturaCondominioController,
   MinhaAdministradoraAssinaturaController,
 } from './assinatura-cliente.controller';
@@ -39,6 +40,7 @@ import { AssinaturasService } from './assinaturas.service';
   controllers: [
     AdminAssinaturasController,
     MinhaAdministradoraAssinaturaController,
+    AdministradoraCondominioAssinaturaController,
     AssinaturaCondominioController,
   ],
   providers: [AssinaturasService, AssinaturaFaturasService],

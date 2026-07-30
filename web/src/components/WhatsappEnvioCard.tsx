@@ -16,18 +16,25 @@ interface Form {
   horarioEnvioInicio: string;
   horarioEnvioFim: string;
   limiteDiario: number;
+  jitterSegundos: number;
 }
 
 /**
- * Ritmo de envio do WhatsApp do condomínio, editável pelo síndico.
+ * Ritmo de envio do WhatsApp do condomínio.
  *
  * As faixas permitidas vêm do backend (`cfg.limites`) — não são repetidas aqui
  * para a tela não divergir da validação. Elas existem por causa das regras
  * anti-bloqueio: mensagem rápida demais, de madrugada ou em volume alto é o que
  * derruba o número do condomínio.
+ *
+ * **A mesma tela serve aos dois escopos.** O síndico recebe as faixas apertadas;
+ * a plataforma (`basePath = /admin/tenants/:id`) recebe faixas livres e o campo
+ * de jitter — quem decide é a resposta do servidor (`limites`, `jitterEditavel`),
+ * nunca uma prop de aparência.
  */
-export function WhatsappEnvioCard() {
+export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
   const queryClient = useQueryClient();
+  const chaveConfig = ['whatsapp-config', basePath];
   const [form, setForm] = useState<Form | null>(null);
   // Guarda a última versão do servidor já aplicada no formulário: salvar o card
   // dos modelos atualiza a mesma query, e sem isto o que estivesse sendo
@@ -35,8 +42,8 @@ export function WhatsappEnvioCard() {
   const sincronizado = useRef<string | null>(null);
 
   const configQuery = useQuery({
-    queryKey: ['whatsapp-config'],
-    queryFn: () => api.get<WhatsappTenantConfig>('/whatsapp/config'),
+    queryKey: chaveConfig,
+    queryFn: () => api.get<WhatsappTenantConfig>(`${basePath}/whatsapp/config`),
   });
 
   useEffect(() => {
@@ -47,6 +54,7 @@ export function WhatsappEnvioCard() {
       horarioEnvioInicio: cfg.horarioEnvioInicio,
       horarioEnvioFim: cfg.horarioEnvioFim,
       limiteDiario: cfg.limiteDiario,
+      jitterSegundos: cfg.jitterSegundos,
     };
     const assinatura = JSON.stringify(doServidor);
     if (sincronizado.current === assinatura) return;
@@ -55,10 +63,16 @@ export function WhatsappEnvioCard() {
   }, [configQuery.data]);
 
   const saveMutation = useMutation({
-    mutationFn: (payload: Form) => api.patch<WhatsappTenantConfig>('/whatsapp/config', payload),
+    // O jitter só vai quando a tela pode editá-lo: mandar um campo que o DTO do
+    // síndico não declara é um 400 na cara de quem só mexeu no intervalo.
+    mutationFn: ({ jitterSegundos, ...resto }: Form) =>
+      api.patch<WhatsappTenantConfig>(`${basePath}/whatsapp/config`, {
+        ...resto,
+        ...(configQuery.data?.jitterEditavel ? { jitterSegundos } : {}),
+      }),
     onSuccess: (data) => {
       toast.success('Regras de envio salvas!');
-      queryClient.setQueryData(['whatsapp-config'], data);
+      queryClient.setQueryData(chaveConfig, data);
     },
     onError: (e: ApiError) => toast.error(mensagemErro(e, 'Não foi possível salvar as regras')),
   });
@@ -72,7 +86,8 @@ export function WhatsappEnvioCard() {
     form.intervaloSegundos !== cfg.intervaloSegundos ||
     form.horarioEnvioInicio !== cfg.horarioEnvioInicio ||
     form.horarioEnvioFim !== cfg.horarioEnvioFim ||
-    form.limiteDiario !== cfg.limiteDiario;
+    form.limiteDiario !== cfg.limiteDiario ||
+    (cfg.jitterEditavel && form.jitterSegundos !== cfg.jitterSegundos);
 
   // Erros conferidos antes de enviar, para o síndico ver o problema no campo e
   // não num toast depois do 400.
@@ -158,6 +173,34 @@ export function WhatsappEnvioCard() {
             {erros.limite && <p className="txt-corpo font-medium text-destructive">{erros.limite}</p>}
           </div>
 
+          {/* Só a plataforma mexe no jitter: ele é o disfarce da cadência, não
+              uma preferência do condomínio. */}
+          {cfg.jitterEditavel && (
+            <div className="space-y-2">
+              <Label htmlFor="jitter">Aleatoriedade extra</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="jitter"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={3600}
+                  step={5}
+                  value={form.jitterSegundos}
+                  onChange={(e) => setForm({ ...form, jitterSegundos: num(e.target.value, cfg.jitterSegundos) })}
+                  disabled={saveMutation.isPending}
+                  className="min-h-[48px] max-w-[10rem] txt-corpo"
+                />
+                <span className="txt-corpo text-muted-foreground">segundos</span>
+              </div>
+              <p className="txt-apoio text-muted-foreground">
+                Somados por sorteio a cada mensagem, por cima da espera fixa. É o que impede o
+                envio de sair sempre no mesmo compasso — e é por isso que o condomínio não
+                configura este campo.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="inicio">Enviar a partir de</Label>
             <Input
@@ -210,6 +253,7 @@ export function WhatsappEnvioCard() {
                 horarioEnvioInicio: cfg.horarioEnvioInicio,
                 horarioEnvioFim: cfg.horarioEnvioFim,
                 limiteDiario: cfg.limiteDiario,
+                jitterSegundos: cfg.jitterSegundos,
               })}
               disabled={saveMutation.isPending}
               className="min-h-[48px] w-full sm:w-auto"

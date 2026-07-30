@@ -21,8 +21,10 @@ function OrigemBadge({ personalizado }: { personalizado: boolean }) {
   );
 }
 
-export function WhatsappTemplateCard() {
+/** Ver `WhatsappConnectionCard` para o que `basePath` significa. */
+export function WhatsappTemplateCard({ basePath = '' }: { basePath?: string }) {
   const queryClient = useQueryClient();
+  const chaveConfig = ['whatsapp-config', basePath];
   const [chegada, setChegada] = useState('');
   const [retirada, setRetirada] = useState('');
   // Só relê do servidor quando os textos mudaram lá: salvar o card de regras
@@ -30,8 +32,8 @@ export function WhatsappTemplateCard() {
   const sincronizado = useRef<string | null>(null);
 
   const configQuery = useQuery({
-    queryKey: ['whatsapp-config'],
-    queryFn: () => api.get<WhatsappTenantConfig>('/whatsapp/config'),
+    queryKey: chaveConfig,
+    queryFn: () => api.get<WhatsappTenantConfig>(`${basePath}/whatsapp/config`),
   });
 
   // O campo já abre com o texto que o morador recebe hoje — do condomínio, se
@@ -53,10 +55,10 @@ export function WhatsappTemplateCard() {
 
   const saveMutation = useMutation({
     mutationFn: (payload: { templateEncomenda?: string; templateRetirada?: string }) =>
-      api.patch<WhatsappTenantConfig>('/whatsapp/config', payload),
+      api.patch<WhatsappTenantConfig>(`${basePath}/whatsapp/config`, payload),
     onSuccess: (data) => {
       toast.success('Modelos de mensagem salvos!');
-      queryClient.setQueryData(['whatsapp-config'], data);
+      queryClient.setQueryData(chaveConfig, data);
     },
     onError: (e: ApiError) => toast.error(mensagemErro(e, 'Não foi possível salvar os modelos')),
   });

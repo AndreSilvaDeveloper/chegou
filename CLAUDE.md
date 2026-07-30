@@ -226,6 +226,7 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Gestão de qualquer condomínio (`/admin/tenants/:id/...`) | ✅ | — | — | — |
 | Módulos contratados e plano do condomínio | ✅ | — | — | — |
 | Assinatura: tabela de preços, preço especial, gerar e dar baixa em fatura | ✅ | — | — | — |
+| Assinatura de um condomínio: preço especial e dia de vencimento dele | ✅ | ⁶ | — | — |
 | Banco de amostras de etiqueta (calibrar a leitura por foto) | ✅ | — | — | — |
 | Ler etiqueta por foto ao registrar encomenda | — | — | ✅ | ✅ |
 | Carteira própria (listar/criar/editar condomínios) | — | ✅ | — | — |
@@ -253,9 +254,11 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 ¹ O superadmin cria usuários pelas rotas `/admin/tenants/:id/usuarios`, não pela
 rota `/usuarios` (que é do condomínio). Ninguém cria `superadmin` pela API.
 
-² Idem: o superadmin edita isso em `/admin/whatsapp`, sem as faixas de segurança
-que valem para o síndico (intervalo ≥ 60s, janela dentro de 08:00–21:00, limite
-de 20 a 300/dia).
+² O superadmin edita o mesmo dado na aba WhatsApp do condomínio
+(`/admin/condominios/:id`), sem as faixas de segurança que valem para o síndico
+(intervalo ≥ 60s, janela dentro de 08:00–21:00, limite de 20 a 300/dia) e com o
+jitter, que o condomínio nem enxerga. Não há painel consolidado de WhatsApp: a
+sessão é de um condomínio de cada vez.
 
 ³ A conta da administradora é a da **carteira inteira**, em
 `/minha-administradora/assinatura` — não a de um condomínio. É a única coisa que
@@ -270,9 +273,16 @@ módulos contratados descrevem o *contrato* e continuam só no superadmin.
 botão na mão de quem paga a fatura seria o botão de baixar a própria conta. A
 tela dela é `/meus-condominios/:id`; a do superadmin, `/admin/condominios/:id`.
 
+⁶ **Só leitura, e sem entrar no condomínio.** A administradora abre a aba
+"Assinatura" de um condomínio da carteira para ver quanto ele pesa na conta dela
+e o histórico de cobrança dele — negociar preço e vencimento é do superadmin. O
+condomínio vem da URL (`/minha-administradora/condominios/:id/assinatura`), mas
+a carteira sai do usuário logado: condomínio de outra carteira responde 404.
+
 **A administradora só enxerga isso dentro dos condomínios da carteira dela**, e
-sempre com o condomínio escolhido no header `X-Tenant-Id`. Ver "Escopo da
-request" acima.
+sempre com o condomínio escolhido no header `X-Tenant-Id` — as exceções são as
+duas rotas de `/minha-administradora/...`, onde o condomínio vem da URL e a
+carteira do usuário logado. Ver "Escopo da request" acima.
 
 ### 🚦 Regra de ouro para funcionalidade nova
 
@@ -380,7 +390,8 @@ mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a do
 5. **Horário comercial**: Enviar apenas entre **8h e 21h** (horário local). O
    síndico ajusta a janela em `/whatsapp`, mas **só para dentro** desse
    intervalo — esticar para a madrugada é o que queima o número. Quem pode sair
-   da faixa é o superadmin, em `/admin/whatsapp`
+   da faixa é o superadmin, na aba WhatsApp daquele condomínio
+   (`/admin/condominios/:id`)
 6. **Sem envio em massa simultâneo**: Fila serializada por número remetente
 
 ### Conteúdo
@@ -613,8 +624,10 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
 | `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
+| `CheckboxField` | `web/src/components/ui/checkbox.tsx` | Caixa de seleção com texto num alvo de toque de 48px |
 | `EmptyState` / `StatCard` / `ConfirmDialog` / `SimpleSelect` | `web/src/components/ui/` | Estado vazio, indicador, confirmação e select |
 | `OptionCard` / `ModuleToggle` / `ModuleReadonly` / `InfoPill` | `web/src/components/condominio/condominio-shared.tsx` | Telas de configurar condomínio (superadmin e administradora) |
+| `AssinaturaCondominioPanel` / `WhatsappCondominioPanel` | `web/src/components/condominio/` | Abas "Assinatura" e "WhatsApp" de um condomínio, nas telas do superadmin e da administradora |
 | `useAuthMe` / `useCondominioAtivo` / `useModuleEnabled` | `web/src/hooks/use-tenant-config.ts` | Usuário, condomínio ativo e módulos contratados |
 
 Se você está prestes a copiar um trecho de outro arquivo, considere extrair a

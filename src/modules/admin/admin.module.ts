@@ -8,9 +8,13 @@ import { OpenwaModule } from '../openwa/openwa.module';
 import { AdminTenantManagementController } from './admin-tenant-management.controller';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
-import { AdminWhatsappController } from './admin-whatsapp.controller';
-import { AdminWhatsappService } from './admin-whatsapp.service';
 
+/**
+ * O WhatsApp por condomínio **não** mora aqui: ele é
+ * `AdminTenantWhatsappController`, no módulo OpenWA, junto do serviço que opera
+ * a sessão. A visão consolidada de `/admin/whatsapp` deixou de existir quando o
+ * assunto virou uma aba de cada condomínio.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Tenant, User, Notificacao]),
@@ -19,8 +23,8 @@ import { AdminWhatsappService } from './admin-whatsapp.service';
     ApartamentosModule,
     OpenwaModule,
   ],
-  controllers: [AdminController, AdminTenantManagementController, AdminWhatsappController],
-  providers: [AdminService, AdminWhatsappService],
+  controllers: [AdminController, AdminTenantManagementController],
+  providers: [AdminService],
   // O módulo de administradoras reaproveita a criação de condomínio.
   exports: [AdminService],
 })

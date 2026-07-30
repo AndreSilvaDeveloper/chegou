@@ -1,6 +1,7 @@
 import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
 import { AdministradoraId, Roles, TenantId } from '../../common/decorators';
 import { AssinaturaFaturasService } from './assinatura-faturas.service';
+import { AssinaturasService } from './assinaturas.service';
 
 /**
  * A assinatura vista pela **administradora**: a carteira inteira numa conta só.
@@ -25,6 +26,35 @@ export class MinhaAdministradoraAssinaturaController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.faturas.obterDaAdministradora(administradoraId, id);
+  }
+}
+
+/**
+ * A conta de **um condomínio da carteira**, para a administradora.
+ *
+ * Só leitura, e é a mesma resposta que o superadmin recebe — o que ela vê aqui
+ * é quanto aquele condomínio pesa na fatura da carteira e o histórico dele.
+ * Quem paga continua sendo ela: não há fatura própria do condomínio para operar.
+ *
+ * O `:tenantId` vem da URL, mas **a carteira não**: ela sai de
+ * `@AdministradoraId()` e o condomínio é conferido contra ela. Condomínio de
+ * outra carteira responde 404, nunca 403.
+ */
+@Controller('minha-administradora/condominios/:tenantId/assinatura')
+@Roles('admin')
+export class AdministradoraCondominioAssinaturaController {
+  constructor(
+    private readonly faturas: AssinaturaFaturasService,
+    private readonly assinaturas: AssinaturasService,
+  ) {}
+
+  @Get()
+  async conta(
+    @AdministradoraId() administradoraId: string,
+    @Param('tenantId', ParseUUIDPipe) tenantId: string,
+  ) {
+    await this.assinaturas.assertCondominioDaCarteira(administradoraId, tenantId);
+    return this.faturas.contaDoCondominio(tenantId);
   }
 }
 

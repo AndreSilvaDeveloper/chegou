@@ -84,7 +84,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/admin', label: 'Condomínios', icon: Building, roles: ['superadmin'], end: true, group: 'Plataforma' },
   { path: '/admin/administradoras', label: 'Administradoras', icon: Briefcase, roles: ['superadmin'], group: 'Plataforma' },
   { path: '/admin/assinaturas', label: 'Assinaturas', icon: Receipt, roles: ['superadmin'], group: 'Plataforma' },
-  { path: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle, roles: ['superadmin'], group: 'Plataforma' },
+  // Sem item de WhatsApp na plataforma: a sessão de cada condomínio é uma aba
+  // dele, em `/admin/condominios/:id` — não há painel consolidado.
   { path: '/admin/etiquetas', label: 'Etiquetas', icon: ScanText, roles: ['superadmin'], group: 'Plataforma' },
 ];
 

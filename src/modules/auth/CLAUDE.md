@@ -48,6 +48,25 @@ administradora → `/meus-condominios`, demais → `/`) e
 `web/src/hooks/use-tenant-config.ts` (`useAuthMe`, uma query compartilhada por
 toda a árvore).
 
+### "Lembrar meus dados"
+
+A caixa na tela de login guarda **e-mail e senha** no `localStorage` do aparelho
+(`web/src/lib/lembrar-login.ts`) para o porteiro não redigitar tudo a cada turno
+no celular da portaria. Três decisões que não são detalhe:
+
+- **A senha fica em texto puro.** `localStorage` não é cofre; embaralhar o valor
+  só disfarçaria e daria falsa sensação de segurança. Por isso a caixa nasce
+  desmarcada e a própria tela diz "só marque se ele for seu" — é uma escolha
+  informada de quem usa, não um padrão silencioso.
+- **Só grava depois do 200.** Salvar antes guardaria a senha errada de quem
+  errou a digitação, e ela voltaria pronta para errar de novo no dia seguinte.
+- **Sair do sistema não apaga.** `clearToken()` derruba a sessão e mantém o que
+  foi lembrado — é o ponto da funcionalidade. Quem quer esquecer desmarca a
+  caixa, e o apagamento é imediato (não espera um login novo).
+
+Se um dia isso incomodar em portaria com aparelho compartilhado, o corte menor é
+lembrar só o e-mail: `setLoginLembrado({ email, senha: '' })`.
+
 ## Ao alterar este módulo
 
 - [ ] Campo novo em `AuthenticatedUser` → atualize `types.ts`, `JwtStrategy`,

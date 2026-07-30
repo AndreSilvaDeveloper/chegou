@@ -192,6 +192,79 @@ export class AssinaturasService {
     };
   }
 
+  /**
+   * O condomínio é da carteira desta administradora — ou não existe para ela.
+   *
+   * **404, não 403**, pela mesma disciplina das rotas de fatura do cliente:
+   * quem não é dono não pode nem descobrir que o condomínio existe.
+   */
+  async assertCondominioDaCarteira(administradoraId: string, tenantId: string): Promise<void> {
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: tenantId },
+      select: { id: true, administradoraId: true },
+    });
+    if (!tenant || tenant.administradoraId !== administradoraId) {
+      throw new NotFoundException('Condomínio não encontrado');
+    }
+  }
+
+  // ------------------------------------------------------------ dia de vencimento
+
+  /**
+   * Dia de vencimento negociado com este condomínio. `null` = segue o padrão da
+   * plataforma.
+   */
+  async diaVencimentoDoCondominio(tenantId: string): Promise<number | null> {
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: tenantId },
+      select: { id: true, assinaturaDiaVencimento: true },
+    });
+    if (!tenant) throw new NotFoundException('Condomínio não encontrado');
+    return tenant.assinaturaDiaVencimento;
+  }
+
+  /**
+   * O dia de cada condomínio que negociou um, numa consulta só.
+   *
+   * A geração percorre todos os clientes; buscar o dia condomínio a condomínio
+   * seria uma consulta por fatura emitida.
+   */
+  async diasDeVencimentoPorCondominio(): Promise<Map<string, number>> {
+    const linhas = await this.tenantRepo
+      .createQueryBuilder('t')
+      .select('t.id', 'id')
+      .addSelect('t.assinatura_dia_vencimento', 'dia')
+      .where('t.assinatura_dia_vencimento IS NOT NULL')
+      .getRawMany<{ id: string; dia: number }>();
+
+    return new Map(linhas.map((l) => [l.id, Number(l.dia)]));
+  }
+
+  /**
+   * Define (ou limpa, com `null`) o dia de vencimento do condomínio.
+   *
+   * **Não mexe em fatura já emitida**: o vencimento dela é fotografia. Vale a
+   * partir da próxima geração — a tela precisa dizer isso, senão o superadmin
+   * troca o dia esperando que a fatura em aberto mude junto.
+   */
+  async definirDiaVencimento(tenantId: string, dia: number | null): Promise<number | null> {
+    const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
+    if (!tenant) throw new NotFoundException('Condomínio não encontrado');
+
+    // Condomínio de carteira não tem fatura própria: quem vence é a
+    // administradora. Aceitar o dia aqui daria a impressão de um combinado que
+    // nunca seria aplicado — o mesmo motivo pelo qual o preço especial dele é
+    // recusado.
+    if (tenant.administradoraId) {
+      throw new BadRequestException(
+        'Este condomínio é cobrado pela administradora dele — o vencimento é o da fatura dela',
+      );
+    }
+
+    await this.tenantRepo.update(tenantId, { assinaturaDiaVencimento: dia });
+    return dia;
+  }
+
   // -------------------------------------------------------------- preço especial
 
   /** Condições de um cliente (ou de todos), da mais recente para a mais antiga. */

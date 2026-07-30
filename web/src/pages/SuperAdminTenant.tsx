@@ -10,6 +10,8 @@ import {
   TIPO_META,
   estruturaSugerida,
 } from '@/components/condominio/condominio-shared';
+import { AssinaturaCondominioPanel } from '@/components/condominio/AssinaturaCondominioPanel';
+import { WhatsappCondominioPanel } from '@/components/condominio/WhatsappCondominioPanel';
 import { ApartamentosManager } from '../components/ApartamentosManager';
 import { MoradoresManager } from '../components/MoradoresManager';
 import { EquipeManager } from '../components/EquipeManager';
@@ -24,11 +26,18 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   ArrowLeft, Building2, Store, Blend, Home, Layers, Loader2, MapPin, CreditCard,
   CalendarDays, Users, DoorClosed, Settings2, SlidersHorizontal, Save, Car, Bell,
-  Clock, Power,
+  Clock, Power, Receipt, MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-type Tab = 'dados' | 'config' | 'apartamentos' | 'moradores' | 'equipe';
+type Tab =
+  | 'dados'
+  | 'config'
+  | 'apartamentos'
+  | 'moradores'
+  | 'equipe'
+  | 'assinatura'
+  | 'whatsapp';
 
 export function SuperAdminTenant() {
   const { id } = useParams<{ id: string }>();
@@ -117,6 +126,8 @@ export function SuperAdminTenant() {
     { key: 'apartamentos', label: 'Unidades', icon: DoorClosed },
     { key: 'moradores', label: 'Moradores', icon: Users },
     { key: 'equipe', label: 'Equipe', icon: Settings2 },
+    { key: 'assinatura', label: 'Assinatura', icon: Receipt },
+    { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
   ];
 
   return (
@@ -175,7 +186,9 @@ export function SuperAdminTenant() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-xs sm:grid-cols-5">
+        {/* Sete abas: no celular ficam 2 por linha (o alvo de toque não pode
+            encolher), no desktop cabem todas numa fita só. */}
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-xs sm:grid-cols-4 lg:grid-cols-7">
           {tabs.map((t) => (
             <TabsTrigger
               key={t.key}
@@ -359,6 +372,15 @@ export function SuperAdminTenant() {
 
         <TabsContent value="equipe" className="mt-0 animate-in fade-in zoom-in-95 duration-200">
           <EquipeManager basePath={base} allowedRoles={['porteiro', 'sindico', 'admin']} />
+        </TabsContent>
+
+        {/* O `id!` é seguro: a tela só chega aqui depois de carregar o tenant. */}
+        <TabsContent value="assinatura" className="mt-0 animate-in fade-in zoom-in-95 duration-200">
+          <AssinaturaCondominioPanel tenantId={id!} podeEditar />
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="mt-0 animate-in fade-in zoom-in-95 duration-200">
+          <WhatsappCondominioPanel basePath={base} />
         </TabsContent>
       </Tabs>
     </div>
