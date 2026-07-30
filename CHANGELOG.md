@@ -11,6 +11,85 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.20.0 — 2026-07-30
+
+**A leitura de etiqueta passou de protótipo a ferramenta.** A foto agora é
+preparada no celular antes de subir, o OCR foi reajustado para etiqueta térmica
+e o parser aprendeu as escritas que apareciam nas amostras reais. Junto veio o
+que faltava para medir tudo isso: um botão que relê as fotos no OCR.
+
+### Adicionado
+- **Preparo da foto no cliente** (`web/src/lib/imagem.ts`): reduz para o tamanho
+  que o OCR de fato usa e recomprime antes de subir. No 4G ruim de uma portaria
+  é a diferença entre ~30s e ~4s de espera, sem perder um pixel útil.
+- **Aviso de foto tremida** antes do upload — mede a nitidez na hora e oferece
+  "tirar outra" em vez de gastar upload e 1 a 3s de CPU para não ler nada.
+- **Visor de captura no desktop** (webcam, com escolha de câmera lembrada e
+  aviso quando a resolução da stream é baixa demais para o OCR). No celular
+  continua abrindo a câmera nativa, que tem autofoco e resolução melhores.
+- **Cancelar a leitura**: leitura travada prendia o porteiro por até 30s com
+  fila na frente.
+- **Selo "lido"** ao lado de cada campo que veio do OCR, na revisão — a leitura
+  é sugestão, e ele precisa saber onde olhar duas vezes.
+- **`POST /admin/etiquetas/reprocessar-ocr`** (superadmin) e o botão "Reler tudo
+  no OCR": baixa as fotos do bucket e relê antes de rodar o parser.
+- **HEIC no serviço de OCR** — a API já aceitava `image/heic` e o serviço não
+  abria: foto de iPhone morria como "Imagem inválida".
+- 15 transportadoras novas no reconhecimento (Magalu, Shein, AliExpress,
+  Rodonaves, Jamef, GOL Log, entre outras).
+
+### Corrigido
+- **Captura atravessando a quebra de linha no parser** — a classe de bug mais
+  cara que ele já teve: `QTD 1 UN` numa linha e `0,350 KG` na seguinte davam
+  `numero = 0`, e esse zero **vencia** o `APTO 51` verdadeiro impresso mais
+  abaixo. Campo preenchido com valor errado é pior que campo vazio: ninguém
+  confere o que já veio preenchido.
+- **Nome de morador descartado por palavra que só o contém**: "Maria Chaves",
+  "Ana Cristina Praça" e "Roberto Total" eram reprovados como se fossem
+  endereço ou dado logístico — e o parser caía no fallback que devolve o
+  **remetente**.
+- **Remetente eleito como destinatário** quando quem enviou é uma loja ("Loja
+  Fulano ME") ou quando a etiqueta marca `DESTINATÁRIO` mas não traz nome
+  legível ali.
+- **Etiqueta de marketplace classificada como Correios** por causa do "PAC" no
+  rodapé; e código com prefixo `BR…` rotulado como Shopee (é prefixo nacional
+  genérico, de várias transportadoras).
+- **Unidade não encontrada por diferença de escrita**: `302`, `0302`, `302-B` e
+  `302B` são a mesma porta, e o cadastro guarda o que o síndico digitou.
+- **Morador não encontrado** por pontuação, preposição, sufixo ("Junior") ou
+  nome cortado pela impressora térmica.
+- **`/health` do OCR mudo durante a inferência**, o que marcava o container como
+  unhealthy no meio de um lote de amostras.
+- **Sessão expirada durante um upload** virava toast genérico em vez de levar
+  ao login.
+- Escala tipográfica na tela de etiquetas do superadmin (era a única tela do
+  painel ainda com `text-sm`/`text-xs` solto).
+
+### Regras
+- **A busca da unidade olha fora do bloco, mas nunca escolhe.** A terceira
+  tentativa só aceita quando existe uma única unidade com aquele número no
+  condomínio inteiro. A regra é *nunca escolher entre várias* — desistir quando
+  não há ambiguidade nenhuma jogava fora o caso mais comum, a etiqueta cujo
+  bloco não saiu legível.
+- **Mudança no serviço de OCR só aparece no placar via `reprocessar-ocr`.** O
+  reprocessar barato roda apenas o parser sobre as linhas já gravadas — com ele,
+  todo ajuste em `ocr/app.py` era imensurável.
+- **Amostra cuja releitura falhar mantém as linhas antigas**: perder o histórico
+  por uma indisponibilidade momentânea destruiria o caso de regressão.
+- `PARSER_VERSAO` foi para **2**.
+
+### Infra
+- O container de OCR passa a limitar threads (`OMP_NUM_THREADS=2`), serializar a
+  inferência e recusar rajada rápido em vez de enfileirar até o timeout — numa
+  VPS onde API, Postgres, Redis e MinIO dividem a máquina, cada leitura roubava
+  CPU do banco.
+- Aquecimento do motor no start: a primeira inferência custa 2 a 4x o normal, e
+  quem pagava era sempre a primeira etiqueta do dia do porteiro.
+- `onnxruntime` travado em `<1.20`: o ORT muda default de threading entre
+  minors, e uma minor nova num rebuild alterava a latência sem mudança de código.
+
+---
+
 ## 0.19.0 — 2026-07-28
 
 **A leitura de etiqueta chegou à portaria.** No "Escanear" do cadastro de

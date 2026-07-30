@@ -23,6 +23,15 @@ RUN python -c "from rapidocr_onnxruntime import RapidOCR; RapidOCR()"
 
 EXPOSE 8000
 
+# Sem isto o ONNX Runtime abre uma thread por núcleo VISÍVEL do host. Na VPS de
+# produção, onde API, Postgres, Redis e MinIO dividem a máquina, cada leitura de
+# etiqueta roubava CPU do banco. Dois núcleos mantêm a latência do OCR e
+# devolvem previsibilidade ao resto da stack.
+ENV OMP_NUM_THREADS=2 \
+    OCR_THREADS=2
+
 # Um worker só: cada um carrega a sua cópia do modelo na memória.
 # Para mais paralelismo, suba mais containers em vez de mais workers.
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# `--limit-concurrency`: com a inferência serializada, uma rajada enfileiraria
+# até estourar o timeout de todo mundo junto. Recusar rápido é melhor.
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--limit-concurrency", "24"]

@@ -64,16 +64,45 @@ export function ehRuido(valor: string): boolean {
   return RUIDO.has(valor.toUpperCase());
 }
 
-/** Palavras que denunciam linha de endereço — não são nome de pessoa. */
-const MARCADORES_ENDERECO = [
-  'RUA', 'AVENIDA', 'TRAVESSA', 'ALAMEDA', 'RODOVIA', 'ESTRADA',
-  'PRACA', 'LARGO', 'CEP', 'BAIRRO', 'CIDADE', 'MUNICIPIO', 'CONDOMINIO',
-  'EDIFICIO', 'RESIDENCIAL',
+/**
+ * Monta um teste de **palavra inteira** a partir de uma lista de marcadores.
+ *
+ * Por que não `includes`: `n.includes('CHAVE')` reprova "Maria Chaves Souza",
+ * `'PRACA'` reprova "Ana Cristina Praça" e `'TOTAL'` reprova "Roberto Total
+ * Nunes" — todos nomes de morador legítimos que a etiqueta trazia certos e o
+ * parser jogava fora. São nomes reais de gente real; o `\b` é o que os salva.
+ */
+function testeDePalavras(marcadores: readonly string[]): RegExp {
+  return new RegExp(`\\b(?:${marcadores.join('|')})\\b`);
+}
+
+/**
+ * Tipos de logradouro — só valem como endereço **no começo da linha**.
+ *
+ * `PRAÇA`, `LARGO` e `CAMPOS` são sobrenomes brasileiros correntes: "Ana
+ * Cristina Praça" é moradora, "Praça da Liberdade 50" é endereço. O que
+ * distingue os dois não é a palavra, é a posição — o tipo de logradouro abre a
+ * linha, o sobrenome nunca. Sem essa distinção o parser descartava o nome da
+ * moradora e caía no fallback global, que é a rota para devolver o remetente.
+ */
+const LOGRADOUROS = [
+  'RUA', 'R', 'AVENIDA', 'AV', 'TRAVESSA', 'TV', 'ALAMEDA', 'AL',
+  'RODOVIA', 'ROD', 'ESTRADA', 'ESTR', 'PRACA', 'PC', 'LARGO', 'VILA',
 ];
+
+const RE_LOGRADOURO = new RegExp(`^(?:${LOGRADOUROS.join('|')})\\b`);
+
+/** Palavras que denunciam endereço **em qualquer posição** da linha. */
+const MARCADORES_ENDERECO = [
+  'CEP', 'BAIRRO', 'CIDADE', 'MUNICIPIO', 'CONDOMINIO',
+  'EDIFICIO', 'RESIDENCIAL', 'LOTEAMENTO',
+];
+
+const RE_ENDERECO = testeDePalavras(MARCADORES_ENDERECO);
 
 export function pareceEndereco(linha: string): boolean {
   const n = normalizar(linha);
-  return MARCADORES_ENDERECO.some((m) => n.includes(m));
+  return RE_LOGRADOURO.test(n) || RE_ENDERECO.test(n);
 }
 
 /** Palavras de formulário/logística — nunca são o nome do morador. */
@@ -83,9 +112,38 @@ const MARCADORES_LOGISTICA = [
   'CNPJ', 'CPF', 'INSCRICAO', 'CHAVE', 'SERIE', 'EMISSAO', 'TOTAL',
 ];
 
+/**
+ * Marcas de pessoa **jurídica**. Sem elas, "MERCADO LIVRE BRASIL LTDA" e
+ * "Loja Fulano ME" passavam como nome de pessoa — e viravam o destinatário
+ * quando o remetente aparecia antes na etiqueta.
+ */
+const MARCADORES_EMPRESA = [
+  'LTDA', 'EPP', 'EIRELI', 'MEI', 'CIA',
+  'COMERCIO', 'COMERCIAL', 'INDUSTRIA', 'DISTRIBUIDORA', 'ATACADO',
+  'LOJA', 'LOJAS', 'MAGAZINE', 'IMPORTADORA', 'SERVICOS', 'REPRESENTACOES',
+  // `SA` e `ME` ficam de fora de propósito: `Sá` é sobrenome brasileiro comum e
+  // reprovar "Ana Maria Sá" custa mais do que aceitar uma razão social a mais.
+];
+
+const RE_EMPRESA = testeDePalavras(MARCADORES_EMPRESA);
+
+/**
+ * Linha que é razão social, não nome de gente.
+ *
+ * É predicado próprio (e não só mais um marcador de ruído) porque quem consome
+ * precisa distinguir os dois casos: "não é nome de pessoa" e "é o nome de uma
+ * empresa". Na zona do remetente essa diferença decide tudo — a loja que enviou
+ * ocupa o lugar do nome do remetente, e o primeiro nome de PESSOA depois dela
+ * já é o destinatário.
+ */
+export function pareceEmpresa(linha: string): boolean {
+  return RE_EMPRESA.test(normalizar(linha));
+}
+
+const RE_LOGISTICA = testeDePalavras([...MARCADORES_LOGISTICA, ...MARCADORES_EMPRESA]);
+
 export function pareceLogistica(linha: string): boolean {
-  const n = normalizar(linha);
-  return MARCADORES_LOGISTICA.some((m) => n.includes(m));
+  return RE_LOGISTICA.test(normalizar(linha));
 }
 
 /**
@@ -101,9 +159,12 @@ export function pareceNomeDePessoa(linha: string): boolean {
   if (/\d/.test(n)) return false;
   if (pareceEndereco(linha) || pareceLogistica(linha)) return false;
 
-  const palavras = n.split(' ').filter((p) => p.length > 1);
-  if (palavras.length < 2 || palavras.length > 6) return false;
+  // Vírgula de "SOBRENOME, NOME" não descaracteriza um nome — ela é justamente
+  // como parte das etiquetas imprime o destinatário.
+  const palavras = n.replace(/,/g, ' ').split(' ').filter((p) => p.length > 1);
+  if (palavras.length < 2 || palavras.length > 7) return false;
 
-  // Só letras e os separadores que aparecem em nome composto.
-  return palavras.every((p) => /^[A-Z'-]+$/.test(p));
+  // Só letras e os separadores que aparecem em nome composto. O ponto final é
+  // aceito por causa da inicial abreviada, comuníssima: `MARIA A. SILVA`.
+  return palavras.every((p) => /^[A-Z][A-Z'-]*\.?$/.test(p));
 }

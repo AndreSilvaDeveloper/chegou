@@ -609,6 +609,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
 | `Combobox` | `web/src/components/ui/combobox.tsx` | Campo com sugestões que **aceita valor fora da lista** (transportadora) |
 | `TRANSPORTADORAS` | `web/src/lib/transportadoras.ts` | Transportadoras do Brasil + o tipo que amarra o leitor de código à lista |
+| `prepararFoto()` / `capturarQuadro()` | `web/src/lib/imagem.ts` | Reduzir, recomprimir e medir nitidez de foto antes do upload |
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
 | `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |

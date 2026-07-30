@@ -177,6 +177,22 @@ export class ApartamentosService {
     return (await qb.getOne()) ?? null;
   }
 
+  /**
+   * Todas as unidades ativas com este número, **em qualquer bloco**.
+   *
+   * Existe para a leitura de etiqueta: quando a foto não traz bloco legível e o
+   * número é único no condomínio inteiro, aceitá-lo é inequívoco. Quem decide
+   * isso é quem chama — aqui só devolve a lista, sem escolher. É a diferença
+   * entre "existe uma só" e "escolhi uma entre várias", e é o que impede a
+   * encomenda de ir para o bloco errado.
+   */
+  async listarPorNumero(tenantId: string, numero: string): Promise<Apartamento[]> {
+    return this.aptoRepo.find({
+      where: { tenantId, ativo: true, numero: numero.trim() },
+      order: { bloco: 'ASC' },
+    });
+  }
+
   async obter(tenantId: string, id: string): Promise<Apartamento> {
     const apto = await this.aptoRepo.findOne({ where: { id, tenantId } });
     if (!apto) throw new NotFoundException('Apartamento não encontrado');

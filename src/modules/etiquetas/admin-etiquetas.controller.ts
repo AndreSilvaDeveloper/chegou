@@ -51,6 +51,18 @@ export class AdminEtiquetasController {
   }
 
   /**
+   * Relê as fotos no OCR e depois roda o parser.
+   *
+   * Rota separada de propósito: é a única forma de medir mudança no serviço de
+   * OCR, mas custa 1 a 3s de CPU por amostra num container de worker único.
+   * `reprocessar` continua sendo o botão barato do dia a dia.
+   */
+  @Post('reprocessar-ocr')
+  reprocessarOcr() {
+    return this.service.reprocessarOcr();
+  }
+
+  /**
    * Upload em lote. Processa um arquivo por vez porque o OCR roda com um worker
    * só — mandar 20 em paralelo não acelera nada e ainda arrisca estourar o
    * timeout de todos de uma vez.

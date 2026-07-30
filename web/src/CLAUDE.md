@@ -86,6 +86,7 @@ chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
 | Campo com sugestões, mas que aceita o que for digitado | `Combobox` (ver abaixo) |
 | Telefone | `PhoneInput` — digita `(32) 99999-9999`, entrega E.164. **Nunca peça `+55`** |
 | Telefone em listagem | `formatarTelefone()` de `@/lib/telefone` |
+| Foto que vai subir para o servidor | `prepararFoto()` de `@/lib/imagem` (ver abaixo) |
 | Erro de request | `toast.error(mensagemErro(err, 'Não foi possível …'))` |
 | Dinheiro, data, competência | `fmtMoeda` / `fmtData` / `fmtCompetencia` de `@/lib/formato` |
 
@@ -156,6 +157,34 @@ Express" e a lista dissesse "Azul Cargo", o mesmo pacote ficaria com grafias
 diferentes conforme fosse escaneado ou digitado, e o relatório se dividiria em
 duas linhas. O detector devolve o tipo `TransportadoraNome`, derivado da lista —
 **nome fora dela não compila**. Ao mexer numa das pontas, rode `npx tsc`.
+
+### Foto: nunca suba o que saiu do sensor
+
+A câmera do celular entrega o JPEG inteiro — tipicamente 4000x3000 e 3 a 6 MB.
+O serviço de OCR **descarta tudo acima de `OCR_MAX_LADO` na primeira operação**,
+então esses megabytes subiam pelo 4G da portaria só para serem jogados fora: no
+sinal ruim de uma portaria é a diferença entre ~30s e ~4s de espera, sem perder
+um pixel que o servidor fosse usar.
+
+`prepararFoto(file)` (`lib/imagem.ts`) reduz, recomprime e devolve também a
+**nitidez** (variância do laplaciano) — é o que permite oferecer "tire outra"
+*antes* de gastar upload e 1 a 3s de CPU. Qualquer falha devolve o arquivo
+original: subir 4 MB é ruim, não subir é pior.
+
+Dois detalhes que não são estética:
+
+- **`MAX_LADO_OCR` espelha `OCR_MAX_LADO` de `ocr/app.py`.** Mudou um, mude o
+  outro — acima do teto do servidor é desperdício de rede, abaixo é perder
+  resolução que o reconhecedor usaria.
+- **Desenhar num canvas destrói o EXIF**, e o OCR depende dele para não receber
+  metade das etiquetas deitadas. Por isso `imageOrientation: 'from-image'` no
+  `createImageBitmap`: ele aplica a rotação nos pixels antes do desenho.
+
+No **celular** o `ScannerModal` usa a câmera nativa do sistema (`capture`), cujo
+autofoco e resolução são muito melhores que a stream do navegador. O visor
+in-app com `getUserMedia` é do **desktop** — e ali a resolução vai como `ideal`,
+nunca `exact`: exigir o que a webcam não tem derruba a stream inteira com
+`OverconstrainedError`.
 
 ### Diálogo: a margem e a rolagem já vêm do `DialogContent`
 
