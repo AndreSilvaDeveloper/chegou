@@ -11,6 +11,25 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.2 — 2026-07-31
+
+### Alterado
+- **Em teste: a faixa do topo no modo escuro passou a usar o âmbar cheio
+  (`#FFC72C`)**, no lugar do âmbar fechado (`#5C4400`) que vinha desde a 0.23.0.
+  - O **texto voltou ao marrom** (`#3A2003`) junto, e não por estilo: sobre
+    âmbar puro, o quase-branco que servia ao âmbar fechado cai para 1,9:1.
+    No marrom são 10:1 — o mesmo do tema claro. Descrição (5,8:1) e eyebrow
+    (4,5:1) também passam AA.
+  - Os **controles da faixa continuam escuros** (busca, menu e avatar no tom do
+    card). É o que mantém o topo reconhecível como modo escuro em vez de ficar
+    idêntico ao claro.
+  - Como voltar está escrito em `web/src/styles.css`, no bloco `.dark`: são
+    quatro valores. O motivo original de fechar o âmbar é que ele é a única
+    superfície grande com cor do app, e à noite tende a virar holofote — é
+    exatamente isso que este teste mede.
+
+---
+
 ## 0.24.1 — 2026-07-31
 
 ### Corrigido
