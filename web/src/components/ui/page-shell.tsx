@@ -211,16 +211,17 @@ export function PageShell({
       >
         <div className="flex flex-col gap-1 ">
           {eyebrow && (
-            <span className="eyebrow text-banner-foreground/70 md:text-muted-foreground">
-              {eyebrow}
-            </span>
+            // <span className="eyebrow text-banner-foreground/70 md:text-muted-foreground">
+            //   {eyebrow}
+            // </span>
+            <></>
           )}
           <h1 className="flex items-center gap-2 txt-titulo font-bold tracking-tight">
             {Icone && <Icone className="h-5 w-5 shrink-0 opacity-80" />}
             {title}
           </h1>
           {description && (
-            <p className="txt-apoio text-banner-foreground/80 md:text-muted-foreground">
+            <p className="text-xs text-banner-foreground/80 md:text-muted-foreground">
               {description}
             </p>
           )}

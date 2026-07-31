@@ -11,7 +11,23 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
-## 0.24.2 — 2026-07-31
+## 0.24.3 — 2026-07-31
+
+### Corrigido
+- **Barra de rolagem visível no conteúdo principal, no celular.** A causa não era
+  o conteúdo: era o bloco global que estilizava `::-webkit-scrollbar` com 10px de
+  largura. **Estilizar a barra faz o navegador sair do modo overlay** e passar a
+  desenhar uma barra clássica, que ocupa espaço e não some sozinha — inclusive no
+  toque, onde o padrão seria aparecer ao rolar e sumir.
+  - A barra decorativa passou a valer só em `@media (pointer: fine)`, ou seja,
+    para quem aponta com mouse ou trackpad. No toque volta o overlay nativo.
+  - O container principal ganhou `max-md:rolagem-sem-barra`, escondendo a barra
+    de vez abaixo de 768px. A rolagem continua por gesto, roda e teclado.
+
+### Adicionado
+- **`rolagem-sem-barra`** (`web/src/styles.css`): utility que esconde a barra sem
+  tirar a rolagem. É `@utility` do Tailwind 4, e não uma classe solta, para
+  aceitar variante — é assim que ela vale só no celular.
 
 ### Alterado
 - **Em teste: a faixa do topo no modo escuro passou a usar o âmbar cheio

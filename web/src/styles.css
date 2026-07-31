@@ -328,22 +328,54 @@
   }
 }
 
-/* Scrollbar — minimal, graphite */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/* =========================================================================
+   BARRA DE ROLAGEM
+   -------------------------------------------------------------------------
+   Só desenhamos a barra em quem aponta com precisão (mouse/trackpad).
+
+   POR QUE O `@media (pointer: fine)`: estilizar `::-webkit-scrollbar` faz o
+   navegador SAIR do modo overlay e passar a desenhar uma barra clássica, que
+   ocupa espaço e não some sozinha. No celular isso aparecia como uma barra fixa
+   ao lado do conteúdo — a barra não era um sintoma de conteúdo grande, era
+   consequência de termos estilizado ela.
+   No toque, sem esta regra, o navegador volta ao overlay nativo: aparece ao
+   rolar e some sozinho.
+   ========================================================================= */
+@media (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/25 rounded-full;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+    background-clip: padding-box;
+  }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/25 rounded-full;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/40;
-  background-clip: padding-box;
+
+/**
+ * Esconde a barra SEM tirar a rolagem.
+ *
+ * Para o container que rola mas não deve mostrar barra — no celular, onde a
+ * rolagem é por gesto e a barra é só ruído sobre a folha branca. Continua
+ * rolando por toque, roda do mouse e teclado.
+ *
+ * É `@utility` (e não uma classe solta) para aceitar variante: no `Layout` ela
+ * é aplicada como `max-md:rolagem-sem-barra`, valendo só abaixo de 768px.
+ */
+@utility rolagem-sem-barra {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* Edge legado */
+  &::-webkit-scrollbar {
+    display: none;              /* Chrome, Safari */
+  }
 }
 
 /* Respect reduced-motion globally for the extra flourishes */

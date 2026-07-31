@@ -503,7 +503,7 @@ function LayoutInterno() {
             o container e criava barra de rolagem em TODA tela, com lista ou sem.
             A faixa não é cortada porque ela pinta o próprio âmbar por cima. */}
         <main className="min-h-0 flex-1 md:px-3 md:pb-3">
-          <div className="h-full overflow-y-auto overflow-x-hidden bg-background md:rounded-surface md:border md:border-border-surface md:shadow-panel-lg">
+          <div className="h-full overflow-y-auto overflow-x-hidden bg-background max-md:rolagem-sem-barra md:rounded-surface md:border md:border-border-surface md:shadow-panel-lg">
             <div className="md:p-6 lg:p-8">
               <AnimatePresence mode="wait">
                 <motion.div
