@@ -22,7 +22,7 @@ export function CodigoStrip({ codigo, size = "sm", active = false, className }: 
   return (
     <div
       className={cn(
-        "relative inline-flex flex-col items-center rounded-lg border border-border bg-muted/40 text-center",
+        "relative inline-flex flex-col items-center rounded-lg bg-muted/40 text-center",
         lg ? "gap-3 px-6 py-5" : "gap-1.5 px-3 py-2",
         className
       )}
@@ -46,7 +46,7 @@ export function CodigoStrip({ codigo, size = "sm", active = false, className }: 
             <span
               key={i}
               className={cn(
-                "inline-flex items-center justify-center rounded-md border border-border bg-card font-mono font-bold tabular text-foreground animate-code-in",
+                "inline-flex items-center justify-center rounded-md bg-card font-mono font-bold tabular text-foreground animate-code-in",
                 lg ? "h-14 w-11 txt-numero" : "h-8 w-6 txt-subtitulo"
               )}
               style={{ animationDelay: `${i * 60}ms` }}

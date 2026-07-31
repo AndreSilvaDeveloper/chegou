@@ -2,7 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import type { AdministradoraComResumo, AdministradoraDetalhe, Tenant } from '@/api/types';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,18 +62,21 @@ export function SuperAdminAdministradoras() {
   const lista = listaQuery.data ?? [];
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader
-        icon={Briefcase}
-        eyebrow="Plataforma"
-        title="Administradoras"
-        description="Empresas que administram carteiras de condomínios."
-      >
-        <Button onClick={() => setNovaAberta(true)} className="min-h-[48px] w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Nova administradora
-        </Button>
-      </PageHeader>
+    <PageShell
+      icon={Briefcase}
+      eyebrow="Plataforma"
+      title="Administradoras"
+      description="Empresas que administram carteiras de condomínios."
+      acoes={
+        <>
+  <Button onClick={() => setNovaAberta(true)} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova administradora
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
 
       {listaQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -115,7 +118,7 @@ export function SuperAdminAdministradoras() {
                 <Button
                   variant="outline"
                   onClick={() => setDetalheId(adm.id)}
-                  className="min-h-[48px] w-full"
+                  className="w-full"
                 >
                   <Users className="mr-2 h-4 w-4" />
                   Gerenciar carteira
@@ -166,14 +169,14 @@ export function SuperAdminAdministradoras() {
                 type="button"
                 variant="outline"
                 onClick={() => setNovaAberta(false)}
-                className="min-h-[48px] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={criar.isPending}
-                className="min-h-[48px] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 {criar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Cadastrar
@@ -184,7 +187,8 @@ export function SuperAdminAdministradoras() {
       </Dialog>
 
       <CarteiraDialog administradoraId={detalheId} onClose={() => setDetalheId(null)} />
-    </div>
+      </div>
+    </PageShell>
   );
 }
 
@@ -302,7 +306,7 @@ function CarteiraDialog({
                         variant="outline"
                         onClick={() => desvincular.mutate(tenant.id)}
                         disabled={desvincular.isPending}
-                        className="min-h-[48px] w-full sm:w-auto"
+                        className="w-full sm:w-auto"
                       >
                         Remover da carteira
                       </Button>
@@ -311,7 +315,7 @@ function CarteiraDialog({
                 </ul>
               )}
 
-              <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="space-y-2 rounded-lg bg-muted/30 p-4">
                 <Label htmlFor="vincular-cond">
                   Vincular condomínio existente
                 </Label>
@@ -329,7 +333,7 @@ function CarteiraDialog({
                 <Button
                   onClick={() => vincular.mutate()}
                   disabled={!vinculando || vincular.isPending}
-                  className="min-h-[48px] w-full sm:w-auto"
+                  className="w-full sm:w-auto"
                 >
                   {vincular.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -371,7 +375,7 @@ function CarteiraDialog({
                 </ul>
               )}
 
-              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="space-y-3 rounded-lg bg-muted/30 p-4">
                 <p className="txt-corpo font-medium text-foreground">Novo acesso</p>
                 <div className="space-y-2">
                   <Label htmlFor="acesso-nome">
@@ -414,7 +418,7 @@ function CarteiraDialog({
                     !usuario.email.trim() ||
                     usuario.senha.length < 6
                   }
-                  className="min-h-[48px] w-full sm:w-auto"
+                  className="w-full sm:w-auto"
                 >
                   {criarAcesso.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -429,7 +433,7 @@ function CarteiraDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="min-h-[48px] w-full sm:w-auto">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Fechar
           </Button>
         </DialogFooter>

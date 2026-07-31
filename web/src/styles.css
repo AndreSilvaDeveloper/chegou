@@ -8,20 +8,27 @@
 
    HIERARQUIA DE SUPERFÍCIES (a regra que rege tudo abaixo)
    --------------------------------------------------------
-   O sistema tem 4 níveis. No claro o painel AFUNDA no papel; no escuro ele
-   SOBE do breu. Em ambos, cada nível se distingue do vizinho sem depender de
-   sombra — o porteiro usa o app no sol da portaria, onde sombra some.
-   No escuro, card e popover dividem o mesmo tom (como no tema original).
+   O sistema tem 4 níveis e, nos DOIS temas, o card SOBE: ele flutua sobre a
+   folha, que é o tom mais fechado. No escuro, card e popover dividem o mesmo
+   tom (como no tema original).
 
      nível           claro       escuro     papel
      shell (menu)    #E8E4DE     #0A0A0A    moldura de tudo
-     background      #FBF9F6     #121212    a folha de trabalho / campos
-     card            #F7F5F1     #1A1A1A    o conteúdo
+     background      #F3F0EA     #121212    a folha de trabalho / campos
+     card            #FDFCFA     #1A1A1A    o conteúdo, elevado
      popover/diálogo #FFFFFF     #1A1A1A    o que flutua por cima
 
-   Campo de formulário usa `--background`: no claro fica mais claro que o card
-   (convida a escrever), no escuro fica mais escuro (afunda no card). Nos dois
-   casos ele se separa do card sozinho.
+   O QUE SEPARA UM NÍVEL DO OUTRO
+   Três coisas, nesta ordem: o degrau de TOM, a SOMBRA (`shadow-panel`) e, por
+   último, um fio de borda (`--border-surface`) que quase não se vê. A borda
+   deixou de ser a protagonista — era ela que dava o ar de formulário antigo,
+   com tudo dentro de uma caixa dentro de outra.
+   O degrau de tom vem primeiro de propósito: o porteiro usa o app no sol da
+   portaria, onde sombra some. Sem sol, a sombra é o que dá o ar leve.
+
+   Campo de formulário usa `--background`: nos dois temas ele fica MAIS ESCURO
+   que o card e afunda nele, o que separa o campo sozinho — e é o mesmo gesto
+   nos dois temas, em vez de um invertido em relação ao outro.
 
    PARA VOLTAR O CLARO ao tema original (branco/zinc): os valores estão no
    bloco comentado ao final deste arquivo, marcado "TEMA ANTERIOR". O escuro
@@ -33,11 +40,15 @@
     /* ---- Claro: PAPEL QUENTE (greige). Neutro quente a 8° do âmbar #FFC72C,
        então o sinal pertence à cena em vez de brigar com ela. Saturação baixa
        de propósito: o tom só aparece nas áreas grandes (menu, painel).
-       Card quase colado no painel — quem separa é a borda, não o tom. */
-    --background: 36 40% 97.5%;         /* #FBF9F6 — a folha */
-    --foreground: 30 12% 9%;            /* #1A1714 — 15.8:1 sobre o card */
 
-    --card: 37 28% 95.8%;               /* #F7F5F1 — 1,7 ponto abaixo da folha */
+       O CARD SOBE, NÃO AFUNDA. Ele já foi 1,7 ponto ABAIXO da folha (painel
+       encaixado no papel). Com a sombra assumindo a separação, tom e sombra
+       diziam coisas opostas — sombra é elevação, tom escuro é recuo. Agora a
+       folha é o cinza quente e o card é o quase-branco que flutua sobre ela. */
+    --background: 36 24% 94%;           /* #F3F0EA — a folha, agora o cinza */
+    --foreground: 30 12% 9%;            /* #1A1714 — 16.8:1 sobre o card */
+
+    --card: 40 40% 99%;                 /* #FDFCFA — quase branco, elevado */
     --card-foreground: 30 12% 9%;
 
     --popover: 0 0% 100%;               /* branco — o que flutua é o mais alto */
@@ -46,16 +57,17 @@
     --primary: 44.1 100% 58.6%;         /* #FFC72C */
     --primary-foreground: 30 90% 12%;   /* #3A2003 — 10:1 sobre o âmbar */
 
-    /* Blocos DENTRO do card (faixa do código, chips, barra de abas) ficam a um
-       passo curto dele — quem os delimita é a borda. Espaçar mais transformava
-       cada bloco num segundo card competindo com o primeiro. */
-    --secondary: 36 25% 94.6%;          /* #F5F2EE — 1,2 ponto abaixo do card */
+    /* Blocos DENTRO do card (faixa do código, chips, barra de abas). Agora que
+       card e folha trocaram de lugar, o bloco interno é um degrau ABAIXO do
+       card — e é chapado: sem sombra e sem borda. É ele que substitui o
+       card-dentro-de-card, que virou proibido (ver `Card`). */
+    --secondary: 36 24% 95.5%;          /* #F6F3EE — um passo abaixo do card */
     --secondary-foreground: 30 10% 12%;
 
-    --muted: 36 25% 94.6%;
-    --muted-foreground: 34 10% 35%;     /* #625A50 — 6.1:1 sobre o card */
+    --muted: 36 24% 95.5%;
+    --muted-foreground: 34 10% 35%;     /* #625A50 — 6.4:1 sobre o card */
 
-    --accent: 35 20% 91.5%;             /* #EEEAE5 — hover, perceptível sem pesar */
+    --accent: 35 22% 92%;               /* #EFEBE5 — hover, perceptível sem pesar */
     --accent-foreground: 30 10% 12%;
 
     --destructive: 0 72% 48%;
@@ -65,7 +77,13 @@
     --input: 36 17% 76%;                /* borda do campo — mais firme que a geral */
     --ring: 44.1 100% 58.6%;
 
-    --radius: 0.75rem;                  /* Large */
+    --radius: 0.75rem;                  /* controles: botão, campo, badge */
+    --radius-surface: 1.25rem;          /* superfícies: card, diálogo, gaveta */
+
+    /* Borda de superfície: um fio, quase invisível — ela só marca onde o card
+       encosta na folha. Quem separa é a sombra (`shadow-panel`) mais o degrau
+       de tom (folha 94% → card 99%). */
+    --border-surface: 36 20% 91.5%;
 
     /* Shell (menu lateral + topo): o nível mais fundo do claro */
     --sidebar: 35 18% 89%;              /* #E8E4DE */
@@ -73,6 +91,16 @@
     --sidebar-accent: 35 20% 85%;
     --sidebar-accent-foreground: 30 10% 12%;
     --sidebar-border: 36 17% 79%;
+
+    /* FAIXA DO TOPO (mobile): o bloco âmbar que carrega menu, título e busca.
+       É um token próprio, e não `--primary`, porque no escuro ela precisa
+       fechar (o âmbar puro vira um holofote à noite) enquanto o botão de ação
+       continua no #FFC72C cheio. Ver `.dark` abaixo. */
+    --banner: 44.1 100% 58.6%;          /* #FFC72C */
+    --banner-foreground: 30 90% 12%;    /* #3A2003 — 10:1 sobre o âmbar */
+    /* Superfície de controle DENTRO da faixa (busca, botão de ícone). */
+    --banner-surface: 0 0% 100%;
+    --banner-border: 44 60% 46%;
 
     /* Sinal usado por utilitários próprios (grid, trilho, foco) */
     --signal: 44.1 100% 58.6%;
@@ -117,11 +145,41 @@
     --input: 0 0% 18%;
     --ring: 44.1 100% 58.6%;
 
+    /* No escuro a sombra não existe: preto sobre preto não separa nada. Aqui o
+       card se define pela diferença de superfície (10% contra 7%) mais esta
+       borda de um passo acima dela. É o mesmo papel da sombra no claro. */
+    --border-surface: 0 0% 15%;
+
     --sidebar: 0 0% 4%;
     --sidebar-foreground: 0 0% 82%;
     --sidebar-accent: 0 0% 13%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 0 0% 13%;
+
+    /* ---- Faixa do topo no escuro: EM TESTE com o âmbar puro ----------------
+       Estamos vendo como fica o #FFC72C cheio no escuro, no lugar do âmbar
+       fechado. Duas coisas vêm junto e não são opcionais:
+
+       1. O TEXTO VOLTA AO MARROM (#3A2003). Sobre âmbar puro, o quase-branco
+          que servia ao âmbar fechado cai para 1,9:1 — ilegível. No marrom são
+          10:1, o mesmo do tema claro.
+       2. Os CONTROLES da faixa continuam escuros (`--banner-surface` no tom do
+          card). É o que mantém o topo reconhecível como modo escuro, em vez de
+          ficar idêntico ao claro — e a busca escura sobre o âmbar tem contraste
+          de sobra.
+
+       PARA VOLTAR ao âmbar fechado, troque os quatro valores abaixo por:
+         --banner: 41 100% 18%;            (#5C4400)
+         --banner-foreground: 0 0% 98%;    (#FAFAFA — 8:1)
+         --banner-surface: 0 0% 10%;
+         --banner-border: 41 60% 30%;
+       O motivo original de fechar: âmbar puro é a única superfície grande com
+       cor do app, e à noite ele vira um holofote. É exatamente isso que este
+       teste está medindo. */
+    --banner: 44.1 100% 58.6%;          /* #FFC72C — o primário, cheio */
+    --banner-foreground: 30 90% 12%;    /* #3A2003 — 10:1 sobre o âmbar */
+    --banner-surface: 0 0% 10%;         /* busca/menu escuros: o topo segue "dark" */
+    --banner-border: 41 60% 30%;
 
     --signal: 44.1 100% 58.6%;
     --grid-line: 0 0% 13%;
@@ -172,38 +230,42 @@
      ESCALA TIPOGRÁFICA — a única fonte de tamanho de texto do painel
      -----------------------------------------------------------------------
      NUNCA use `text-sm`, `text-xs`, `text-lg`… solto numa tela. Escolha a
-     classe pelo PAPEL do texto; o tamanho no celular e no desktop vem junto.
-     Ter uma classe por papel é o que faz duas telas escritas em meses
-     diferentes saírem do mesmo tamanho.
+     classe pelo PAPEL do texto. Ter uma classe por papel é o que faz duas
+     telas escritas em meses diferentes saírem do mesmo tamanho.
 
-       classe            celular  desktop  papel
-       .txt-numero        30px     36px    KPI, número em destaque
-       .txt-numero-sm     20px     24px    valor numérico em linha (total)
-       .txt-titulo        24px     30px    título da tela (um por tela)
-       .txt-secao         18px     20px    título de card, diálogo, seção
-       .txt-subtitulo     16px     18px    destaque dentro do card
-       .txt-corpo         16px     14px    texto padrão, campo, botão, tabela
-       .txt-apoio         14px     14px    descrição, dica, texto secundário
-       .txt-nota          12px     12px    chrome: badge, atalho, legenda
-       .eyebrow           11px     11px    rótulo mono maiúsculo
+       classe            tamanho  papel
+       .txt-numero        24px    KPI, número em destaque
+       .txt-numero-sm     18px    valor numérico em linha (total)
+       .txt-titulo        24px    título da tela (um por tela)
+       .txt-secao         16px    título de card, diálogo, seção
+       .txt-subtitulo     14px    destaque dentro do card
+       .txt-corpo         14px    texto padrão, campo, botão, tabela
+       .txt-apoio         14px    descrição, dica, texto secundário
+       .txt-nota          12px    chrome: badge, atalho, legenda
+       .eyebrow           11px    rótulo mono maiúsculo
 
-     POR QUE O CORPO ENCOLHE DO CELULAR PARA O DESKTOP (16 → 14)
-     Quem mais usa é o porteiro, em pé, com o celular na mão e muitas vezes
-     com presbiopia: no celular o texto precisa dos 16px. No desktop a mesma
-     pessoa está sentada, mais perto da tela e com mais informação por vez —
-     14px é o tamanho confortável ali. É a mesma regra que o campo de
-     formulário já seguia (`text-base md:text-sm`), agora valendo para tudo.
-     16px no celular também é o que impede o iOS de dar zoom ao focar um campo.
+     TAMANHO ÚNICO — NÃO CRESCE NO CELULAR
+     A escala é a padrão de painel web (shadcn/ui): o mesmo corpo em qualquer
+     viewport. O projeto já teve uma escala que aumentava tudo no celular
+     (corpo 16px, título 30px no desktop) por causa de um público-alvo de
+     usuário mais velho; essa premissa saiu, e com ela o par
+     `text-base md:text-sm`. Se um dia voltar, o lugar de mudar é aqui — e
+     só aqui.
 
-     POR QUE `.txt-apoio` NÃO ENCOLHE
-     Texto de apoio já é secundário pela cor (`text-muted-foreground`). Se ele
-     também encolhesse, chegaria a 12px no desktop — abaixo do que essa mesma
-     pessoa lê sem esforço. A hierarquia contra o corpo vem da cor, e no
-     celular também do tamanho (14 contra 16).
+     HIERARQUIA COM POUCOS DEGRAUS
+     Numa escala padrão os degraus são curtos e três papéis dividem os 14px
+     (`subtitulo`, `corpo`, `apoio`). O que os separa passa a ser PESO e COR,
+     não tamanho:
+       .txt-subtitulo  + font-semibold           → nome do item no card
+       .txt-corpo      (padrão)                  → o texto
+       .txt-apoio      + text-muted-foreground   → o secundário
+     Por isso as classes continuam existindo mesmo com a mesma medida: elas
+     dizem o PAPEL, e é o papel que a próxima pessoa precisa acertar. Trocar
+     `txt-apoio` por `txt-corpo` porque "dá no mesmo" quebra isso na próxima
+     vez que a escala for retunada.
 
      `.txt-nota` é para chrome, não para conteúdo: badge, atalho de menu,
-     legenda de gráfico. Nenhuma frase que o usuário precise ler para
-     trabalhar deve ficar nele.
+     legenda de gráfico.
 
      Cada classe define só o que é função do TAMANHO: corpo da fonte, entrelinha
      e o espaçamento de letra que acompanha (texto grande pede letra mais junta).
@@ -219,22 +281,22 @@
      `hover:`…) alcança utilitário, não classe daqui.
      ======================================================================= */
   .txt-numero {
-    @apply text-3xl leading-none tracking-tight md:text-4xl;
+    @apply text-2xl leading-none tracking-tight;
   }
   .txt-numero-sm {
-    @apply text-xl leading-none tracking-tight md:text-2xl;
+    @apply text-lg leading-none tracking-tight;
   }
   .txt-titulo {
-    @apply text-2xl leading-tight tracking-tight md:text-3xl;
+    @apply text-2xl leading-tight tracking-tight;
   }
   .txt-secao {
-    @apply text-lg leading-snug tracking-tight md:text-xl;
+    @apply text-base leading-snug tracking-tight;
   }
   .txt-subtitulo {
-    @apply text-base leading-snug md:text-lg;
+    @apply text-sm leading-snug;
   }
   .txt-corpo {
-    @apply text-base leading-normal md:text-sm;
+    @apply text-sm leading-normal;
   }
   .txt-apoio {
     @apply text-sm leading-normal;

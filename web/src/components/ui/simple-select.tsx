@@ -45,7 +45,7 @@ export function SimpleSelect({
           id={id}
           type="button"
           className={cn(
-            'flex h-12 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 txt-corpo ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:ring-2 data-[state=open]:ring-ring',
+            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-1 txt-corpo ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:ring-2 data-[state=open]:ring-ring',
             className,
           )}
         >

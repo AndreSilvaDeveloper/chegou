@@ -104,7 +104,7 @@ export function TemplateEditor({
               onClick={() => inserirToken(v.token)}
               title={`${v.descricao} (ex.: ${v.exemplo})`}
               className={cn(
-                'rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 font-mono txt-nota text-foreground transition-colors',
+                'rounded-lg bg-muted/50 px-2.5 py-1.5 font-mono txt-nota text-foreground transition-colors',
                 'hover:border-primary/50 hover:bg-primary/10 disabled:opacity-50',
               )}
             >

@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import { DashboardData } from '@/api/types';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Package, Clock, PackageCheck, Timer, Plus } from 'lucide-react';
+import { Package, Clock, PackageCheck, Timer, Plus, LayoutDashboard } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent,
@@ -45,14 +45,20 @@ export function Dashboard() {
   const serie = view === 'semana' ? data?.semana ?? [] : data?.meses ?? [];
 
   return (
-    <div className="space-y-8 pb-10">
-      <PageHeader eyebrow="Portaria" title="Dashboard" description="Visão geral das entregas do condomínio">
-        <Link to="/encomendas/nova" className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto" type="button">
+    <PageShell
+      icon={LayoutDashboard}
+      eyebrow="Portaria"
+      title="Dashboard"
+      description="Visão geral das entregas do condomínio"
+      acoes={
+        <Link to="/encomendas/nova" className="flex-1 sm:flex-none">
+          <Button className="w-full rounded-full" type="button">
             <Plus className="mr-2 h-4 w-4" /> Registrar Encomenda
           </Button>
         </Link>
-      </PageHeader>
+      }
+    >
+      <div className="space-y-8">
 
       {/* Cards */}
       {isLoading ? (
@@ -88,7 +94,7 @@ export function Dashboard() {
               {view === 'semana' ? 'Semana atual (segunda a domingo)' : 'Últimos 4 meses'} — recebidas, retiradas e pendentes.
             </CardDescription>
           </div>
-          <div className="flex gap-1 self-start rounded-lg border border-border bg-muted/40 p-1">
+          <div className="flex gap-1 self-start rounded-lg bg-muted/40 p-1">
             {(['semana', 'meses'] as View[]).map((v) => (
               <button
                 key={v}
@@ -155,6 +161,7 @@ export function Dashboard() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </PageShell>
   );
 }

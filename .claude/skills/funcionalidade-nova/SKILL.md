@@ -44,7 +44,8 @@ Se o usuário já respondeu isso na conversa, siga — não pergunte de novo.
   `roles` — menu e rota precisam concordar.
 - Tela seguindo os padrões: mobile-first, `Skeleton` no carregamento,
   `EmptyState` no vazio, `FormDialog` para formulário, `ConfirmDialog` para ação
-  destrutiva, botões com `min-h-[48px]`, ícone sempre com texto.
+  destrutiva, tamanhos padrão do shadcn (não force altura), `aria-label` em
+  botão só de ícone, tamanho de texto sempre da escala `txt-*`.
 - Erro de request: `toast.error(mensagemErro(err, 'Não foi possível ...'))`.
 
 ## 4. Verifique

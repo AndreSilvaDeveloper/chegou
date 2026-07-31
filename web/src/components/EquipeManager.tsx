@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Search, Plus, User, Pencil, PowerOff, Power, Loader2, ArrowUpDown, KeyRound } from 'lucide-react';
+import { Plus, User, Users, Pencil, PowerOff, Power, Loader2, ArrowUpDown, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { ListCard } from '@/components/ui/list-card';
+import { PageShell } from '@/components/ui/page-shell';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import { PhoneInput } from '@/components/ui/phone-input';
 
 const ROLE_LABEL: Record<UserRole, string> = {
@@ -39,9 +41,12 @@ interface UsuarioForm {
 export function EquipeManager({
   basePath = '',
   allowedRoles = ['porteiro', 'sindico'],
+  embutido = false,
 }: {
   basePath?: string;
   allowedRoles?: UserRole[];
+  /** Dentro de uma aba: sem faixa âmbar e sem título (ver `PageShell`). */
+  embutido?: boolean;
 }) {
   const meuId = getUser()?.id;
   const [list, setList] = useState<Usuario[]>([]);
@@ -140,15 +145,23 @@ export function EquipeManager({
     }
   };
 
+  // Filtros da gaveta (ver `PageShell`).
+  const [filtroPapel, setFiltroPapel] = useState<UserRole | null>(null);
+  const [filtroAtivo, setFiltroAtivo] = useState<boolean | null>(null);
+
   const filteredData = useMemo(() => {
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(u => 
-      u.nome.toLowerCase().includes(q) || 
-      u.email.toLowerCase().includes(q) ||
-      ROLE_LABEL[u.role].toLowerCase().includes(q)
-    );
-  }, [list, search]);
+    const q = search.trim().toLowerCase();
+    return list.filter(u => {
+      if (filtroPapel && u.role !== filtroPapel) return false;
+      if (filtroAtivo !== null && u.ativo !== filtroAtivo) return false;
+      if (!q) return true;
+      return (
+        u.nome.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        ROLE_LABEL[u.role].toLowerCase().includes(q)
+      );
+    });
+  }, [list, search, filtroPapel, filtroAtivo]);
 
   const columns: ColumnDef<Usuario>[] = [
     {
@@ -223,29 +236,124 @@ export function EquipeManager({
   ];
 
   return (
-    <Card className="p-4 shadow-xs">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-        <div className="relative w-full md:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por nome, e-mail ou papel..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-            className="pl-9 h-10"
-          />
-        </div>
-        <Button onClick={openCreate} className="w-full md:w-auto">
+    <PageShell
+      embutido={embutido}
+      icon={Users}
+      eyebrow="Condomínio"
+      title="Equipe"
+      description="Os acessos de síndico e porteiro deste condomínio."
+      busca={{
+        valor: search,
+        aoMudar: setSearch,
+        placeholder: 'Buscar por nome, e-mail ou papel…',
+      }}
+      filtrosAtivos={(filtroPapel ? 1 : 0) + (filtroAtivo !== null ? 1 : 0)}
+      aoLimparFiltros={() => {
+        setFiltroPapel(null);
+        setFiltroAtivo(null);
+      }}
+      filtros={
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="filtro-papel">Papel</Label>
+            <SimpleSelect
+              id="filtro-papel"
+              value={filtroPapel ?? ''}
+              onValueChange={(v) => setFiltroPapel((v || null) as UserRole | null)}
+              placeholder="Todos os papéis"
+              options={[
+                { value: '', label: 'Todos os papéis' },
+                ...allowedRoles.map((r) => ({ value: r, label: ROLE_LABEL[r] })),
+              ]}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filtro-ativo">Status</Label>
+            <SimpleSelect
+              id="filtro-ativo"
+              value={filtroAtivo === null ? '' : filtroAtivo ? 'ativo' : 'inativo'}
+              onValueChange={(v) => setFiltroAtivo(v === '' ? null : v === 'ativo')}
+              placeholder="Todos"
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'ativo', label: 'Somente ativos' },
+                { value: 'inativo', label: 'Somente inativos' },
+              ]}
+            />
+          </div>
+        </>
+      }
+      acoes={
+        <Button onClick={openCreate} className="flex-1 rounded-full sm:flex-none">
           <Plus className="mr-2 h-4 w-4" />
           Novo Acesso
         </Button>
+      }
+    >
+      <div className="space-y-4">
+      <div className="md:rounded-surface md:border md:border-border-surface md:bg-card md:p-4 md:shadow-panel">
+        <DataTable
+          columns={columns}
+          data={filteredData}
+          emptyStateTitle="Nenhum membro encontrado"
+          emptyStateDescription="Adicione pessoas à equipe do condomínio."
+          mobileCard={(u) => (
+            <ListCard
+              icone={User}
+              titulo={u.nome}
+              atenuado={!u.ativo}
+              selo={
+                u.id === meuId ? (
+                  <Badge variant="outline" className="shrink-0 txt-nota">Você</Badge>
+                ) : undefined
+              }
+              acoes={
+                <>
+                  <Button variant="ghost" size="icon-sm" aria-label={`Editar ${u.nome}`} onClick={() => openEdit(u)}>
+                    <Pencil className="h-4 w-4 text-primary" />
+                  </Button>
+                  {u.id !== meuId && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={u.ativo ? `Desativar ${u.nome}` : `Reativar ${u.nome}`}
+                      onClick={() => confirmarToggle(u)}
+                    >
+                      {u.ativo ? (
+                        <PowerOff className="h-4 w-4 text-destructive" />
+                      ) : (
+                        <Power className="h-4 w-4 text-emerald-600" />
+                      )}
+                    </Button>
+                  )}
+                </>
+              }
+              campos={[
+                {
+                  rotulo: 'Papel',
+                  valor: (
+                    <Badge
+                      variant="outline"
+                      className={u.ativo ? ROLE_COLOR[u.role] : 'border-border bg-muted text-muted-foreground'}
+                    >
+                      {ROLE_LABEL[u.role]}
+                    </Badge>
+                  ),
+                },
+                {
+                  rotulo: 'Status',
+                  valor: u.ativo ? (
+                    <Badge variant="success">Ativo</Badge>
+                  ) : (
+                    <Badge variant="secondary">Inativo</Badge>
+                  ),
+                },
+                { rotulo: 'E-mail', valor: u.email, largura: 'inteira' },
+              ]}
+            />
+          )}
+        />
       </div>
-
-      <DataTable 
-        columns={columns} 
-        data={filteredData} 
-        emptyStateTitle="Nenhum membro encontrado"
-        emptyStateDescription="Adicione pessoas à equipe do condomínio."
-      />
 
       <Dialog open={openForm} onOpenChange={setOpenForm}>
         <DialogContent className="sm:max-w-[500px]">
@@ -327,6 +435,7 @@ export function EquipeManager({
         variant={togglingUser?.ativo ? 'destructive' : 'default'}
         onConfirm={handleToggle}
       />
-    </Card>
+      </div>
+    </PageShell>
   );
 }

@@ -187,7 +187,7 @@ export function CobrancasPanel() {
 
       <Button
         onClick={() => setGerarAberto(true)}
-        className="min-h-[48px] w-full sm:w-auto"
+        className="w-full sm:w-auto"
         disabled={!competencia}
       >
         <CirclePlus className="mr-2 h-4 w-4" />
@@ -291,7 +291,7 @@ export function CobrancasPanel() {
                         variant="outline"
                         onClick={() => enviar.mutate(cobranca.id)}
                         disabled={enviar.isPending}
-                        className="min-h-[48px] w-full sm:w-auto"
+                        className="w-full sm:w-auto"
                       >
                         {enviar.isPending && enviar.variables === cobranca.id ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -302,7 +302,7 @@ export function CobrancasPanel() {
                       </Button>
                       <Button
                         onClick={() => setPagando(cobranca)}
-                        className="min-h-[48px] w-full sm:w-auto"
+                        className="w-full sm:w-auto"
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
                         Registrar pagamento
@@ -313,7 +313,7 @@ export function CobrancasPanel() {
                           setMotivo('');
                           setCancelando(cobranca);
                         }}
-                        className="min-h-[48px] w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
+                        className="w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
                       >
                         <Ban className="mr-2 h-4 w-4" />
                         Cancelar
@@ -469,11 +469,11 @@ function PagamentoDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="min-h-[48px] w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={salvando} className="min-h-[48px] w-full sm:w-auto">
+            <Button type="submit" disabled={salvando} className="w-full sm:w-auto">
               {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirmar pagamento
             </Button>

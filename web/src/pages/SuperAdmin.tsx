@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
@@ -187,11 +187,13 @@ export function SuperAdmin() {
   ];
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader 
-        title="Gestão de Condomínios" 
-        description="Área administrativa para gerenciar todos os condomínios da plataforma."
-      />
+    <PageShell
+      icon={Building2}
+      eyebrow="Plataforma"
+      title="Gestão de Condomínios"
+      description="Área administrativa para gerenciar todos os condomínios da plataforma."
+    >
+      <div className="space-y-6">
 
       <Card className="p-4 shadow-xs">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
@@ -308,6 +310,7 @@ export function SuperAdmin() {
         variant={togglingTenant?.ativo ? 'destructive' : 'default'}
         onConfirm={handleToggle}
       />
-    </div>
+      </div>
+    </PageShell>
   );
 }

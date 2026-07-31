@@ -17,9 +17,8 @@ export interface CheckboxProps {
  * `button` com `role="checkbox"` — o Radix entraria para resolver o que aqui
  * são cinco linhas.
  *
- * O quadrado tem 24px, mas quem o usa deve envolvê-lo num `<label>` com altura
- * de 48px: o alvo de toque é a linha inteira, não o quadradinho (ver
- * `CheckboxField` abaixo).
+ * O quadrado tem 24px, mas quem o usa deve envolvê-lo num `<label>`: o alvo de
+ * clique é a linha inteira, não o quadradinho (ver `CheckboxField` abaixo).
  */
 const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
   ({ checked, onCheckedChange, id, disabled, className, ...props }, ref) => (
@@ -54,10 +53,10 @@ export interface CheckboxFieldProps extends CheckboxProps {
 }
 
 /**
- * Caixa + texto numa linha de 48px de alvo de toque.
+ * Caixa + texto na mesma linha, com o texto clicável.
  *
- * É a forma que se usa nas telas: caixa solta obriga o porteiro a acertar 24px
- * com o polegar, em pé, no celular.
+ * É a forma que se usa nas telas: caixa solta obriga a acertar os 24px do
+ * quadradinho com o polegar, em pé, no celular.
  */
 function CheckboxField({
   label,
@@ -72,7 +71,7 @@ function CheckboxField({
   const descId = description ? `${inputId}-desc` : undefined;
 
   return (
-    <div className={cn("flex min-h-[48px] items-center gap-3", className)}>
+    <div className={cn("flex items-center gap-3", className)}>
       <Checkbox id={inputId} disabled={disabled} aria-describedby={descId} {...props} />
       <div className="flex flex-col gap-0.5">
         <label

@@ -138,7 +138,7 @@ export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
                 value={form.intervaloSegundos}
                 onChange={(e) => setForm({ ...form, intervaloSegundos: num(e.target.value, cfg.intervaloSegundos) })}
                 disabled={saveMutation.isPending}
-                className="min-h-[48px] max-w-[10rem] txt-corpo"
+                className="max-w-[10rem] txt-corpo"
               />
               <span className="txt-corpo text-muted-foreground">segundos</span>
             </div>
@@ -162,7 +162,7 @@ export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
                 value={form.limiteDiario}
                 onChange={(e) => setForm({ ...form, limiteDiario: num(e.target.value, cfg.limiteDiario) })}
                 disabled={saveMutation.isPending}
-                className="min-h-[48px] max-w-[10rem] txt-corpo"
+                className="max-w-[10rem] txt-corpo"
               />
               <span className="txt-corpo text-muted-foreground">mensagens</span>
             </div>
@@ -189,7 +189,7 @@ export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
                   value={form.jitterSegundos}
                   onChange={(e) => setForm({ ...form, jitterSegundos: num(e.target.value, cfg.jitterSegundos) })}
                   disabled={saveMutation.isPending}
-                  className="min-h-[48px] max-w-[10rem] txt-corpo"
+                  className="max-w-[10rem] txt-corpo"
                 />
                 <span className="txt-corpo text-muted-foreground">segundos</span>
               </div>
@@ -211,7 +211,7 @@ export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
               value={form.horarioEnvioInicio}
               onChange={(e) => setForm({ ...form, horarioEnvioInicio: e.target.value })}
               disabled={saveMutation.isPending}
-              className="min-h-[48px] max-w-[10rem] txt-corpo"
+              className="max-w-[10rem] txt-corpo"
             />
           </div>
 
@@ -225,7 +225,7 @@ export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
               value={form.horarioEnvioFim}
               onChange={(e) => setForm({ ...form, horarioEnvioFim: e.target.value })}
               disabled={saveMutation.isPending}
-              className="min-h-[48px] max-w-[10rem] txt-corpo"
+              className="max-w-[10rem] txt-corpo"
             />
             <p className="txt-apoio text-muted-foreground">
               A janela precisa ficar entre {limites.janelaMinima} e {limites.janelaMaxima}. Fora
@@ -235,7 +235,7 @@ export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
           </div>
         </div>
 
-        <p className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5 txt-apoio text-muted-foreground">
+        <p className="flex items-start gap-2 rounded-xl bg-muted/40 px-3 py-2.5 txt-apoio text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             Com {form.intervaloSegundos}s de espera e a janela de {form.horarioEnvioInicio} às{' '}
@@ -256,7 +256,7 @@ export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
                 jitterSegundos: cfg.jitterSegundos,
               })}
               disabled={saveMutation.isPending}
-              className="min-h-[48px] w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               Descartar alterações
             </Button>
@@ -264,7 +264,7 @@ export function WhatsappEnvioCard({ basePath = '' }: { basePath?: string }) {
           <Button
             onClick={() => saveMutation.mutate(form)}
             disabled={!dirty || temErro || saveMutation.isPending}
-            className="min-h-[48px] w-full sm:w-auto"
+            className="w-full sm:w-auto"
           >
             {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Salvar regras

@@ -8,7 +8,7 @@ import {
 } from '@/components/assinatura/assinatura-shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/ui/stat-card';
 import { useMinhaAssinatura } from '@/hooks/use-assinatura';
@@ -37,13 +37,13 @@ export function Assinatura() {
   const dados = query.data;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Plataforma"
-        title="Assinatura"
-        description="O que você paga pelo Chegou, e como esse valor é calculado."
-        icon={Receipt}
-      />
+    <PageShell
+      eyebrow="Plataforma"
+      title="Assinatura"
+      description="O que você paga pelo Chegou, e como esse valor é calculado."
+      icon={Receipt}
+    >
+      <div className="space-y-6">
 
       {query.isLoading || !me ? (
         <CarregandoAssinatura />
@@ -62,7 +62,8 @@ export function Assinatura() {
           <HistoricoFaturas faturas={dados.faturas} />
         </>
       ) : null}
-    </div>
+      </div>
+    </PageShell>
   );
 }
 
@@ -169,7 +170,7 @@ function ContaAtual({
           </div>
 
           {condicao && (
-            <div className="rounded-lg border border-border bg-muted p-4">
+            <div className="rounded-lg bg-muted p-4">
               <p className="txt-corpo font-medium text-foreground">Você tem um preço especial</p>
               <p className="mt-1 txt-apoio text-muted-foreground">
                 {MODO_LABEL[condicao.modo]}

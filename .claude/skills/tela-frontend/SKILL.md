@@ -5,10 +5,15 @@ description: Cria página ou diálogo no painel do Chegou seguindo os padrões d
 
 # Tela nova no painel
 
-Quem mais usa o sistema é o porteiro, muitas vezes pessoa mais velha, no celular,
-em pé na portaria. Todo padrão abaixo existe por causa disso.
+Quem mais usa o sistema é o porteiro, no celular, em pé na portaria — daí o
+mobile-first. Os tamanhos são os **padrões do shadcn/ui**: não invente altura
+nem tamanho de fonte.
 
 Antes: rode o fluxo da skill `funcionalidade-nova` (perfis de acesso).
+
+> **Tela que lista registros e permite cadastrar?** Use a skill `tela-listagem`:
+> ela tem a casca própria dessas telas (faixa âmbar no celular com título, busca
+> e filtro; tabela no desktop). Esta skill aqui vale para o resto.
 
 ## Anatomia de uma página
 
@@ -19,7 +24,7 @@ export function MinhaTela() {
   return (
     <div className="space-y-6 pb-10">
       <PageHeader icon={Algo} eyebrow="Área" title="Título" description="O que é">
-        <Button className="min-h-[48px] w-full sm:w-auto">
+        <Button className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" /> Ação principal
         </Button>
       </PageHeader>
@@ -39,24 +44,26 @@ export function MinhaTela() {
 ## Tamanho de texto: escolha o papel, não o número
 
 **Nunca escreva `text-sm`, `text-xs`, `text-lg`, `text-2xl`… numa tela.** Use a
-classe da escala (definida em `web/src/styles.css`) — ela já traz o tamanho do
-celular e o do desktop:
+classe da escala (definida em `web/src/styles.css`). Ela é a escala padrão do
+shadcn — mesmo tamanho em qualquer viewport:
 
-| Classe | Celular | Desktop | Quando |
-|---|---|---|---|
-| `txt-numero` | 30px | 36px | KPI, número em destaque |
-| `txt-numero-sm` | 20px | 24px | valor numérico em linha (total, contador) |
-| `txt-titulo` | 24px | 30px | título da tela — **um por tela**, e o `PageHeader` já põe |
-| `txt-secao` | 18px | 20px | título de card/diálogo/seção — `CardTitle` e `DialogTitle` já põem |
-| `txt-subtitulo` | 16px | 18px | nome do item dentro do card, subtítulo de bloco (`<h3>`) |
-| `txt-corpo` | 16px | 14px | texto padrão, tabela, campo, botão — `Input`, `Label`, `Button` já põem |
-| `txt-apoio` | 14px | 14px | descrição, dica, texto secundário (vem com `text-muted-foreground`) |
-| `txt-nota` | 12px | 12px | chrome: badge, legenda de gráfico, atalho de menu |
-| `eyebrow` | 11px | 11px | rótulo mono maiúsculo acima do título |
+| Classe | Tamanho | Quando |
+|---|---|---|
+| `txt-numero` | 24px | KPI, número em destaque |
+| `txt-numero-sm` | 18px | valor numérico em linha (total, contador) |
+| `txt-titulo` | 24px | título da tela — **um por tela**, e o `PageHeader` já põe |
+| `txt-secao` | 16px | título de card/diálogo/seção — `CardTitle` e `DialogTitle` já põem |
+| `txt-subtitulo` | 14px | nome do item dentro do card, subtítulo de bloco (`<h3>`) |
+| `txt-corpo` | 14px | texto padrão, tabela, campo, botão — `Input`, `Label`, `Button` já põem |
+| `txt-apoio` | 14px | descrição, dica, texto secundário (vem com `text-muted-foreground`) |
+| `txt-nota` | 12px | chrome: badge, legenda de gráfico, atalho de menu |
+| `eyebrow` | 11px | rótulo mono maiúsculo acima do título |
 
-Na dúvida entre `txt-corpo` e `txt-apoio`: se o porteiro **precisa** ler para
-trabalhar, é `txt-corpo`. Se é explicação de apoio, é `txt-apoio`. Nada que
-precise ser lido vai para `txt-nota`.
+**`txt-subtitulo`, `txt-corpo` e `txt-apoio` medem o mesmo.** Escolha pelo papel
+mesmo assim — quem separa os três é peso (`font-semibold`) e cor
+(`text-muted-foreground`), e é o papel que sobrevive à próxima retunagem da
+escala. Na dúvida entre `txt-corpo` e `txt-apoio`: se o porteiro **precisa** ler
+para trabalhar, é `txt-corpo`. Nada que precise ser lido vai para `txt-nota`.
 
 **Não repita a classe que o componente já traz** (`<CardTitle className="txt-secao">`,
 `<Label className="txt-corpo">`): é o tipo de ruído que faz a próxima pessoa
@@ -71,19 +78,24 @@ classe — mas escreva um comentário dizendo o porquê, senão é só divergên
   Grid começa em `grid-cols-1`. Botão começa em `w-full`, vira `sm:w-auto`.
 - **Tamanho de texto vem da escala** (`txt-*`, tabela acima) — nunca `text-sm`
   e afins soltos, nunca `text-[13px]`.
-- **Toque de 48px**: `min-h-[48px]` em botão e link de ação.
-- **Ícone sempre com texto** — nunca ícone sozinho, nunca emoji como ícone.
-- **Label sempre visível** (`<Label htmlFor>`), placeholder é exemplo, não rótulo.
+- **Tamanho de controle vem do componente**: `Button` e `Input` já são `h-9`.
+  Não escreva `h-12`/`min-h-[48px]`; se precisar destoar, use `size="lg"`/`"sm"`.
+- **Botão só de ícone precisa de `aria-label`** — nunca emoji como ícone.
+- **`Label` no campo de formulário** (`<Label htmlFor>`). Placeholder como rótulo
+  só em campo auto-evidente (busca), e aí com `aria-label`.
 - **`Skeleton`** no carregamento, `EmptyState` no vazio.
 - **Ação destrutiva** passa por `ConfirmDialog` — nunca `confirm()` nativo.
-- **Tabela larga**: vira card no celular ou rola dentro de um container próprio.
-  A página nunca rola na horizontal.
+- **Lista de registros**: `DataTable` com `mobileCard` — card no celular, tabela
+  no desktop. A página nunca rola na horizontal.
+- **Card dentro de card é proibido.** Bloco interno é chapado:
+  `rounded-lg bg-muted`, sem borda e sem sombra.
+- **Busca e ações ficam fora do card da lista** — elas comandam a lista.
 - Testar em **375px** de largura.
 
 ## Formulário
 
 Use `FormDialog` (`@/components/ui/form-dialog`): ele já cuida de rolagem em tela
-pequena, botões empilhados no celular, alvo de toque e estado "salvando".
+pequena, botões empilhados no celular e estado "salvando".
 
 ```tsx
 <FormDialog

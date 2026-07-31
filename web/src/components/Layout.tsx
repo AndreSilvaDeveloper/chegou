@@ -6,7 +6,7 @@ import {
   Package, PackagePlus, Building2, Users, HardHat, Building,
   Menu, LogOut, Sun, Moon, Laptop, BarChart3, Car, Megaphone, ListChecks,
   PanelLeftClose, PanelLeftOpen, Download, MessageCircle, LayoutDashboard,
-  Briefcase, ArrowLeftRight, Receipt, ScanText,
+  Briefcase, ArrowLeftRight, Receipt, ScanText, ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -38,6 +38,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useTheme } from '@/hooks/use-theme';
 import { APP_VERSION } from '@/lib/versao';
+import { VoltarProvider, useVoltar } from '@/components/ui/voltar-slot';
 
 const COLLAPSE_KEY = 'chegou.sidebar.collapsed';
 
@@ -223,7 +224,7 @@ function SidebarBody({
             <Button
               variant="outline"
               onClick={onTrocarCondominio}
-              className="min-h-[48px] w-full justify-start gap-3"
+              className="w-full justify-start gap-3"
             >
               <ArrowLeftRight className="h-4 w-4" />
               Trocar de condomínio
@@ -246,10 +247,26 @@ function SidebarBody({
   );
 }
 
+/**
+ * O provider precisa envolver o `<Outlet />` (onde as páginas montam) E a barra
+ * do topo (que lê a rota de volta). Por isso o `Layout` é só a casca do
+ * contexto, e todo o resto vive em `LayoutInterno`.
+ */
 export function Layout() {
+  return (
+    <VoltarProvider>
+      <LayoutInterno />
+    </VoltarProvider>
+  );
+}
+
+function LayoutInterno() {
   const { data: user } = useAuthMe();
   const nav = useNavigate();
   const location = useLocation();
+  // Rota de volta declarada pela página (`PageShell voltar="…"`): troca o menu
+  // pela seta na barra do topo.
+  const rotaVoltar = useVoltar();
   const { setTheme } = useTheme();
   const { canInstall, isIOS, promptInstall } = useInstallPrompt();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -333,11 +350,12 @@ export function Layout() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-sidebar text-sidebar-foreground">
+    // No celular o shell é a faixa âmbar; no desktop, o shell do menu.
+    <div className="flex h-dvh w-full overflow-hidden bg-banner text-banner-foreground md:bg-sidebar md:text-sidebar-foreground">
       {/* Desktop sidebar — largura anima entre expandida e recolhida */}
       <aside
         className={cn(
-          'hidden h-screen shrink-0 flex-col transition-[width] duration-200 md:flex',
+          'hidden h-dvh shrink-0 flex-col transition-[width] duration-200 md:flex',
           collapsed ? 'w-[76px]' : 'w-64'
         )}
       >
@@ -362,14 +380,34 @@ export function Layout() {
         </div>
       </aside>
 
-      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Header — mesma superfície do sidebar, sem divisórias */}
-        <header className="flex h-16 shrink-0 items-center justify-between px-4 md:justify-end md:px-6">
-          <div className="flex items-center gap-3 md:hidden">
+      <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Barra do topo. No celular ela é a PRIMEIRA METADE da faixa âmbar — a
+            segunda (título, busca) vem do `PageShell` da página. As duas se unem
+            porque o `<main>` abaixo não tem padding nem fundo próprio no mobile. */}
+        <header className="flex h-14 shrink-0 items-center justify-between px-4 md:h-16 md:justify-end md:px-6">
+          <div className="flex min-w-0 items-center gap-2 md:hidden">
+            {/* Tela de detalhe/formulário troca o menu pela seta de voltar —
+                quem decide é a página, via `PageShell voltar="…"`. */}
+            {rotaVoltar ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Voltar"
+                onClick={() => nav(rotaVoltar)}
+                className="shrink-0 rounded-full bg-banner-surface text-foreground shadow-panel hover:bg-banner-surface/90"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            ) : (
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Abrir menu">
-                  <Menu className="h-6 w-6" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Abrir menu"
+                  className="shrink-0 rounded-full bg-banner-surface text-foreground shadow-panel hover:bg-banner-surface/90"
+                >
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="flex w-[300px] flex-col border-sidebar-border bg-sidebar p-0 sm:max-w-[300px]">
@@ -381,7 +419,13 @@ export function Layout() {
                 <SidebarBody {...sidebarProps} onNavigate={() => setIsMobileMenuOpen(false)} />
               </SheetContent>
             </Sheet>
-            <BrandMark compact />
+            )}
+            {showTenant && (
+              <span className="flex min-w-0 items-center gap-1.5 truncate txt-apoio font-semibold">
+                <Building2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{nomeCondominio}</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -392,73 +436,75 @@ export function Layout() {
               </span>
             )}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0" aria-label="Conta">
-                  <Avatar className="h-9 w-9 border border-border">
-                    <AvatarFallback className="bg-muted font-mono txt-corpo font-semibold text-foreground">{initials}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-60" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col gap-1">
-                    <p className="txt-corpo font-semibold leading-none">{user?.nome}</p>
-                    <p className="eyebrow">{ROLE_LABEL[userRole] ?? userRole}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 shrink-0 rounded-full p-0" aria-label="Conta">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-banner-surface font-mono txt-corpo font-semibold text-foreground">{initials}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-60" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col gap-1">
+                      <p className="txt-corpo font-semibold leading-none">{user?.nome}</p>
+                      <p className="eyebrow">{ROLE_LABEL[userRole] ?? userRole}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
 
-                {(canInstall || isIOS) && (
-                  <>
-                    <DropdownMenuItem onClick={handleInstall}>
-                      <Download className="mr-2 h-4 w-4" /><span>Instalar app</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
+                  {(canInstall || isIOS) && (
+                    <>
+                      <DropdownMenuItem onClick={handleInstall}>
+                        <Download className="mr-2 h-4 w-4" /><span>Instalar app</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
 
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Sun className="mr-2 h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute mr-2 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span>Tema</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => setTheme("light")}>
-                        <Sun className="mr-2 h-4 w-4" /><span>Claro</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setTheme("dark")}>
-                        <Moon className="mr-2 h-4 w-4" /><span>Escuro</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setTheme("system")}>
-                        <Laptop className="mr-2 h-4 w-4" /><span>Sistema</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Sun className="mr-2 h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                      <Moon className="absolute mr-2 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                      <span>Tema</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                          <Sun className="mr-2 h-4 w-4" /><span>Claro</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                          <Moon className="mr-2 h-4 w-4" /><span>Escuro</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("system")}>
+                          <Laptop className="mr-2 h-4 w-4" /><span>Sistema</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
 
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" /><span>Sair</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" /><span>Sair</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
           </div>
         </header>
 
-        {/* Mobile tenant info */}
-        {showTenant && (
-          <div className="flex items-center gap-2 px-4 pb-1 md:hidden">
-            <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate txt-apoio font-medium text-muted-foreground">{nomeCondominio}</span>
-          </div>
-        )}
+        {/* Conteúdo das rotas.
+            CELULAR: sem padding e sem cantos — quem desenha a faixa âmbar e a
+            folha branca arredondada é o `PageShell` da página.
+            DESKTOP: volta o painel flutuante de sempre.
 
-        {/* Painel flutuante com o conteúdo das rotas */}
-        <main className="min-h-0 flex-1 px-2 pb-2 md:px-3 md:pb-3">
-          <div className="h-full overflow-y-auto overflow-x-hidden rounded-2xl border border-border bg-background shadow-panel-lg">
-            <div className="p-4 md:p-6 lg:p-8">
+            O `bg-background` vale nos DOIS: é ele que faz a folha parecer ir até
+            o rodapé numa tela curta. Sem ele, a folha terminava junto com o
+            conteúdo e o âmbar do shell aparecia embaixo — foi o que levou alguém
+            (eu) a esticar a folha com `min-h-dvh`, e aí ela ficava mais alta que
+            o container e criava barra de rolagem em TODA tela, com lista ou sem.
+            A faixa não é cortada porque ela pinta o próprio âmbar por cima. */}
+        <main className="min-h-0 flex-1 md:px-3 md:pb-3">
+          <div className="h-full overflow-y-auto overflow-x-hidden bg-background md:rounded-surface md:border md:border-border-surface md:shadow-panel-lg">
+            <div className="md:p-6 lg:p-8">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={location.pathname}
@@ -477,4 +523,5 @@ export function Layout() {
       </div>
     </div>
   );
+
 }

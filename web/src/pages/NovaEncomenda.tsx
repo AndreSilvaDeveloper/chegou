@@ -5,7 +5,7 @@ import type { AuthenticatedUser } from '../api/client';
 import { Apartamento, Encomenda, LeituraEtiqueta, Morador } from '../api/types';
 import { mensagemErro } from '@/lib/erros';
 import { ScannerModal } from '../components/ScannerModal';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { OPCOES_TRANSPORTADORA, type TransportadoraNome } from '@/lib/transportadoras';
 import { prepararFoto } from '@/lib/imagem';
 import {
-  Camera, Package, Building2, User, Truck, FileText, ArrowRight, ArrowLeft, CheckCircle2,
+  Camera, Package, PackagePlus, Building2, User, Truck, FileText, ArrowRight, ArrowLeft, CheckCircle2,
   Loader2, Image as ImageIcon, X, AlertTriangle, ScanLine, Keyboard, Layers, DoorClosed,
   Plus, Mail, Box,
 } from 'lucide-react';
@@ -441,12 +441,16 @@ export function NovaEncomenda() {
   const numeroLiberado = !mostrarSelecaoBloco;
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader
-        title="Registrar Encomenda"
-        description="Escaneie o pacote ou digite os dados manualmente."
-      />
-
+    <PageShell
+      icon={PackagePlus}
+      eyebrow="Portaria"
+      title="Registrar Encomenda"
+      description="Escaneie o pacote ou digite os dados manualmente."
+      // Formulário: o botão da esquerda volta para a lista em vez de abrir o
+      // menu — sair daqui no meio do cadastro é a ação mais provável.
+      voltar="/encomendas"
+    >
+      <div className="space-y-6">
       {/* Stepper visual */}
       <div className="flex items-center justify-between relative px-2">
         <div className="absolute left-0 top-1/2 -z-10 h-0.5 w-full -translate-y-1/2 bg-border" />
@@ -698,7 +702,7 @@ export function NovaEncomenda() {
                     </Button>
                   </div>
                   <Input
-                    className="h-12 font-mono uppercase"
+                    className="font-mono uppercase"
                     placeholder="Ex: LB123456789BR"
                     value={codigoRastreio}
                     onChange={(e) => setCodigoRastreio(e.target.value)}
@@ -720,7 +724,7 @@ export function NovaEncomenda() {
                           aria-pressed={ativo}
                           onClick={() => setTipo(ativo ? null : opt.valor)}
                           className={cn(
-                            'flex h-12 items-center justify-center gap-2.5 rounded-xl border-1 txt-corpo font-medium transition-all',
+                            'flex h-10 items-center justify-center gap-2.5 rounded-xl border-1 txt-corpo font-medium transition-all',
                             ativo
                               ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary/20'
                               : 'border-border bg-background text-foreground hover:border-primary/40',
@@ -781,7 +785,7 @@ export function NovaEncomenda() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-4">
-                      <Button type="button" variant="outline" className="h-12 w-full border-dashed" onClick={() => document.getElementById('foto-upload')?.click()}>
+                      <Button type="button" variant="outline" className="w-full border-dashed" onClick={() => document.getElementById('foto-upload')?.click()}>
                         <Camera className="mr-2 h-4 w-4" /> Tirar foto
                       </Button>
                       <input
@@ -912,7 +916,7 @@ export function NovaEncomenda() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-[48px] w-full"
+              className="w-full"
               onClick={() => leituraRef.current?.abort()}
             >
               <X className="mr-2 h-4 w-4" /> Cancelar e digitar
@@ -920,6 +924,7 @@ export function NovaEncomenda() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }

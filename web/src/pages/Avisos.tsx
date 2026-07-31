@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Aviso } from '@/api/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -59,16 +59,18 @@ export function Avisos() {
   ];
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader 
-        title="Avisos Gerais" 
-        description="Envie comunicados para todos os moradores ou blocos específicos."
-      >
-        <Button>
+    <PageShell
+      icon={Megaphone}
+      eyebrow="Comunicação"
+      title="Avisos Gerais"
+      description="Envie comunicados para todos os moradores ou blocos específicos."
+      acoes={
+        <Button className="flex-1 rounded-full sm:flex-none">
           <Plus className="mr-2 h-4 w-4" /> Novo Aviso
         </Button>
-      </PageHeader>
-      
+      }
+    >
+      <div className="space-y-6">
       {avisosQuery.isLoading ? (
         <Skeleton className="h-64 w-full" />
       ) : avisosQuery.data?.length === 0 ? (
@@ -90,6 +92,7 @@ export function Avisos() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState, ComponentType } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { Tenant, TenantConfig } from '../api/types';
 import {
@@ -15,7 +15,7 @@ import { WhatsappCondominioPanel } from '@/components/condominio/WhatsappCondomi
 import { ApartamentosManager } from '../components/ApartamentosManager';
 import { MoradoresManager } from '../components/MoradoresManager';
 import { EquipeManager } from '../components/EquipeManager';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
-  ArrowLeft, Building2, Store, Blend, Home, Layers, Loader2, MapPin, CreditCard,
+  Building2, Store, Blend, Home, Layers, Loader2, MapPin, CreditCard,
   CalendarDays, Users, DoorClosed, Settings2, SlidersHorizontal, Save, Car, Bell,
   Clock, Power, Receipt, MessageCircle,
 } from 'lucide-react';
@@ -131,21 +131,15 @@ export function SuperAdminTenant() {
   ];
 
   return (
-    <div className="space-y-6 pb-10">
-      {/* Voltar */}
-      <div className="flex items-center gap-3">
-        <Link to="/admin">
-          <Button variant="ghost" size="icon" className="rounded-full" type="button" aria-label="Voltar">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <PageHeader
-          title="Gerenciar Condomínio"
-          description="Administre os dados, configurações e cadastros deste ambiente."
-          className="mb-0 border-0 pb-0"
-        />
-      </div>
-
+    <PageShell
+      icon={Building2}
+      eyebrow="Plataforma"
+      title="Gerenciar Condomínio"
+      // O botão da esquerda da barra do topo vira a seta de voltar; no desktop,
+      // a sidebar continua sendo o caminho.
+      voltar="/admin"
+    >
+      <div className="space-y-6">
       {/* Hero header */}
       <Card className="overflow-hidden border-primary/10">
         <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 md:p-6">
@@ -186,7 +180,7 @@ export function SuperAdminTenant() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="space-y-6">
-        {/* Sete abas: no celular ficam 2 por linha (o alvo de toque não pode
+        {/* Sete abas: no celular ficam 2 por linha (a aba não pode
             encolher), no desktop cabem todas numa fita só. */}
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-xs sm:grid-cols-4 lg:grid-cols-7">
           {tabs.map((t) => (
@@ -363,15 +357,15 @@ export function SuperAdminTenant() {
         </TabsContent>
 
         <TabsContent value="apartamentos" className="mt-0 animate-in fade-in zoom-in-95 duration-200">
-          <ApartamentosManager basePath={base} />
+          <ApartamentosManager basePath={base} embutido />
         </TabsContent>
 
         <TabsContent value="moradores" className="mt-0 animate-in fade-in zoom-in-95 duration-200">
-          <MoradoresManager basePath={base} />
+          <MoradoresManager basePath={base} embutido />
         </TabsContent>
 
         <TabsContent value="equipe" className="mt-0 animate-in fade-in zoom-in-95 duration-200">
-          <EquipeManager basePath={base} allowedRoles={['porteiro', 'sindico', 'admin']} />
+          <EquipeManager basePath={base} allowedRoles={['porteiro', 'sindico', 'admin']} embutido />
         </TabsContent>
 
         {/* O `id!` é seguro: a tela só chega aqui depois de carregar o tenant. */}
@@ -383,6 +377,7 @@ export function SuperAdminTenant() {
           <WhatsappCondominioPanel basePath={base} />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </PageShell>
   );
 }

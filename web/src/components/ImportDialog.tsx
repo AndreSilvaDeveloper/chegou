@@ -116,7 +116,7 @@ export function ImportDialog({ open, onOpenChange, type, onSuccess }: ImportDial
         <div className="py-4">
           {!result ? (
             <div className="space-y-4">
-              <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 rounded-lg bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="txt-apoio text-muted-foreground">
                   Não sabe o formato? Baixe o modelo, preencha e envie de volta.
                 </p>

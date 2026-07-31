@@ -27,7 +27,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FormDialog } from '@/components/ui/form-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { SimpleSelect } from '@/components/ui/simple-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/ui/stat-card';
@@ -107,18 +107,21 @@ export function SuperAdminAssinaturas() {
   const resumo = resumoQuery.data;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Plataforma"
-        title="Assinaturas"
-        description="O que os clientes pagam pelo Chegou: preços, prévias e faturas do mês."
-        icon={Receipt}
-      >
-        <Button onClick={() => setGerarAberto(true)} className="min-h-[48px]">
-          <CirclePlus className="mr-2 h-4 w-4" />
-          Gerar faturas
-        </Button>
-      </PageHeader>
+    <PageShell
+      eyebrow="Plataforma"
+      title="Assinaturas"
+      description="O que os clientes pagam pelo Chegou: preços, prévias e faturas do mês."
+      icon={Receipt}
+      acoes={
+        <>
+  <Button onClick={() => setGerarAberto(true)} >
+            <CirclePlus className="mr-2 h-4 w-4" />
+            Gerar faturas
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {resumoQuery.isLoading ? (
@@ -179,9 +182,7 @@ export function SuperAdminAssinaturas() {
                 id="competencia"
                 type="month"
                 value={competencia}
-                onChange={(e) => setCompetencia(e.target.value)}
-                className="min-h-[48px]"
-              />
+                onChange={(e) => setCompetencia(e.target.value)} />
             </div>
             <div className="flex-1 space-y-2">
               <Label htmlFor="status">
@@ -271,7 +272,8 @@ export function SuperAdminAssinaturas() {
         loading={cancelar.isPending}
         onConfirm={() => cancelando && cancelar.mutate(cancelando.id)}
       />
-    </div>
+      </div>
+    </PageShell>
   );
 }
 
@@ -316,11 +318,11 @@ function FaturaCard({
           </span>
           {podeMexer && (
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button onClick={onPagar} className="min-h-[48px]">
+              <Button onClick={onPagar} >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 Dar baixa
               </Button>
-              <Button variant="outline" onClick={onCancelar} className="min-h-[48px]">
+              <Button variant="outline" onClick={onCancelar} >
                 <Ban className="mr-2 h-4 w-4" />
                 Cancelar
               </Button>
@@ -443,7 +445,7 @@ function PainelPrecos() {
             foi cobrado e não é reescrita.
           </p>
 
-          <Button variant="outline" onClick={() => setEditando(true)} className="min-h-[48px]">
+          <Button variant="outline" onClick={() => setEditando(true)} >
             <Table2 className="mr-2 h-4 w-4" />
             Editar tabela de preços
           </Button>
@@ -538,9 +540,7 @@ function EditarFaixasDialog({
                   value={linha.ateQuantidade}
                   disabled={ehUltima}
                   placeholder={ehUltima ? 'Sem teto' : ''}
-                  onChange={(e) => alterar(i, 'ateQuantidade', e.target.value)}
-                  className="min-h-[48px]"
-                />
+                  onChange={(e) => alterar(i, 'ateQuantidade', e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor={`preco-${i}`}>
@@ -552,9 +552,7 @@ function EditarFaixasDialog({
                   min={0}
                   step="0.01"
                   value={linha.precoApartamento}
-                  onChange={(e) => alterar(i, 'precoApartamento', e.target.value)}
-                  className="min-h-[48px]"
-                />
+                  onChange={(e) => alterar(i, 'precoApartamento', e.target.value)} />
               </div>
             </div>
           );
@@ -564,7 +562,7 @@ function EditarFaixasDialog({
           <Button
             type="button"
             variant="outline"
-            className="min-h-[48px] flex-1"
+            className="flex-1"
             onClick={() =>
               // Entra antes da última: a de cima ganha teto, a última segue aberta.
               setLinhas((atual) => [
@@ -581,7 +579,7 @@ function EditarFaixasDialog({
             <Button
               type="button"
               variant="outline"
-              className="min-h-[48px] flex-1"
+              className="flex-1"
               onClick={() => setLinhas((atual) => [...atual.slice(0, -2), ...atual.slice(-1)])}
             >
               Remover a penúltima
@@ -652,9 +650,7 @@ function GerarFaturasDialog({
           id="gerar-competencia"
           type="month"
           value={competencia}
-          onChange={(e) => setCompetencia(e.target.value)}
-          className="min-h-[48px]"
-        />
+          onChange={(e) => setCompetencia(e.target.value)} />
         <p className="txt-apoio text-muted-foreground">
           A assinatura é pós-paga: fatura-se o mês que fechou.
         </p>
@@ -670,9 +666,7 @@ function GerarFaturasDialog({
           min={1}
           max={31}
           value={diaVencimento}
-          onChange={(e) => setDiaVencimento(e.target.value)}
-          className="min-h-[48px]"
-        />
+          onChange={(e) => setDiaVencimento(e.target.value)} />
         <p className="txt-apoio text-muted-foreground">
           No mês seguinte à competência. Dia 31 em mês de 30 cai no último dia.
         </p>

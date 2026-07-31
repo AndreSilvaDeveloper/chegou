@@ -378,6 +378,7 @@ mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a do
 | `funcionalidade-nova` | Qualquer funcionalidade nova — começa perguntando os perfis de acesso |
 | `modulo-backend` | Criar um módulo NestJS novo (controller, service, DTO, entidade, migration, doc) |
 | `tela-frontend` | Criar página ou diálogo no painel, com os padrões de UI e de acesso |
+| `tela-listagem` | Montar ou converter uma tela de listagem/cadastro no layout padrão (faixa âmbar no celular, tabela no desktop) |
 | `auditar-multitenant` | Revisar isolamento entre condomínios depois de mexer em query, guard ou DTO |
 
 ---
@@ -448,64 +449,80 @@ Detalhes e armadilhas: [módulo Notificações](src/modules/notificacoes/CLAUDE.
 **Sinal**: `#FFC72C` (âmbar) — reservado para ação e foco. Texto sobre ele:
 `#3A2003` (10:1).
 
-**Hierarquia de superfícies** — 4 níveis. No claro o painel *afunda* no papel;
-no escuro ele *sobe* do breu. Cada nível se distingue do vizinho sem depender de
-sombra (o porteiro usa no sol da portaria, onde sombra some):
+**Hierarquia de superfícies** — 4 níveis. Nos **dois temas o card sobe**: ele
+flutua sobre a folha, que é o tom mais fechado.
 
 | Nível | Token | Claro | Escuro | Papel |
 |---|---|---|---|---|
 | Shell | `--sidebar` | `#E8E4DE` | `#0A0A0A` | Menu e topo — moldura de tudo |
-| Folha | `--background` | `#FBF9F6` | `#121212` | Área de trabalho **e campos de formulário** |
-| Card | `--card` | `#F7F5F1` | `#1A1A1A` | O conteúdo |
+| Folha | `--background` | `#F3F0EA` | `#121212` | Área de trabalho **e campos de formulário** |
+| Card | `--card` | `#FDFCFA` | `#1A1A1A` | O conteúdo, elevado |
 | Flutuante | `--popover` | `#FFFFFF` | `#1A1A1A` | Diálogo, gaveta, menu suspenso |
 
 No claro os neutros são **greige** (matiz 36°, a 8° do âmbar): neutro quente sem
 puxar para o rosa, e o sinal amarelo pertence à cena em vez de brigar com ela.
 Saturação baixa de propósito — o tom só aparece nas áreas grandes.
 
-**Blocos dentro do card** (`--muted` / `--secondary`, claro `#F5F2EE`) ficam a um
-passo curto do card, não a um degrau inteiro: quem os delimita é a borda. Bloco
-interno muito distante do card vira um segundo card competindo com o primeiro.
+**O que separa um nível do outro**, nesta ordem: o degrau de **tom**, a
+**sombra** (`shadow-panel`) e, por último, um fio de borda (`--border-surface`)
+que quase não se vê. A borda deixou de ser a protagonista — era ela que dava o
+ar de formulário antigo, com tudo dentro de uma caixa dentro de outra. O tom vem
+primeiro porque o porteiro usa o app no sol da portaria, onde sombra some.
 
-No escuro, card e flutuante dividem o mesmo tom (é o tema original); no claro o
-flutuante sobe para branco.
+> **Card dentro de card é proibido.** Duas sombras empilhadas viram sujeira, e o
+> aninhamento é o que deixava a tela pesada.
 
-Regra prática: **campo de formulário usa a folha**. No claro ele fica mais claro
-que o card (convida a escrever); no escuro, mais escuro (afunda). Nos dois casos
-se separa do card sozinho.
+**Blocos dentro do card** (`--muted` / `--secondary`, claro `#F6F3EE`) são
+**chapados**: preenchimento e raio, sem borda e sem sombra. É o preenchimento
+que os delimita. Esse bloco é o substituto do card-dentro-de-card.
+
+Regra prática: **campo de formulário usa a folha**. Nos dois temas ele fica mais
+escuro que o card e afunda nele — o mesmo gesto no claro e no escuro, em vez de
+um invertido em relação ao outro.
+
+**Raio**: controles (botão, campo, badge) em `--radius` (12px); superfícies
+(card, diálogo, gaveta) em `--radius-surface` (20px), pela classe
+`rounded-surface`. O raio maior é o que dá o ar arredondado sem deformar campo
+e botão.
 
 | Papel | Claro | Escuro |
 |---|---|---|
-| Texto principal | `#1A1714` (16.4:1 no card) | `#FAFAFA` (15:1) |
-| Texto secundário | `#625A50` (6.2:1) | `#A3A3A3` (7:1) |
-| Borda | `#D7D0C6` | `#2A2A2A` |
+| Texto principal | `#1A1714` (16.8:1 no card) | `#FAFAFA` (15:1) |
+| Texto secundário | `#625A50` (6.4:1) | `#A3A3A3` (7:1) |
+| Borda de controle | `#D7D0C6` | `#2A2A2A` |
+| Borda de superfície | `#EDE9E2` (um fio) | `#262626` |
 | Sucesso / Aviso / Erro | Emerald / Amber / Red (mantidos) | idem |
 
 ### Escala tipográfica — uma classe por papel
 
 Assim como nenhuma cor é escrita em hexadecimal, **nenhum tamanho de fonte é
-escrito à mão**. A escala vive em `web/src/styles.css` e cada classe é um papel,
-já com a medida do celular e a do desktop:
+escrito à mão**. A escala vive em `web/src/styles.css` e cada classe é um papel.
+É a escala padrão de painel web (shadcn/ui): **o mesmo tamanho em qualquer
+viewport**.
 
-| Classe | Celular | Desktop | Papel |
-|---|---|---|---|
-| `txt-numero` | 30px | 36px | KPI, número em destaque |
-| `txt-numero-sm` | 20px | 24px | valor numérico em linha (total, contador) |
-| `txt-titulo` | 24px | 30px | título da tela — um por tela |
-| `txt-secao` | 18px | 20px | título de card, diálogo, seção |
-| `txt-subtitulo` | 16px | 18px | nome do item no card, subtítulo de bloco |
-| `txt-corpo` | 16px | 14px | texto padrão, campo, botão, tabela |
-| `txt-apoio` | 14px | 14px | descrição, dica, texto secundário |
-| `txt-nota` | 12px | 12px | chrome: badge, legenda de gráfico, atalho |
-| `eyebrow` | 11px | 11px | rótulo mono maiúsculo acima do título |
+| Classe | Tamanho | Papel |
+|---|---|---|
+| `txt-numero` | 24px | KPI, número em destaque |
+| `txt-numero-sm` | 18px | valor numérico em linha (total, contador) |
+| `txt-titulo` | 24px | título da tela — um por tela |
+| `txt-secao` | 16px | título de card, diálogo, seção |
+| `txt-subtitulo` | 14px | nome do item no card, subtítulo de bloco |
+| `txt-corpo` | 14px | texto padrão, campo, botão, tabela |
+| `txt-apoio` | 14px | descrição, dica, texto secundário |
+| `txt-nota` | 12px | chrome: badge, legenda de gráfico, atalho |
+| `eyebrow` | 11px | rótulo mono maiúsculo acima do título |
 
-**Por que o corpo encolhe de 16 para 14 no desktop**: no celular o porteiro está
-em pé, com o aparelho na mão e muitas vezes com presbiopia — 16px é o mínimo
-confortável, e é também o que impede o iOS de dar zoom ao focar um campo. No
-desktop a mesma pessoa está sentada, mais perto da tela e com mais informação de
-uma vez. É a regra que o `Input` já seguia (`text-base md:text-sm`), agora
-valendo para tudo. Já `txt-apoio` não encolhe: ele é secundário pela **cor**, e
-encolher também o levaria a 12px no desktop.
+**Três papéis dividem os 14px** (`txt-subtitulo`, `txt-corpo`, `txt-apoio`).
+Numa escala padrão os degraus são curtos, então o que separa esses três passa a
+ser **peso e cor**, não tamanho: `txt-subtitulo font-semibold` para o nome do
+item, `txt-corpo` para o texto, `txt-apoio text-muted-foreground` para o
+secundário. As classes continuam existindo com a mesma medida porque elas dizem
+o **papel** — e é o papel que a próxima retunagem da escala vai precisar
+distinguir. Trocar uma pela outra "porque dá no mesmo" é o que quebra isso.
+
+> A escala já cresceu no celular (corpo 16px, título 30px no desktop) por causa
+> de um público-alvo de usuário mais velho. Essa premissa saiu do produto. Se
+> voltar, o lugar de mudar é `web/src/styles.css` — e só ele.
 
 Os componentes de `web/src/components/ui/` já trazem a classe certa (título de
 card, label, campo, botão, badge, tabela) — **repetir a classe na tela é ruído**
@@ -533,31 +550,40 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 
 ## 📱 Mobile-First & Acessibilidade
 
-> **REGRA FUNDAMENTAL**: O sistema é usado principalmente por **porteiros** que são
-> frequentemente **pessoas mais velhas** e acessam pelo **celular na portaria**.
-> Toda decisão de UI deve priorizar simplicidade e facilidade de uso.
+> **REGRA FUNDAMENTAL**: O porteiro trabalha **no celular, em pé na portaria**.
+> Mobile-first não é preferência estética — é onde o sistema é usado de verdade.
+
+> **O que saiu**: o projeto já tratou o porteiro como um público que precisa de
+> fonte aumentada, alvo de toque de 48px, rótulo sempre visível e nenhum botão
+> só de ícone. Essa premissa foi retirada do produto: a interface segue os
+> **padrões do shadcn/ui**, iguais aos de qualquer painel web. O que continua
+> valendo abaixo vale por ser boa prática de UI, não por causa daquele público.
 
 ### Mobile-First
 1. **Abordagem**: Desenvolver primeiro para mobile, depois adaptar para desktop
 2. **Breakpoints**: `sm:640px`, `md:768px`, `lg:1024px`, `xl:1280px` (TailwindCSS padrão)
 3. **Layout mobile**: Uma coluna, conteúdo empilhado verticalmente
 4. **Layout desktop**: Sidebar fixa + conteúdo expandido
-5. **Touch targets**: Mínimo **48x48px** para botões e links (acima do padrão 44px)
-6. **Espaçamento generoso**: `gap-3` mínimo entre elementos interativos
+5. **Tamanhos de controle**: os padrões do shadcn (`Button` `h-9`, `Input` `h-9`).
+   Não force altura à mão — se um controle precisa destoar, use a variante
+   (`size="lg"`, `size="sm"`) para a exceção ficar legível
+6. **Espaçamento**: `gap-3` entre elementos interativos
 7. **FAB (Floating Action Button)**: Ação principal acessível no canto inferior direito no mobile
 
-### Acessibilidade para Usuários Mais Velhos
-8. **Fonte mínima**: `txt-corpo` (16px no celular) para texto; nada que precise
-   ser lido para trabalhar vai abaixo de `txt-apoio`. Ver "Escala tipográfica"
+### Acessibilidade
+8. **Tamanho de texto**: sempre da escala (`txt-*`) — ver "Escala tipográfica".
+   `txt-nota` é chrome (badge, legenda), não texto que precisa ser lido
 9. **Contraste alto**: Ratio mínimo 4.5:1 (WCAG AA) — testar com ferramentas de contraste
-10. **Botões grandes**: Classes `py-3 px-6` mínimo para ações primárias no mobile
-11. **Ícones com labels**: SEMPRE acompanhar ícones com texto descritivo (nunca ícone sozinho)
-12. **Feedback visual claro**: States de loading, sucesso e erro devem ser óbvios e grandes
-13. **Formulários simples**: Um campo por linha no mobile, labels sempre visíveis (nunca placeholder-only)
-14. **Navegação simples**: Máximo 7 itens visíveis na sidebar, agrupados logicamente
-15. **Confirmação de ações destrutivas**: Sempre usar Dialog com texto claro e botões grandes
-16. **Sem gestos complexos**: Evitar swipe, long-press ou double-tap — usar botões explícitos
-17. **Scroll vertical apenas**: Evitar scroll horizontal em qualquer viewport
+10. **Botão só de ícone**: permitido, mas **sempre com `aria-label`** — sem ele o
+    botão não existe para leitor de tela
+11. **Feedback visual claro**: States de loading, sucesso e erro devem ser óbvios
+12. **Formulários**: um campo por linha no mobile. `Label` é o padrão; usar
+    placeholder como rótulo é aceito só onde o campo é auto-evidente (busca),
+    e nesse caso o campo precisa de `aria-label`
+13. **Navegação simples**: Máximo 7 itens visíveis na sidebar, agrupados logicamente
+14. **Confirmação de ações destrutivas**: Sempre usar Dialog com texto claro
+15. **Sem gestos complexos**: Evitar swipe, long-press ou double-tap — usar botões explícitos
+16. **Scroll vertical apenas**: Evitar scroll horizontal em qualquer viewport
 
 ### Componentes Mobile-First
 ```
@@ -622,7 +648,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `@AdministradoraId()` | `src/common/decorators` | Carteira do usuário logado |
 | `@Roles(...)` / `@RequiresModule(...)` | `src/common/decorators` | Perfis e módulo opcional da rota |
 | `TenantConfigService` | `src/common/tenant-config` | Ler `config_json` do condomínio com cache |
-| `FormDialog` | `web/src/components/ui/form-dialog.tsx` | Casca de formulário em diálogo (rolagem, 48px, salvando) |
+| `FormDialog` | `web/src/components/ui/form-dialog.tsx` | Casca de formulário em diálogo (rolagem, empilhamento, salvando) |
 | `PhoneInput` | `web/src/components/ui/phone-input.tsx` | Telefone mascarado `(32) 99999-9999` → E.164 |
 | `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
 | `Combobox` | `web/src/components/ui/combobox.tsx` | Campo com sugestões que **aceita valor fora da lista** (transportadora) |
@@ -631,7 +657,10 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
 | `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
-| `CheckboxField` | `web/src/components/ui/checkbox.tsx` | Caixa de seleção com texto num alvo de toque de 48px |
+| `CheckboxField` | `web/src/components/ui/checkbox.tsx` | Caixa de seleção com o texto clicável |
+| `PageShell` | `web/src/components/ui/page-shell.tsx` | **Casca de toda tela do painel**: faixa âmbar no celular (título, busca, filtro, voltar), cabeçalho comum no desktop |
+| `ListCard` / `ListCardStack` | `web/src/components/ui/list-card.tsx` | Registro de lista como card no celular (rótulo apagado sobre valor forte) |
+| `DataTable` com `mobileCard` | `web/src/components/ui/data-table.tsx` | Lista que é card no celular e tabela no desktop |
 | `EmptyState` / `StatCard` / `ConfirmDialog` / `SimpleSelect` | `web/src/components/ui/` | Estado vazio, indicador, confirmação e select |
 | `OptionCard` / `ModuleToggle` / `ModuleReadonly` / `InfoPill` | `web/src/components/condominio/condominio-shared.tsx` | Telas de configurar condomínio (superadmin e administradora) |
 | `AssinaturaCondominioPanel` / `WhatsappCondominioPanel` | `web/src/components/condominio/` | Abas "Assinatura" e "WhatsApp" de um condomínio, nas telas do superadmin e da administradora |
@@ -715,43 +744,50 @@ passaria a acontecer no meio do que o porteiro estiver digitando.
 14. **SEMPRE** suportar dark mode nos novos componentes
 15. **SEMPRE** fazer loading states com Skeleton (nunca texto "Carregando...")
 16. **SEMPRE** desenvolver mobile-first (estilos base = mobile, depois media queries para desktop)
-17. **SEMPRE** usar touch targets de no mínimo 48x48px em botões e links
-18. **SEMPRE** acompanhar ícones com texto descritivo
-19. **NUNCA** usar placeholder como substituto de label em formulários
+17. **SEMPRE** usar os tamanhos padrão dos componentes shadcn — **NUNCA** forçar
+    altura à mão (`h-12`, `min-h-[48px]`); se precisar destoar, use a variante
+    de tamanho (`size="lg"`, `size="sm"`)
+18. **SEMPRE** dar `aria-label` a botão que é só ícone
+19. **SEMPRE** usar `Label` em campo de formulário, salvo campo auto-evidente
+    (busca) — e aí com `aria-label`
 20. **SEMPRE** tirar o tamanho de texto da escala (`txt-numero`, `txt-titulo`,
     `txt-secao`, `txt-subtitulo`, `txt-corpo`, `txt-apoio`, `txt-nota`,
     `eyebrow`) — **NUNCA** `text-sm`/`text-lg`/`md:text-xl` soltos nem
     `text-[13px]`. Ver "Escala tipográfica"
 21. **NUNCA** usar gestos complexos (swipe, long-press) — usar botões explícitos
 22. **SEMPRE** testar responsividade em viewport 375px (menor tela suportada)
+23. **NUNCA** aninhar `Card` dentro de `Card` — bloco interno é chapado
+    (`rounded-lg bg-muted`, sem borda e sem sombra). Ver "Hierarquia de superfícies"
+24. **SEMPRE** dar `mobileCard` ao `DataTable` — lista de registros é card no
+    celular e tabela no desktop; tabela nunca rola na horizontal
 
 ### Acesso e multitenant
-23. **SEMPRE** perguntar quais perfis acessam uma funcionalidade nova, antes de
+25. **SEMPRE** perguntar quais perfis acessam uma funcionalidade nova, antes de
     implementar (ver "Regra de ouro para funcionalidade nova")
-24. **NUNCA** ler `X-Tenant-Id` fora do `TenantScopeGuard` — nas rotas, só `@TenantId()`
-25. **SEMPRE** validar id de outra entidade que venha no corpo com
+26. **NUNCA** ler `X-Tenant-Id` fora do `TenantScopeGuard` — nas rotas, só `@TenantId()`
+27. **SEMPRE** validar id de outra entidade que venha no corpo com
     `assertRefDoTenant()` (`src/common/tenant-scope/tenant-ref.ts`)
-26. **NUNCA** aceitar `tenantId` vindo do corpo da request — em `create()`, o
+28. **NUNCA** aceitar `tenantId` vindo do corpo da request — em `create()`, o
     `tenantId` vem **depois** do spread do DTO
-27. **SEMPRE** rodar `npm run test:e2e` ao mexer em guard, role, rota nova ou escopo
+29. **SEMPRE** rodar `npm run test:e2e` ao mexer em guard, role, rota nova ou escopo
 
 ### Dados de contato
-28. **NUNCA** pedir `+55` ao usuário — telefone se digita `(32) 99999-9999`.
+30. **NUNCA** pedir `+55` ao usuário — telefone se digita `(32) 99999-9999`.
     No DTO, `@TelefoneE164()`; na tela, `PhoneInput`; na listagem,
     `formatarTelefone()`. O banco guarda **sempre** E.164
 
 ### Documentação viva
-29. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
+31. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
     regras, campos). Doc desatualizada é pior que doc inexistente
-30. **SEMPRE** atualizar a tabela "O que cada perfil faz" ao mudar um `@Roles`
-31. **SEMPRE** criar o `CLAUDE.md` junto com o módulo novo — nunca "depois"
+32. **SEMPRE** atualizar a tabela "O que cada perfil faz" ao mudar um `@Roles`
+33. **SEMPRE** criar o `CLAUDE.md` junto com o módulo novo — nunca "depois"
 
 ### Versionamento
-32. **SEMPRE** subir a versão (`npm run versao correcao|recurso|maior`) na
+34. **SEMPRE** subir a versão (`npm run versao correcao|recurso|maior`) na
     mesma alteração — bug é `CORREÇÃO`, funcionalidade grande é `RECURSO`,
     virada de produto é `MAIOR` (ver "Versionamento")
-33. **SEMPRE** registrar a mudança no `CHANGELOG.md`, no commit da alteração
-34. **NUNCA** editar a versão só em um dos `package.json` — use o script, que
+35. **SEMPRE** registrar a mudança no `CHANGELOG.md`, no commit da alteração
+36. **NUNCA** editar a versão só em um dos `package.json` — use o script, que
     mantém raiz e `web/` no mesmo número
 
 ---

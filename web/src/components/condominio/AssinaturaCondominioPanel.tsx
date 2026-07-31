@@ -191,7 +191,7 @@ export function AssinaturaCondominioPanel({ tenantId, podeEditar }: Props) {
       {/* Quem paga. Sem esta faixa, um condomínio de carteira pareceria um
           cliente que nunca foi cobrado. */}
       {daCarteira && (
-        <div className="flex gap-3 rounded-xl border border-border bg-muted/40 p-4 md:p-5">
+        <div className="flex gap-3 rounded-xl bg-muted/40 p-4 md:p-5">
           <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
           <div className="min-w-0 space-y-1">
             <p className="txt-subtitulo font-semibold text-foreground">
@@ -231,7 +231,7 @@ export function AssinaturaCondominioPanel({ tenantId, podeEditar }: Props) {
             />
           </div>
 
-          <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-4">
+          <div className="space-y-2 rounded-xl bg-muted/30 p-4">
             <p className="eyebrow">Como foi calculado</p>
             {conta.conta ? (
               <ComoFoiCalculado resultado={conta.conta.resultado} />
@@ -260,7 +260,7 @@ export function AssinaturaCondominioPanel({ tenantId, podeEditar }: Props) {
               <Button
                 variant="outline"
                 onClick={() => setNovaCondicao(true)}
-                className="min-h-[48px] shrink-0"
+                className="shrink-0"
               >
                 <Tag className="mr-2 h-4 w-4" /> Negociar
               </Button>
@@ -302,7 +302,7 @@ export function AssinaturaCondominioPanel({ tenantId, podeEditar }: Props) {
                     <Button
                       variant="outline"
                       onClick={() => setEncerrando(c)}
-                      className="min-h-[48px] shrink-0"
+                      className="shrink-0"
                     >
                       <Handshake className="mr-2 h-4 w-4" /> Encerrar
                     </Button>
@@ -339,7 +339,7 @@ export function AssinaturaCondominioPanel({ tenantId, podeEditar }: Props) {
               <Button
                 onClick={() => salvarDia.mutate(diaEscolhido ? Number(diaEscolhido) : null)}
                 disabled={!diaMudou || salvarDia.isPending}
-                className="min-h-[48px] sm:w-auto"
+                className="sm:w-auto"
               >
                 {salvarDia.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -349,7 +349,7 @@ export function AssinaturaCondominioPanel({ tenantId, podeEditar }: Props) {
                 Salvar vencimento
               </Button>
             </div>
-            <p className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5 txt-apoio text-muted-foreground">
+            <p className="flex items-start gap-2 rounded-xl bg-muted/40 px-3 py-2.5 txt-apoio text-muted-foreground">
               <CalendarClock className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 Vale da próxima geração em diante — <b className="text-foreground">fatura já
@@ -481,10 +481,10 @@ function LinhaFatura({
         <span className="txt-numero-sm font-bold text-foreground">{fmtMoeda(fatura.valor)}</span>
         {podeEditar && aberta && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onPagar} className="min-h-[48px]">
+            <Button variant="outline" onClick={onPagar} >
               <CheckCircle2 className="mr-2 h-4 w-4" /> Dar baixa
             </Button>
-            <Button variant="ghost" onClick={onCancelar} className="min-h-[48px]" aria-label="Cancelar fatura">
+            <Button variant="ghost" onClick={onCancelar} aria-label="Cancelar fatura">
               <Ban className="mr-2 h-4 w-4" /> Cancelar
             </Button>
           </div>
@@ -576,9 +576,7 @@ function DialogPrecoEspecial({
             value={preco}
             onChange={(e) => setPreco(e.target.value)}
             placeholder="3,49"
-            disabled={saving}
-            className="min-h-[48px]"
-          />
+            disabled={saving} />
         </div>
       )}
 
@@ -591,9 +589,7 @@ function DialogPrecoEspecial({
             value={valorFixo}
             onChange={(e) => setValorFixo(e.target.value)}
             placeholder="450,00"
-            disabled={saving}
-            className="min-h-[48px]"
-          />
+            disabled={saving} />
         </div>
       )}
 
@@ -605,9 +601,7 @@ function DialogPrecoEspecial({
           value={desconto}
           onChange={(e) => setDesconto(e.target.value)}
           placeholder="Opcional"
-          disabled={saving}
-          className="min-h-[48px]"
-        />
+          disabled={saving} />
         <p className="txt-apoio text-muted-foreground">
           Aplicado por último, sobre qualquer uma das formas acima.
         </p>
@@ -620,9 +614,7 @@ function DialogPrecoEspecial({
           type="date"
           value={vigenteDe}
           onChange={(e) => setVigenteDe(e.target.value)}
-          disabled={saving}
-          className="min-h-[48px]"
-        />
+          disabled={saving} />
         <p className="txt-apoio text-muted-foreground">
           Em branco = hoje.{' '}
           {temVigente &&
@@ -687,9 +679,7 @@ function DialogPagamento({
           type="date"
           value={pagaEm}
           onChange={(e) => setPagaEm(e.target.value)}
-          disabled={saving}
-          className="min-h-[48px]"
-        />
+          disabled={saving} />
         <p className="txt-apoio text-muted-foreground">
           Em branco = agora. Preencha quando o dinheiro entrou em outro dia — é essa data que
           explica um pagamento registrado com atraso.

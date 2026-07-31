@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import type { RelatorioEncomendas, RelatorioVagas, RelatorioWhatsapp } from '@/api/types';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -354,33 +354,34 @@ export function Relatorios() {
   const mostrarFiltros = tabAtiva !== 'vagas';
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader
-        eyebrow="Análise"
-        title="Relatórios"
-        description="Volume, tempos de atendimento, saúde dos disparos e ocupação da garagem."
-      >
+    <PageShell
+      icon={Boxes}
+      eyebrow="Análise"
+      title="Relatórios"
+      description="Volume, tempos de atendimento, saúde dos disparos e ocupação da garagem."
+      acoes={
         <Button
           variant="outline"
           onClick={recarregar}
-          className="w-full min-h-[48px] sm:w-auto"
+          className="flex-1 rounded-full sm:flex-none"
           type="button"
         >
           <RefreshCw className={cn('mr-2 h-4 w-4', atualizando && 'animate-spin')} />
           Atualizar
         </Button>
-      </PageHeader>
-
+      }
+    >
+      <div className="space-y-6">
       <Tabs value={tabAtiva} onValueChange={(v) => setTab(v as TabKey)} className="space-y-6">
         <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 sm:w-auto">
-          <TabsTrigger value="encomendas" className="min-h-[48px] flex-1 gap-2 px-4 sm:flex-none">
+          <TabsTrigger value="encomendas" className="flex-1 gap-2 px-4 sm:flex-none">
             <Package className="h-4 w-4" /> Encomendas
           </TabsTrigger>
-          <TabsTrigger value="whatsapp" className="min-h-[48px] flex-1 gap-2 px-4 sm:flex-none">
+          <TabsTrigger value="whatsapp" className="flex-1 gap-2 px-4 sm:flex-none">
             <MessageSquare className="h-4 w-4" /> WhatsApp
           </TabsTrigger>
           {vagasAtivo && (
-            <TabsTrigger value="vagas" className="min-h-[48px] flex-1 gap-2 px-4 sm:flex-none">
+            <TabsTrigger value="vagas" className="flex-1 gap-2 px-4 sm:flex-none">
               <Car className="h-4 w-4" /> Vagas
             </TabsTrigger>
           )}
@@ -399,7 +400,7 @@ export function Relatorios() {
                       type="button"
                       onClick={() => setPreset(p.key)}
                       className={cn(
-                        'min-h-[48px] rounded-lg border px-4 txt-corpo font-medium transition-colors',
+                        'rounded-lg border px-4 txt-corpo font-medium transition-colors',
                         preset === p.key
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-background text-muted-foreground hover:text-foreground',
@@ -412,7 +413,7 @@ export function Relatorios() {
                     type="button"
                     onClick={() => setPreset('custom')}
                     className={cn(
-                      'min-h-[48px] rounded-lg border px-4 txt-corpo font-medium transition-colors',
+                      'rounded-lg border px-4 txt-corpo font-medium transition-colors',
                       preset === 'custom'
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-background text-muted-foreground hover:text-foreground',
@@ -515,7 +516,8 @@ export function Relatorios() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </PageShell>
   );
 }
 
@@ -627,7 +629,7 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
         description="Da chegada na portaria até a retirada pelo morador."
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <div className="rounded-lg bg-muted/30 p-4">
             <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
               <Send className="h-4 w-4 shrink-0" /> Moradores avisados
             </div>
@@ -638,7 +640,7 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
               {fmtInt(resumo.notificadas)} de {fmtInt(resumo.recebidas)} encomendas
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <div className="rounded-lg bg-muted/30 p-4">
             <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
               <Hourglass className="h-4 w-4 shrink-0" /> Tempo até avisar
             </div>
@@ -647,7 +649,7 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
             </p>
             <p className="mt-1 txt-apoio text-muted-foreground">Do registro ao envio no WhatsApp</p>
           </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <div className="rounded-lg bg-muted/30 p-4">
             <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
               <XCircle className="h-4 w-4 shrink-0" /> Canceladas e devolvidas
             </div>
@@ -792,7 +794,7 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
                       </TableCell>
                       <TableCell className="text-right">
                         <Link to={`/encomendas/${e.id}`}>
-                          <Button variant="ghost" size="sm" className="min-h-[48px]">
+                          <Button variant="ghost" size="sm" >
                             Ver detalhes
                           </Button>
                         </Link>
@@ -1006,7 +1008,7 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="rounded-lg bg-muted/30 p-4">
                 <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
                   <PhoneOff className="h-4 w-4 shrink-0" /> Sem telefone
                 </div>
@@ -1014,7 +1016,7 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
                   {fmtInt(alcance.semTelefone)}
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="rounded-lg bg-muted/30 p-4">
                 <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
                   <XCircle className="h-4 w-4 shrink-0" /> Optaram por não receber
                 </div>
@@ -1022,7 +1024,7 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
                   {fmtInt(alcance.optOut)}
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="rounded-lg bg-muted/30 p-4">
                 <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
                   <Building2 className="h-4 w-4 shrink-0" /> Unidades sem titular
                 </div>

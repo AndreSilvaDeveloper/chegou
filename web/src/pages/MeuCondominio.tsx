@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Bell, Building2, CalendarDays, Car, Clock, CreditCard, DoorClosed,
+  Bell, Building2, CalendarDays, Car, Clock, CreditCard, DoorClosed,
   Layers, Loader2, Lock, MapPin, MessageCircle, Receipt, Save, Settings2,
   SlidersHorizontal, Users,
 } from 'lucide-react';
@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -183,7 +183,7 @@ export function MeuCondominio() {
             Ele pode ter saído da sua carteira. Volte e escolha outro.
           </p>
           <Link to="/meus-condominios">
-            <Button className="min-h-[48px]">Voltar para a carteira</Button>
+            <Button >Voltar para a carteira</Button>
           </Link>
         </CardContent>
       </Card>
@@ -197,21 +197,14 @@ export function MeuCondominio() {
   });
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex items-center gap-3">
-        <Link to="/meus-condominios">
-          <Button variant="ghost" size="icon" className="rounded-full" type="button" aria-label="Voltar para a carteira">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <PageHeader
-          eyebrow="Carteira"
-          title="Configurar condomínio"
-          description="Você está operando neste condomínio enquanto esta tela estiver aberta."
-          className="mb-0 border-0 pb-0"
-        />
-      </div>
-
+    <PageShell
+      icon={Building2}
+      eyebrow="Carteira"
+      title="Configurar condomínio"
+      description="Você está operando neste condomínio enquanto esta tela estiver aberta."
+      voltar="/meus-condominios"
+    >
+      <div className="space-y-6">
       <Card className="overflow-hidden border-primary/10">
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 md:p-6">
           <div className="flex items-start gap-4">
@@ -355,7 +348,7 @@ export function MeuCondominio() {
                 <PlataformaDecide texto="O plano da assinatura e o acesso do condomínio (ativo ou inativo) são definidos pelo Chegou. Precisa mudar? Fale com o suporte." />
               </CardContent>
               <CardFooter className="flex justify-end bg-muted/50 py-4">
-                <Button type="submit" disabled={salvar.isPending} className="min-h-[48px]">
+                <Button type="submit" disabled={salvar.isPending} >
                   {salvar.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Salvar alterações
                 </Button>
@@ -497,7 +490,7 @@ export function MeuCondominio() {
                 </section>
               </CardContent>
               <CardFooter className="flex justify-end bg-muted/50 py-4">
-                <Button type="submit" disabled={salvar.isPending} className="min-h-[48px]">
+                <Button type="submit" disabled={salvar.isPending} >
                   {salvar.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Salvar configurações
                 </Button>
@@ -507,15 +500,15 @@ export function MeuCondominio() {
         </TabsContent>
 
         <TabsContent value="apartamentos" className="mt-0">
-          <ApartamentosManager basePath="" />
+          <ApartamentosManager basePath="" embutido />
         </TabsContent>
 
         <TabsContent value="moradores" className="mt-0">
-          <MoradoresManager basePath="" />
+          <MoradoresManager basePath="" embutido />
         </TabsContent>
 
         <TabsContent value="equipe" className="mt-0">
-          <EquipeManager basePath="" allowedRoles={['porteiro', 'sindico']} />
+          <EquipeManager basePath="" allowedRoles={['porteiro', 'sindico']} embutido />
         </TabsContent>
 
         {/* Assinatura em leitura: quem paga por este condomínio é a carteira
@@ -532,14 +525,15 @@ export function MeuCondominio() {
           <WhatsappCondominioPanel basePath="" />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </PageShell>
   );
 }
 
 /** Aviso do que é decisão da plataforma — some a dúvida de "por que não edito isso?". */
 function PlataformaDecide({ texto }: { texto: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">
+    <div className="flex items-start gap-3 rounded-lg bg-muted/40 p-4">
       <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       <p className="txt-apoio text-muted-foreground">{texto}</p>
     </div>

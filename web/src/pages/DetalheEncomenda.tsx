@@ -1,9 +1,9 @@
 import { FormEvent, useEffect, useState, ComponentType, ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api, getUser } from '../api/client';
 import { Encomenda } from '../api/types';
 import { NotifBadge } from '../components/NotifBadge';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { CodigoStrip } from '@/components/ui/codigo-strip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTime, cn } from '@/lib/utils';
 import {
-  ArrowLeft, Package, Clock, CheckCircle2, XCircle,
+  Package, Clock, CheckCircle2, XCircle,
   User, Truck, Building2, KeyRound, FileText, Loader2, Box, Mail,
   Lock, ShieldCheck, MessageCircle, CreditCard,
 } from 'lucide-react';
@@ -83,7 +83,6 @@ function TabButton({
 
 export function DetalheEncomenda() {
   const { id } = useParams<{ id: string }>();
-  const nav = useNavigate();
   const user = getUser();
   const [enc, setEnc] = useState<Encomenda | null>(null);
 
@@ -192,23 +191,21 @@ export function DetalheEncomenda() {
   ];
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => nav(-1)} className="rounded-full">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <PageHeader
-          title={`Apto ${enc.apartamento?.identificador}`}
-          description={enc.descricao || 'Detalhes da encomenda'}
-          className="mb-0 border-0 pb-0"
-        >
-          <Badge variant={conf.variant} className="txt-apoio py-1 px-3">
-            <StatusIcon className="mr-2 h-4 w-4" />
-            {conf.label}
-          </Badge>
-        </PageHeader>
-      </div>
-
+    <PageShell
+      icon={Package}
+      eyebrow="Encomenda"
+      title={`Apto ${enc.apartamento?.identificador}`}
+      // Sem `description` e sem busca: numa tela de detalhe o título já é o
+      // registro. O botão da esquerda da barra do topo vira a seta de voltar.
+      voltar="/encomendas"
+      acoes={
+        <Badge variant={conf.variant} className="txt-apoio px-3 py-1">
+          <StatusIcon className="mr-2 h-4 w-4" />
+          {conf.label}
+        </Badge>
+      }
+    >
+      <div className="space-y-6">
       {enc.notificacao?.status === 'failed' && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 txt-corpo text-destructive-foreground">
           <div className="font-semibold flex items-center mb-1">
@@ -252,7 +249,7 @@ export function DetalheEncomenda() {
                 </ol>
 
                 {/* Abas Código / Documento */}
-                <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-1">
+                <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
                   <TabButton icon={KeyRound} label="Código" ativo={tab === 'codigo'} onSelect={() => setTab('codigo')} />
                   <TabButton icon={CreditCard} label="Documento" ativo={tab === 'documento'} onSelect={() => setTab('documento')} />
                 </div>
@@ -394,7 +391,7 @@ export function DetalheEncomenda() {
                     <CodigoStrip codigo={enc.codigoRetirada} size="lg" active={enc.status === 'notificado'} />
                   </div>
                 ) : (
-                  <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-4">
+                  <div className="flex items-start gap-3 rounded-xl bg-muted/40 p-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
                       <Lock className="h-5 w-5" />
                     </div>
@@ -478,6 +475,7 @@ export function DetalheEncomenda() {
           />
         </div>
       </ConfirmDialog>
-    </div>
+      </div>
+    </PageShell>
   );
 }

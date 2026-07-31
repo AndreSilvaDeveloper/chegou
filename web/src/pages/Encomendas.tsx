@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { api, getToken, getUser } from '../api/client';
 import { Encomenda, EncomendaStatus, ListarEncomendasResponse } from '../api/types';
 import { NotifBadge } from '../components/NotifBadge';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package, Clock, Plus, Download, Search, ChevronRight, Truck, User } from 'lucide-react';
+import { Package, Clock, Plus, Download, ChevronRight, Truck, User } from 'lucide-react';
 import { timeAgo, formatDateTime, cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { CodigoStrip } from '@/components/ui/codigo-strip';
@@ -93,25 +94,56 @@ export function Encomendas() {
   };
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader eyebrow="Portaria" title="Encomendas">
-        <div className="flex w-full gap-2 sm:w-auto">
+    <PageShell
+      icon={Package}
+      eyebrow="Portaria"
+      title="Encomendas"
+      busca={{ valor: q, aoMudar: setQ, placeholder: 'Buscar por apartamento ou código…' }}
+      filtrosAtivos={(desde ? 1 : 0) + (ate ? 1 : 0)}
+      aoLimparFiltros={() => {
+        setDesde('');
+        setAte('');
+      }}
+      filtros={
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="filtro-desde">Recebidas a partir de</Label>
+            <Input
+              id="filtro-desde"
+              type="date"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filtro-ate">Até</Label>
+            <Input
+              id="filtro-ate"
+              type="date"
+              value={ate}
+              onChange={(e) => setAte(e.target.value)}
+            />
+          </div>
+        </>
+      }
+      acoes={
+        <>
           {isAdmin && (
-            <Button onClick={exportCsv} variant="outline" className="hidden sm:flex">
+            <Button onClick={exportCsv} variant="outline" className="flex-1 rounded-full sm:flex-none">
               <Download className="mr-2 h-4 w-4" /> Exportar
             </Button>
           )}
-          <Link to="/encomendas/nova" className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto" type="button">
+          <Link to="/encomendas/nova" className="flex-1 sm:flex-none">
+            <Button className="w-full rounded-full" type="button">
               <Plus className="mr-2 h-4 w-4" /> Registrar Encomenda
             </Button>
           </Link>
-        </div>
-      </PageHeader>
-
-      <div className="space-y-3">
+        </>
+      }
+    >
+      <div className="space-y-6">
         {/* Filtro de status — todos na mesma linha, com o selecionado bem destacado */}
-        <div className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-muted/40 p-1 sm:flex sm:w-fit">
+        <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted/40 p-1 sm:flex sm:w-fit">
           {FILTROS.map((f) => (
             <button
               key={f.key}
@@ -129,24 +161,7 @@ export function Encomendas() {
           ))}
         </div>
 
-        {/* Busca + datas (as duas datas na mesma linha, compactas) */}
-        <div className="space-y-2 lg:flex lg:items-center lg:gap-2 lg:space-y-0">
-          <div className="relative lg:max-w-xs lg:flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-9 pl-9" placeholder="Buscar (apto, cód)" value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-2 lg:flex">
-            <div className="relative">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 txt-apoio font-medium text-muted-foreground">De</span>
-              <Input className="h-9 pl-8" type="date" title="Data inicial" value={desde} onChange={(e) => setDesde(e.target.value)} />
-            </div>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 txt-apoio font-medium text-muted-foreground">Até</span>
-              <Input className="h-9 pl-9" type="date" title="Data final" value={ate} onChange={(e) => setAte(e.target.value)} />
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Busca e período subiram para a faixa/gaveta do `PageShell`. */}
 
       {loading ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -211,6 +226,7 @@ export function Encomendas() {
           })}
         </div>
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import type { Administradora, Tenant } from '@/api/types';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -119,18 +119,21 @@ export function MeusCondominios() {
   const condominios = condominiosQuery.data ?? [];
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader
-        icon={Building2}
-        eyebrow="Administradora"
-        title={administradoraQuery.data?.nome ?? usuario?.administradoraNome ?? 'Meus condomínios'}
-        description={`${condominios.length} condomínio(s) na sua carteira`}
-      >
-        <Button onClick={() => setNovoAberto(true)} className="min-h-[48px] w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Novo condomínio
-        </Button>
-      </PageHeader>
+    <PageShell
+      icon={Building2}
+      eyebrow="Administradora"
+      title={administradoraQuery.data?.nome ?? usuario?.administradoraNome ?? 'Meus condomínios'}
+      description={`${condominios.length} condomínio(s) na sua carteira`}
+      acoes={
+        <>
+  <Button onClick={() => setNovoAberto(true)} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Novo condomínio
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
 
       {condominiosQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -177,7 +180,7 @@ export function MeusCondominios() {
                       variant={estaAtivo ? 'outline' : 'default'}
                       onClick={() => entrar(tenant)}
                       disabled={!tenant.ativo}
-                      className="min-h-[48px] w-full"
+                      className="w-full"
                     >
                       <LogIn className="mr-2 h-4 w-4" />
                       {estaAtivo ? 'Continuar neste condomínio' : 'Entrar no condomínio'}
@@ -189,7 +192,7 @@ export function MeusCondominios() {
                     <Button
                       variant="outline"
                       onClick={() => configurar(tenant)}
-                      className="min-h-[48px] w-full"
+                      className="w-full"
                     >
                       <Settings2 className="mr-2 h-4 w-4" />
                       Configurar
@@ -269,7 +272,7 @@ export function MeusCondominios() {
               </div>
             </div>
 
-            <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+            <div className="space-y-4 rounded-lg bg-muted/30 p-4">
               <p className="txt-corpo font-medium text-foreground">Primeiro acesso (síndico)</p>
               <div className="space-y-2">
                 <Label htmlFor="sind-nome">
@@ -311,14 +314,14 @@ export function MeusCondominios() {
                 type="button"
                 variant="outline"
                 onClick={() => setNovoAberto(false)}
-                className="min-h-[48px] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={criar.isPending}
-                className="min-h-[48px] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 {criar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Cadastrar condomínio
@@ -327,6 +330,7 @@ export function MeusCondominios() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </PageShell>
   );
 }

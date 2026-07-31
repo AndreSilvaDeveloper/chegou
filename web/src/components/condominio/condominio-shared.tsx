@@ -109,7 +109,7 @@ export function ModuleToggle({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/40"
+      className="flex w-full items-center gap-4 rounded-xl bg-card p-4 text-left transition-colors hover:bg-muted/40"
     >
       <div
         className={cn(
@@ -148,7 +148,7 @@ export function ModuleReadonly({
   checked: boolean;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/30 p-4">
+    <div className="flex items-center gap-4 rounded-xl bg-muted/30 p-4">
       <div
         className={cn(
           'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',

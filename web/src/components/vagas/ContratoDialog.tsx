@@ -96,7 +96,7 @@ export function ContratoDialog({
 
         <div className="space-y-4">
           {temContrato && (
-            <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+            <div className="space-y-3 rounded-lg bg-muted/30 p-4">
               <div className="flex items-start gap-3">
                 <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                 <div className="min-w-0">
@@ -109,7 +109,7 @@ export function ContratoDialog({
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button asChild variant="outline" className="min-h-[48px] w-full sm:w-auto">
+                <Button asChild variant="outline" className="w-full sm:w-auto">
                   <a href={locacao.contratoUrl!} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Abrir contrato
@@ -120,7 +120,7 @@ export function ContratoDialog({
                     type="button"
                     variant="outline"
                     onClick={() => setConfirmandoRemocao(true)}
-                    className="min-h-[48px] w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
+                    className="w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Remover contrato
@@ -139,7 +139,7 @@ export function ContratoDialog({
                       variant="outline"
                       onClick={() => setConfirmandoRemocao(false)}
                       disabled={remover.isPending}
-                      className="min-h-[48px] w-full sm:w-auto"
+                      className="w-full sm:w-auto"
                     >
                       Manter contrato
                     </Button>
@@ -148,7 +148,7 @@ export function ContratoDialog({
                       variant="destructive"
                       onClick={() => remover.mutate()}
                       disabled={remover.isPending}
-                      className="min-h-[48px] w-full sm:w-auto"
+                      className="w-full sm:w-auto"
                     >
                       {remover.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Sim, remover
@@ -184,7 +184,7 @@ export function ContratoDialog({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="min-h-[48px] w-full sm:w-auto"
+            className="w-full sm:w-auto"
           >
             Fechar
           </Button>
@@ -192,7 +192,7 @@ export function ContratoDialog({
             type="button"
             onClick={() => arquivo && enviar.mutate(arquivo)}
             disabled={!arquivo || enviar.isPending}
-            className="min-h-[48px] w-full sm:w-auto"
+            className="w-full sm:w-auto"
           >
             {enviar.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

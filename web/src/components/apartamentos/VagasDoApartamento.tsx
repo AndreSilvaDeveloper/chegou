@@ -118,7 +118,7 @@ export function VagasDoApartamento({
   const salvando = adicionar.isPending || desvincular.isPending;
 
   return (
-    <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+    <div className="space-y-4 rounded-lg bg-muted/30 p-4">
       <div className="flex items-start gap-2">
         <Car className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div>
@@ -135,7 +135,7 @@ export function VagasDoApartamento({
           {vinculadas.map((vaga) => (
             <li
               key={vaga.id}
-              className="flex flex-col gap-2 rounded-lg border border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 rounded-lg bg-background p-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <span className="flex items-center gap-2">
                 <span className="font-mono font-semibold text-foreground">{vaga.numero}</span>
@@ -147,7 +147,7 @@ export function VagasDoApartamento({
                 variant="outline"
                 onClick={() => desvincular.mutate(vaga.id)}
                 disabled={salvando}
-                className="min-h-[48px] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 <Unlink className="mr-2 h-4 w-4" />
                 Desvincular
@@ -163,7 +163,7 @@ export function VagasDoApartamento({
           {atual.novasVagas.map((v, i) => (
             <li
               key={`nova-${i}`}
-              className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background p-3"
+              className="flex items-center justify-between gap-2 rounded-lg bg-background p-3"
             >
               <span className="flex items-center gap-2">
                 <span className="font-mono font-semibold text-foreground">{v.numero}</span>
@@ -188,7 +188,7 @@ export function VagasDoApartamento({
             return (
               <li
                 key={id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background p-3"
+                className="flex items-center justify-between gap-2 rounded-lg bg-background p-3"
               >
                 <span className="flex items-center gap-2">
                   <span className="font-mono font-semibold text-foreground">
@@ -238,7 +238,7 @@ export function VagasDoApartamento({
             variant="outline"
             onClick={vincularExistente}
             disabled={!selecionada || salvando}
-            className="min-h-[48px] w-full sm:w-auto"
+            className="w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             Vincular vaga
@@ -269,7 +269,7 @@ export function VagasDoApartamento({
           variant="outline"
           onClick={adicionarNova}
           disabled={salvando}
-          className="min-h-[48px] w-full sm:w-auto"
+          className="w-full sm:w-auto"
         >
           {salvando ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

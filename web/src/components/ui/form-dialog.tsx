@@ -32,8 +32,8 @@ interface FormDialogProps {
  * Casca padrão dos formulários em diálogo.
  *
  * Centraliza o que toda tela de cadastro precisa acertar e é fácil esquecer:
- * rolagem em tela pequena, botões com alvo de toque de 48px, empilhamento no
- * celular e o estado de "salvando". A tela cuida só dos campos.
+ * rolagem em tela pequena, empilhamento dos botões no celular e o estado de
+ * "salvando". A tela cuida só dos campos.
  *
  * ```tsx
  * <FormDialog open={open} onOpenChange={setOpen} title="Nova vaga"
@@ -82,11 +82,11 @@ export function FormDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={saving}
-                className="min-h-[48px] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 {cancelLabel}
               </Button>
-              <Button type="submit" disabled={saving} className="min-h-[48px] w-full sm:w-auto">
+              <Button type="submit" disabled={saving} className="w-full sm:w-auto">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {submitLabel}
               </Button>

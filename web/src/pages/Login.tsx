@@ -78,7 +78,7 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-background md:grid md:grid-cols-[1.1fr_1fr]">
+    <div className="flex min-h-dvh w-full bg-background md:grid md:grid-cols-[1.1fr_1fr]">
       {/* Esquerda: painel da central */}
       <div className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-card p-10 md:flex lg:p-14">
         <div className="panel-grid pointer-events-none absolute inset-0 opacity-60" aria-hidden />
@@ -158,7 +158,7 @@ export function Login() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 pl-10"
+                  className="pl-10"
                   required
                   autoComplete="email"
                   autoFocus={!lembrado}
@@ -177,7 +177,7 @@ export function Login() {
                   placeholder="••••••••"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="h-12 px-10"
+                  className="px-10"
                   required
                   autoComplete="current-password"
                   disabled={loading}

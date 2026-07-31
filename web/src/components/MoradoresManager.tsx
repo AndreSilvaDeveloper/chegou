@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Search, Plus, User, Pencil, Trash2, Loader2, ArrowUpDown, MessageSquare, Star, Upload, QrCode } from 'lucide-react';
+import { Plus, User, Users, Pencil, Trash2, Loader2, ArrowUpDown, MessageSquare, Star, Upload, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { ListCard } from '@/components/ui/list-card';
+import { PageShell } from '@/components/ui/page-shell';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import { ImportDialog } from './ImportDialog';
 import { QrAutocadastroDialog } from './QrAutocadastroDialog';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -43,7 +45,14 @@ const emptyForm: MoradorForm = {
   receberWhatsapp: true,
 };
 
-export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
+export function MoradoresManager({
+  basePath = '',
+  embutido = false,
+}: {
+  basePath?: string;
+  /** Dentro de uma aba: sem faixa âmbar e sem título (ver `PageShell`). */
+  embutido?: boolean;
+}) {
   const [list, setList] = useState<Morador[]>([]);
   const [aptos, setAptos] = useState<Apartamento[]>([]);
   const [buscaApto, setBuscaApto] = useState('');
@@ -201,16 +210,34 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
   const [openQr, setOpenQr] = useState(false);
   const permiteAutocadastro = basePath === '';
 
+  // Filtros da gaveta (ver `PageShell`). Agem sobre o que já está carregado.
+  const [filtroBloco, setFiltroBloco] = useState<string | null>(null);
+  const [filtroWhatsapp, setFiltroWhatsapp] = useState<boolean | null>(null);
+
+  const blocos = useMemo(
+    () =>
+      [
+        ...new Set(
+          list.map((m) => m.apartamento?.bloco).filter((b): b is string => !!b),
+        ),
+      ].sort(),
+    [list],
+  );
+
   const filteredData = useMemo(() => {
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(m => 
-      m.nome.toLowerCase().includes(q) || 
-      (m.apartamento?.identificador.toLowerCase().includes(q)) ||
-      // Compara só dígitos: quem busca digita "32999" ou "(32) 99999".
-      (m.telefoneE164 && apenasDigitos(m.telefoneE164).includes(apenasDigitos(q)) && !!apenasDigitos(q))
-    );
-  }, [list, search]);
+    const q = search.trim().toLowerCase();
+    return list.filter(m => {
+      if (filtroBloco && m.apartamento?.bloco !== filtroBloco) return false;
+      if (filtroWhatsapp !== null && m.receberWhatsapp !== filtroWhatsapp) return false;
+      if (!q) return true;
+      return (
+        m.nome.toLowerCase().includes(q) ||
+        (m.apartamento?.identificador.toLowerCase().includes(q)) ||
+        // Compara só dígitos: quem busca digita "32999" ou "(32) 99999".
+        (!!m.telefoneE164 && apenasDigitos(m.telefoneE164).includes(apenasDigitos(q)) && !!apenasDigitos(q))
+      );
+    });
+  }, [list, search, filtroBloco, filtroWhatsapp]);
 
   const columns: ColumnDef<Morador>[] = [
     {
@@ -279,41 +306,129 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
   ];
 
   return (
-    <Card className="p-4 shadow-xs">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-        <div className="relative w-full md:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por nome, apto ou telefone..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-            className="pl-9 h-10"
-          />
-        </div>
-        <div className="flex flex-col gap-2 w-full sm:flex-row md:w-auto">
+    <PageShell
+      embutido={embutido}
+      icon={Users}
+      eyebrow="Condomínio"
+      title="Moradores"
+      description="Quem mora no condomínio e por onde recebe as notificações."
+      busca={{
+        valor: search,
+        aoMudar: setSearch,
+        placeholder: 'Buscar por nome, apto ou telefone…',
+      }}
+      filtrosAtivos={(filtroBloco ? 1 : 0) + (filtroWhatsapp !== null ? 1 : 0)}
+      aoLimparFiltros={() => {
+        setFiltroBloco(null);
+        setFiltroWhatsapp(null);
+      }}
+      filtros={
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="filtro-bloco">Bloco</Label>
+            <SimpleSelect
+              id="filtro-bloco"
+              value={filtroBloco ?? ''}
+              onValueChange={(v) => setFiltroBloco(v || null)}
+              placeholder="Todos os blocos"
+              options={[
+                { value: '', label: 'Todos os blocos' },
+                ...blocos.map((b) => ({ value: b, label: `Bloco ${b}` })),
+              ]}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filtro-whatsapp">Notificação</Label>
+            <SimpleSelect
+              id="filtro-whatsapp"
+              value={filtroWhatsapp === null ? '' : filtroWhatsapp ? 'sim' : 'nao'}
+              onValueChange={(v) => setFiltroWhatsapp(v === '' ? null : v === 'sim')}
+              placeholder="Tanto faz"
+              options={[
+                { value: '', label: 'Tanto faz' },
+                { value: 'sim', label: 'Recebe no WhatsApp' },
+                { value: 'nao', label: 'Não recebe' },
+              ]}
+            />
+          </div>
+        </>
+      }
+      acoes={
+        <>
           {permiteAutocadastro && (
-            <Button variant="outline" onClick={() => setOpenQr(true)} className="w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setOpenQr(true)} className="flex-1 rounded-full sm:flex-none">
               <QrCode className="mr-2 h-4 w-4" />
               Link de autocadastro
             </Button>
           )}
-          <Button variant="outline" onClick={() => setOpenImport(true)} className="w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setOpenImport(true)} className="flex-1 rounded-full sm:flex-none">
             <Upload className="mr-2 h-4 w-4" />
             Importar CSV
           </Button>
-          <Button onClick={openCreate} className="w-full sm:w-auto">
+          <Button onClick={openCreate} className="flex-1 rounded-full sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
             Novo Morador
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-4">
+      {/* No celular a lista é uma pilha de cards (cada um já é uma superfície);
+          no desktop, uma tabela dentro de um card só. */}
+      <div className="md:rounded-surface md:border md:border-border-surface md:bg-card md:p-4 md:shadow-panel">
+        <DataTable
+          columns={columns}
+          data={filteredData}
+          emptyStateTitle="Nenhum morador encontrado"
+          emptyStateDescription="Cadastre moradores para que eles sejam notificados no WhatsApp."
+          mobileCard={(m) => (
+            <ListCard
+              icone={User}
+              titulo={m.nome}
+              selo={
+                m.principal ? (
+                  <Badge variant="secondary" className="shrink-0 txt-nota">
+                    <Star className="mr-1 h-3 w-3 fill-amber-500 text-amber-500" /> Principal
+                  </Badge>
+                ) : undefined
+              }
+              acoes={
+                <>
+                  <Button variant="ghost" size="icon-sm" aria-label={`Editar ${m.nome}`} onClick={() => openEdit(m)}>
+                    <Pencil className="h-4 w-4 text-primary" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" aria-label={`Remover ${m.nome}`} onClick={() => confirmarDelete(m.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </>
+              }
+              campos={[
+                {
+                  rotulo: 'Unidade',
+                  valor: (
+                    <span className="font-mono">{m.apartamento?.identificador ?? '—'}</span>
+                  ),
+                },
+                {
+                  rotulo: 'Telefone',
+                  valor: <span className="font-mono">{formatarTelefone(m.telefoneE164)}</span>,
+                },
+                {
+                  rotulo: 'Notificação',
+                  largura: 'inteira',
+                  valor: m.receberWhatsapp ? (
+                    <Badge variant="success">
+                      <MessageSquare className="mr-1 h-3 w-3" /> Recebe no WhatsApp
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">Não recebe</span>
+                  ),
+                },
+              ]}
+            />
+          )}
+        />
       </div>
-
-      <DataTable 
-        columns={columns} 
-        data={filteredData} 
-        emptyStateTitle="Nenhum morador encontrado"
-        emptyStateDescription="Cadastre moradores para que eles sejam notificados no WhatsApp."
-      />
 
       <Dialog open={openForm} onOpenChange={setOpenForm}>
         <DialogContent className="sm:max-w-[500px]">
@@ -429,6 +544,7 @@ export function MoradoresManager({ basePath = '' }: { basePath?: string }) {
       {permiteAutocadastro && (
         <QrAutocadastroDialog open={openQr} onOpenChange={setOpenQr} />
       )}
-    </Card>
+      </div>
+    </PageShell>
   );
 }

@@ -12,7 +12,7 @@ import {
   type PlacarEtiquetas,
   type UploadAmostrasResposta,
 } from '@/api/types';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -174,7 +174,7 @@ function DialogoConferencia({
                     <span className="font-mono txt-nota text-muted-foreground">{amostra.ocrMs}ms</span>
                   )}
                 </Label>
-                <div className="max-h-40 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3">
+                <div className="max-h-40 overflow-y-auto rounded-lg bg-muted/40 p-3">
                   {amostra.ocrLinhas.length === 0 ? (
                     <p className="txt-apoio text-muted-foreground">
                       O OCR não encontrou texto nenhum nesta imagem.
@@ -217,7 +217,6 @@ function DialogoConferencia({
                     </Label>
                     <Input
                       id={`g-${campo}`}
-                      className="h-11"
                       value={atual}
                       placeholder="(vazio na etiqueta)"
                       onChange={(e) =>
@@ -240,7 +239,6 @@ function DialogoConferencia({
                 <Label htmlFor="g-rotulo">Rótulo da transportadora</Label>
                 <Input
                   id="g-rotulo"
-                  className="h-11"
                   value={transportadora}
                   placeholder="Ex: Correios"
                   onChange={(e) => setTransportadora(e.target.value)}
@@ -254,7 +252,6 @@ function DialogoConferencia({
                 <Label htmlFor="g-obs">Observação</Label>
                 <Input
                   id="g-obs"
-                  className="h-11"
                   value={observacao}
                   placeholder="Ex: foto tremida, etiqueta amassada"
                   onChange={(e) => setObservacao(e.target.value)}
@@ -311,7 +308,7 @@ function CardAmostra({
     <button
       type="button"
       onClick={onAbrir}
-      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card text-left transition-all hover:border-primary/50 hover:shadow-panel"
+      className="group flex flex-col overflow-hidden rounded-xl bg-card text-left transition-all hover:border-primary/50 hover:shadow-panel"
     >
       <img
         src={amostra.fotoUrl}
@@ -435,12 +432,13 @@ export function SuperAdminEtiquetas() {
   const ocrForaDoAr = status.data && !status.data.ocrDisponivel;
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader
-        title="Etiquetas"
-        description="Banco de amostras que calibra a leitura automática de etiqueta."
-      />
-
+    <PageShell
+      icon={ScanText}
+      eyebrow="Plataforma"
+      title="Etiquetas"
+      description="Banco de amostras que calibra a leitura automática de etiqueta."
+    >
+      <div className="space-y-6">
       {ocrForaDoAr && (
         <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 txt-apoio text-amber-700 dark:text-amber-400">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -538,7 +536,7 @@ export function SuperAdminEtiquetas() {
             <>
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {placar.data.campos.map((c) => (
-                  <div key={c.campo} className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div key={c.campo} className="rounded-lg bg-muted/30 p-3">
                     <p className="mb-1 txt-nota text-muted-foreground">
                       {ROTULO_CAMPO_ETIQUETA[c.campo as CampoEtiqueta]}
                     </p>
@@ -628,6 +626,7 @@ export function SuperAdminEtiquetas() {
       {abertaId && (
         <DialogoConferencia amostraId={abertaId} onClose={() => setAbertaId(null)} />
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }

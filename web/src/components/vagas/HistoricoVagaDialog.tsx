@@ -70,7 +70,7 @@ export function HistoricoVagaDialog({
         ) : (
           <div className="space-y-5">
             {/* Resumo de tudo */}
-            <dl className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted/30 p-4 sm:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-3 rounded-lg bg-muted/30 p-4 sm:grid-cols-4">
               <div>
                 <dt className="txt-apoio text-muted-foreground">Contratos</dt>
                 <dd className="font-mono txt-numero-sm font-semibold text-foreground">
@@ -133,7 +133,7 @@ export function HistoricoVagaDialog({
                           return (
                             <li
                               key={cobranca.id}
-                              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/20 px-3 py-2"
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/20 px-3 py-2"
                             >
                               <span className="flex items-center gap-2 txt-corpo">
                                 <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
@@ -194,7 +194,7 @@ export function HistoricoVagaDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="min-h-[48px] w-full sm:w-auto"
+            className="w-full sm:w-auto"
           >
             Fechar
           </Button>

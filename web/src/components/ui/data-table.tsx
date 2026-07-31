@@ -20,8 +20,10 @@ import {
 } from "@/components/ui/table"
 import { Button } from "./button"
 import { Input } from "./input"
+import * as React from "react"
 import { useState } from "react"
 import { EmptyState } from "./empty-state"
+import { cn } from "@/lib/utils"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -30,6 +32,17 @@ interface DataTableProps<TData, TValue> {
   emptyStateDescription?: string
   searchKey?: string
   searchPlaceholder?: string
+  /**
+   * Como o registro aparece no CELULAR. Passando isto, a tabela some abaixo de
+   * `md` e cada linha vira um card (use `ListCard`); a tabela volta no desktop.
+   *
+   * É uma prop, e não algo derivado das `columns`, de propósito: derivar
+   * produziria um empilhado de "rótulo: valor" para todas as colunas, incluindo
+   * as que só existem para ordenar. No celular a tela é pequena demais para
+   * mostrar tudo — o card é uma ESCOLHA do que importa ali, e quem escolhe é a
+   * tela.
+   */
+  mobileCard?: (row: TData) => React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -39,6 +52,7 @@ export function DataTable<TData, TValue>({
   emptyStateDescription = "Não há dados para exibir no momento.",
   searchKey,
   searchPlaceholder = "Buscar...",
+  mobileCard,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -58,6 +72,8 @@ export function DataTable<TData, TValue>({
     },
   })
 
+  const rows = table.getRowModel().rows
+
   return (
     <div>
       {searchKey && (
@@ -72,7 +88,22 @@ export function DataTable<TData, TValue>({
           />
         </div>
       )}
-      <div className="rounded-md border-y bg-card border-x-0 sm:border-x sm:rounded-md">
+      {/* Celular: um card por registro. A tabela some — não rola na horizontal. */}
+      {mobileCard && (
+        <div className="space-y-3 md:hidden">
+          {rows.length ? (
+            rows.map((row) => (
+              <React.Fragment key={row.id}>{mobileCard(row.original)}</React.Fragment>
+            ))
+          ) : (
+            <EmptyState title={emptyStateTitle} description={emptyStateDescription} />
+          )}
+        </div>
+      )}
+
+      {/* Sem borda nem fundo próprios: quem os dá é a superfície que envolve a
+          tabela. Ter os dois aqui empilhava caixa dentro de caixa. */}
+      <div className={cn(mobileCard && "hidden md:block")}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -93,8 +124,8 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+            {rows.length ? (
+              rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
@@ -116,24 +147,33 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4 px-4 sm:px-0">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Próximo
-        </Button>
-      </div>
+      {/* Some quando tudo cabe numa página: dois botões desabilitados embaixo de
+          uma lista de três itens são ruído, e ruído é o que estamos tirando. */}
+      {table.getPageCount() > 1 && (
+        <div className="flex items-center justify-between gap-2 pt-4">
+          <span className="txt-nota text-muted-foreground">
+            Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Próximo
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

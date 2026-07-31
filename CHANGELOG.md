@@ -11,6 +11,210 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.1 — 2026-07-31
+
+### Corrigido
+- **Barra de rolagem vertical em toda tela, mesmo sem lista.** A folha branca do
+  `PageShell` tinha `min-h-dvh` (introduzido em 0.24.0 ao desfazer uma injeção de
+  `h-dvh` do editor). O container de rolagem mede `100dvh − altura do header`,
+  então o conteúdo passava a medir `faixa + 100dvh` — sempre ~185px mais alto que
+  o espaço disponível, com conteúdo ou sem.
+  - A folha voltou a **crescer só com o conteúdo**. Quem a faz *parecer* chegar
+    ao rodapé numa tela curta agora é o `bg-background` do container de rolagem:
+    a área abaixo dela já é da mesma cor, então não há o que esticar.
+  - De quebra, a sobreposição da folha sobre a faixa subiu de 16px para 24px —
+    exatamente o raio do `rounded-t-3xl`. Com sobreposição menor que o raio, o pé
+    do arco revelava o fundo da página em vez do âmbar e o entalhe sumia.
+
+---
+
+## 0.24.0 — 2026-07-31
+
+**O painel inteiro passou a ter a mesma casca.** As 22 telas que vivem dentro do
+`Layout` usam o `PageShell`: faixa âmbar no celular, cabeçalho comum no desktop.
+`PageHeader` está aposentado.
+
+### Alterado
+- **Todas as telas convertidas para `PageShell`**: Dashboard, Encomendas,
+  Detalhe da encomenda, Nova encomenda, Vagas, Assinatura, Avisos, WhatsApp,
+  Filas, Relatórios, Meus condomínios, Configurar condomínio, e as cinco telas
+  de plataforma (Condomínios, Gerenciar condomínio, Administradoras,
+  Assinaturas, Etiquetas). Login e o autocadastro ficam de fora: são públicos e
+  não têm barra de topo.
+- **Encomendas**: a busca subiu para a faixa e o período (de/até) virou gaveta
+  de filtro. O seletor de status continua na folha, como as demais abas.
+- As páginas ficaram magras — sem `PageHeader` e sem `<div className="space-y-6 pb-10">`.
+
+### Adicionado
+- **`voltar` no `PageShell`**: em tela de detalhe ou formulário, o botão da
+  esquerda da barra do topo vira uma seta em vez do menu. Usado em Detalhe da
+  encomenda, Nova encomenda, Configurar condomínio e Gerenciar condomínio.
+  - É a **única** coisa que atravessa a fronteira entre página e `Layout`, por
+    um contexto de um valor só (`voltar-slot.tsx`). Título, busca e ações
+    continuam desenhados pela página — mover aquilo para o contexto traria
+    efeito por tela e título piscando na troca de rota.
+- A skill `tela-listagem` ganhou os **quatro tipos de tela** (listagem, painel,
+  detalhe, formulário) e a tabela do que cada tela declara.
+
+### Corrigido
+- **Uma extensão do editor havia trocado `h-full` por `h-dvh` em 19 lugares.**
+  São coisas diferentes: `h-full` é 100% do elemento pai, `h-dvh` é a altura da
+  janela. Na prática o avatar do topo, o ponto de status, o separador vertical,
+  as barras de progresso dos relatórios e os cards de encomenda passariam a
+  ocupar a tela inteira. Revertido, preservando os casos legítimos — onde o
+  original era `h-screen`, o `h-dvh` fica (ele respeita a barra do navegador no
+  celular).
+- Rota `/apartamentonovo` e imports órfãos deixados pelo protótipo.
+
+---
+
+## 0.23.0 — 2026-07-31
+
+**As telas de listagem ganharam uma casca própria no celular.** Faixa âmbar no
+topo com título, busca e filtro; a folha branca sobe por cima dela. No desktop
+nada disso aparece — lá a sidebar já dá a identidade.
+
+### Adicionado
+- **`PageShell`** (`web/src/components/ui/page-shell.tsx`): a casca das telas de
+  listagem/cadastro. A página declara título, descrição, busca, filtros e ações;
+  ele decide como isso vira faixa âmbar no celular e cabeçalho comum no desktop.
+  - **A faixa é uma coisa só partida em dois arquivos**: a barra com menu,
+    condomínio e avatar mora no `Layout`; título e busca, no `PageShell`. Elas se
+    unem porque o `<main>` do `Layout` não tem padding nem fundo no celular.
+  - Sem context e sem portal: custaria um efeito por tela e título piscando na
+    troca de rota. O que une as duas metades é a cor, e ela vem do mesmo token.
+- **Gaveta de filtros** com contador no botão. O botão **só existe se houver
+  gaveta** — botão que não responde ensina o usuário a ignorar a interface.
+  Filtros por tela: Apartamentos (bloco), Moradores (bloco, recebe WhatsApp),
+  Equipe (papel, status).
+- **Skill `tela-listagem`**: o passo a passo para replicar o layout nas demais
+  telas, com o desenho das duas versões, as cinco regras que fazem a faixa
+  funcionar e o checklist (inclui conferir o modo escuro).
+
+### Alterado
+- **Âmbar próprio para a faixa no modo escuro.** Tokens `--banner*`: no claro é o
+  `#FFC72C` com texto `#3A2003` (10:1); no escuro fecha para `#5C4400` com texto
+  quase branco (8:1). O âmbar puro num bloco daquele tamanho vira um holofote à
+  noite — mas o **botão de ação continua no `#FFC72C` cheio** nos dois temas,
+  porque ali a cor tem o tamanho de um botão.
+- **Apartamentos, Moradores e Equipe** passaram para o `PageShell`, e as três
+  páginas ficaram magras (sem `PageHeader`, sem wrapper com padding).
+- **`embutido`** nos três managers: dentro das abas de `/admin/condominios/:id` e
+  `/meus-condominios/:id` a listagem não desenha faixa nem título — a aba já diz
+  onde a pessoa está, e o contrário seria cabeçalho de tela dentro de outro.
+- O `<main>` do `Layout` perdeu padding, fundo e cantos **no celular** (no
+  desktop segue o painel flutuante de sempre), que é o que deixa a faixa ir de
+  ponta a ponta.
+
+### Corrigido
+- **A busca de Apartamentos tinha parado de funcionar**: o campo do protótipo era
+  decorativo (sem estado) e o campo real estava comentado. Voltou a ir ao
+  servidor com debounce — que é como ela acha unidade fora das 50 primeiras.
+- **Rota `/apartamentonovo` apontava para uma página inexistente**, quebrando
+  `npm run build`. Removida junto com o import.
+- Cores fixas que ignoravam o tema (`bg-white`, `text-neutral-800`) trocadas por
+  tokens. Os dois `bg-white` restantes são fundo de QR code, que precisa ser
+  branco em qualquer tema.
+
+### Notas
+- **Vagas ainda não usa a faixa.** A tela tem abas de situação e precisa de uma
+  decisão sobre onde elas ficam em relação ao cabeçalho; os cards dela já estão
+  no padrão. Encomendas, Relatórios e Dashboard seguem no layout antigo.
+- Vale abrir Apartamentos no **escuro** e conferir a faixa: é a mudança de cor
+  mais visível e a única que não dá para julgar sem olhar.
+
+---
+
+## 0.22.0 — 2026-07-31
+
+**O painel ficou mais leve.** A borda deixou de ser o que separa as coisas, o
+card parou de morar dentro de outro card e as listas viraram cards legíveis no
+celular. Claro, escuro e o âmbar `#FFC72C` continuam os mesmos.
+
+### Alterado
+- **A sombra virou o separador, não a borda.** `shadow-panel` ficou mais difusa e
+  de opacidade menor, e a borda do card virou um fio (`--border-surface`) que
+  quase não se vê. No escuro é o contrário — lá sombra não existe, então é a
+  borda que dá o contorno.
+- **O card agora SOBE nos dois temas.** No claro ele afundava no papel (card
+  `#F7F5F1` abaixo da folha `#FBF9F6`); com a sombra assumindo a separação, tom e
+  sombra diziam coisas opostas. A folha virou o cinza quente (`#F3F0EA`) e o card
+  é o quase-branco que flutua sobre ela (`#FDFCFA`). Efeito colateral bem-vindo:
+  o campo de formulário agora afunda no card **nos dois temas**, em vez de subir
+  no claro e afundar no escuro.
+- **Raio de superfície próprio** (`--radius-surface`, 20px, classe
+  `rounded-surface`) para card, diálogo e gaveta. Botão e campo continuam nos
+  12px de `--radius` — arredondar os dois juntos deformava o controle.
+- **Card dentro de card virou proibido** e 39 blocos internos que tinham borda +
+  preenchimento ficaram chapados (`rounded-lg bg-muted`, sem borda e sem sombra),
+  em 22 arquivos. Era o aninhamento que dava o ar de formulário antigo.
+- **Busca e ações saíram de dentro do card da lista** em Moradores, Apartamentos
+  e Equipe. Elas comandam a lista; dentro, viravam mais uma caixa na caixa.
+- **A paginação do `DataTable` some quando tudo cabe numa página** e ganhou o
+  indicador "Página X de Y". Dois botões desabilitados sob uma lista de três
+  itens eram só ruído.
+
+### Adicionado
+- **`ListCard`** (`web/src/components/ui/list-card.tsx`): um registro de lista
+  como card, no padrão rótulo-pequeno-apagado sobre valor-forte. É ele que
+  substitui o cabeçalho da tabela quando ela some no celular.
+- **`DataTable` aceita `mobileCard`**: abaixo de `md` cada linha vira um card;
+  a tabela volta no desktop. **Apartamentos, Moradores e Equipe** passaram a
+  usar — antes a tabela de 5 colunas era espremida em 375px, e ver o telefone
+  de um morador exigia arrastar até o nome sumir.
+  - É uma prop, e não algo derivado das `columns`, de propósito: derivar
+    despejaria "rótulo: valor" para toda coluna, inclusive as que só existem
+    para ordenar. No celular o card é uma *escolha* do que importa.
+- Vagas já mostrava cards e não tinha esse problema; ela adotou o mesmo par
+  rótulo/valor para as telas ficarem irmãs.
+
+### Notas
+- **A mudança de superfície é a mais visível e vale conferir no claro.** Folha,
+  card e bloco interno mudaram de tom juntos; o contraste do texto foi conferido
+  (principal 16.8:1, secundário 6.4:1 sobre o card), mas o equilíbrio geral só se
+  julga olhando.
+- A navegação **não** mudou: continua sidebar/gaveta, não virou barra de abas
+  inferior.
+
+**A tipografia do painel voltou ao padrão.** O projeto tratava o porteiro como
+um público que precisa de fonte aumentada e alvo de toque de 48px. Essa premissa
+saiu do produto: a interface agora usa os tamanhos do shadcn/ui, iguais aos de
+qualquer painel web.
+
+### Alterado
+- **Escala tipográfica retunada e sem crescimento no celular.** Corpo 14px em
+  qualquer viewport (era 16px no celular / 14px no desktop); título de tela 24px
+  (era até 30px); título de card 16px (era até 20px); KPI 24px (era até 36px).
+  As classes de papel (`txt-titulo`, `txt-secao`, `txt-corpo`, `txt-apoio`…)
+  **continuam sendo a única forma de definir tamanho** — só os valores mudaram,
+  num arquivo só (`web/src/styles.css`). Nenhuma das 65 telas precisou ser
+  tocada, e é isso que mantém a coerência: a próxima retunagem também será de
+  um arquivo.
+- **`txt-subtitulo`, `txt-corpo` e `txt-apoio` passaram a medir o mesmo (14px).**
+  Numa escala padrão os degraus são curtos, então o que separa esses três papéis
+  agora é **peso e cor**, não tamanho. As três classes continuam existindo de
+  propósito: elas registram o papel, que é o que sobrevive à próxima mudança.
+- **Alvo de toque de 48px removido** (102 ocorrências de `min-h-[48px]` em 23
+  arquivos). `Button` e `Input` voltaram à altura padrão do shadcn (`h-9`);
+  `SimpleSelect`, `SearchSelect` e `Combobox` acompanharam.
+- **Regras de acessibilidade reescritas** no `CLAUDE.md` raiz, na doc do
+  frontend e nas skills `tela-frontend` e `funcionalidade-nova`: "ícone sempre
+  com texto" virou "botão só de ícone precisa de `aria-label`", e "label sempre
+  visível" virou "`Label` no campo, salvo campo auto-evidente — e aí com
+  `aria-label`". O que era regra de público-alvo virou regra de leitor de tela.
+
+### Notas
+- **No Safari do iPhone a página passa a dar um leve zoom ao focar um campo.**
+  O navegador faz isso em campo com fonte abaixo de 16px e não desfaz sozinho.
+  É consequência conhecida e aceita da decisão de padronizar tudo em 14px. Se
+  incomodar, o conserto é devolver `text-base md:text-sm` **só** ao `Input` e ao
+  `Textarea`, sem mexer na escala.
+- As telas existentes não foram reestruturadas — nenhum formulário perdeu
+  `Label`, nenhum botão perdeu texto. As regras deixaram de ser obrigatórias
+  daqui para a frente; o que já está escrito continua válido.
+
+---
+
 ## 0.21.1 — 2026-07-31
 
 ### Alterado

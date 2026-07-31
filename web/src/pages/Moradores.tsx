@@ -1,14 +1,6 @@
-import { PageHeader } from '@/components/ui/page-header';
 import { MoradoresManager } from '../components/MoradoresManager';
 
+// Página magra: título, busca e ações vêm do `PageShell` dentro do manager.
 export function Moradores() {
-  return (
-    <div className="space-y-6 pb-10">
-      <PageHeader 
-        title="Moradores" 
-        description="Gerencie os contatos dos condôminos que receberão as notificações."
-      />
-      <MoradoresManager basePath="" />
-    </div>
-  );
+  return <MoradoresManager basePath="" />;
 }

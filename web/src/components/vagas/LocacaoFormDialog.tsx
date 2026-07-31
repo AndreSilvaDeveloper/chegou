@@ -200,7 +200,7 @@ export function LocacaoFormDialog({
               title="Nenhuma vaga livre"
               description="Todas as vagas estão vinculadas a apartamentos ou já alugadas. Cadastre uma vaga nova ou encerre uma locação."
             />
-            <Button onClick={() => onOpenChange(false)} className="min-h-[48px] w-full">
+            <Button onClick={() => onOpenChange(false)} className="w-full">
               Entendi
             </Button>
           </div>
@@ -240,7 +240,7 @@ export function LocacaoFormDialog({
                     type="button"
                     onClick={() => setForm({ ...form, locatarioTipo: tipo })}
                     className={cn(
-                      'flex min-h-[48px] items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+                      'flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
                       form.locatarioTipo === tipo
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-background hover:border-primary/40',
@@ -281,7 +281,7 @@ export function LocacaoFormDialog({
                 />
               </div>
             ) : (
-              <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="space-y-4 rounded-lg bg-muted/30 p-4">
                 <div className="space-y-2">
                   <Label htmlFor="loc-nome">
                     Nome do locatário
@@ -396,14 +396,14 @@ export function LocacaoFormDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="min-h-[48px] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={salvar.isPending}
-                className="min-h-[48px] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 {salvar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editando ? 'Salvar alterações' : 'Criar locação'}

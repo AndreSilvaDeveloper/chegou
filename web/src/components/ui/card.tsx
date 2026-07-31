@@ -1,12 +1,25 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Superfície de conteúdo.
+ *
+ * QUEM SEPARA O CARD DO FUNDO É A SOMBRA, NÃO A BORDA. `border-surface` é quase
+ * invisível no claro (existe só para o card não sumir em tela muito clara) e no
+ * escuro assume o contorno, porque lá sombra não aparece — preto sobre preto não
+ * separa nada.
+ *
+ * Consequência prática: **card dentro de card é proibido**. Duas sombras
+ * empilhadas viram sujeira, e o aninhamento era o que deixava a tela pesada.
+ * Para agrupar dentro de um card, use `bg-muted rounded-lg` (bloco chapado, sem
+ * sombra e sem borda) — ver "Blocos dentro do card" no CLAUDE.md.
+ */
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "rounded-xl border border-border bg-card text-card-foreground shadow-panel transition-colors",
+        "rounded-surface border border-border-surface bg-card text-card-foreground shadow-panel transition-colors",
         className
       )}
       {...props}

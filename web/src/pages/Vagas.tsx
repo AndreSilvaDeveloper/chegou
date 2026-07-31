@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/api/client';
 import type { Vaga, VagaLocacao } from '@/api/types';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -103,22 +103,25 @@ export function Vagas() {
   const livres = vagas.filter((v) => v.alugavel).length;
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader
-        icon={SquareParking}
-        eyebrow="Garagem"
-        title="Vagas"
-        description={`${vagas.length} vaga(s) cadastrada(s) · ${livres} livre(s) para locação`}
-      >
-        <Button
-          variant="outline"
-          onClick={() => setPrecosAberto(true)}
-          className="min-h-[48px] w-full sm:w-auto"
-        >
-          <Tags className="mr-2 h-4 w-4" />
-          Tabela de preços
-        </Button>
-      </PageHeader>
+    <PageShell
+      icon={SquareParking}
+      eyebrow="Garagem"
+      title="Vagas"
+      description={`${vagas.length} vaga(s) cadastrada(s) · ${livres} livre(s) para locação`}
+      acoes={
+        <>
+  <Button
+            variant="outline"
+            onClick={() => setPrecosAberto(true)}
+            className="w-full sm:w-auto"
+          >
+            <Tags className="mr-2 h-4 w-4" />
+            Tabela de preços
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-3">
@@ -137,7 +140,7 @@ export function Vagas() {
         <TabsContent value="vagas" className="space-y-4">
           <Button
             onClick={() => setVagaForm({ aberto: true, vaga: null })}
-            className="min-h-[48px] w-full sm:w-auto"
+            className="w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             Nova vaga
@@ -166,7 +169,9 @@ export function Vagas() {
                     <CardContent className="space-y-4 p-4 md:p-5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-muted text-primary">
+                          {/* Bloco chapado: sem borda e sem sombra. Card já tem as
+                              duas coisas — repetir aqui era a caixa dentro da caixa. */}
+                          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-primary">
                             <Icone className="h-5 w-5" />
                           </div>
                           <div className="min-w-0">
@@ -181,15 +186,17 @@ export function Vagas() {
                         <SituacaoBadge situacao={vaga.situacao} />
                       </div>
 
-                      <dl className="space-y-1 txt-corpo">
-                        <div className="flex gap-2">
-                          <dt className="text-muted-foreground">Local:</dt>
-                          <dd className="text-foreground">{vaga.localizacao || 'Não informado'}</dd>
+                      {/* Rótulo pequeno em cima, valor legível embaixo — a mesma
+                          leitura do `ListCard` das outras listas. */}
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div className="min-w-0">
+                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Local</dt>
+                          <dd className="mt-0.5 truncate txt-corpo">{vaga.localizacao || 'Não informado'}</dd>
                         </div>
-                        <div className="flex gap-2">
-                          <dt className="text-muted-foreground">Apartamento:</dt>
-                          <dd className="text-foreground">
-                            {vaga.apartamento?.identificador ?? 'Nenhum — vaga do pool'}
+                        <div className="min-w-0">
+                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Apartamento</dt>
+                          <dd className="mt-0.5 truncate txt-corpo">
+                            {vaga.apartamento?.identificador ?? 'Vaga do pool'}
                           </dd>
                         </div>
                       </dl>
@@ -198,7 +205,7 @@ export function Vagas() {
                         <Button
                           variant="outline"
                           onClick={() => setVagaForm({ aberto: true, vaga })}
-                          className="min-h-[48px] w-full"
+                          className="w-full"
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar vaga
@@ -206,7 +213,7 @@ export function Vagas() {
                         <Button
                           variant="outline"
                           onClick={() => setHistoricoVaga(vaga)}
-                          className="min-h-[48px] w-full"
+                          className="w-full"
                         >
                           <History className="mr-2 h-4 w-4" />
                           Histórico
@@ -236,7 +243,7 @@ export function Vagas() {
             </div>
             <Button
               onClick={() => setLocacaoForm({ aberto: true, locacao: null })}
-              className="min-h-[48px] w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" />
               Nova locação
@@ -278,29 +285,29 @@ export function Vagas() {
                         <Badge variant={meta.variant}>{meta.label}</Badge>
                       </div>
 
-                      <dl className="grid grid-cols-2 gap-3 txt-corpo">
-                        <div>
-                          <dt className="text-muted-foreground">Valor mensal</dt>
-                          <dd className="font-mono txt-corpo font-semibold text-foreground">
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div className="min-w-0">
+                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Valor mensal</dt>
+                          <dd className="mt-0.5 font-mono txt-corpo font-semibold text-foreground">
                             {fmtMoeda(locacao.valorMensal)}
                           </dd>
                         </div>
-                        <div>
-                          <dt className="text-muted-foreground">Vencimento</dt>
-                          <dd className="font-mono txt-corpo text-foreground">
+                        <div className="min-w-0">
+                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Vencimento</dt>
+                          <dd className="mt-0.5 font-mono txt-corpo text-foreground">
                             Todo dia {locacao.diaVencimento}
                           </dd>
                         </div>
-                        <div>
-                          <dt className="text-muted-foreground">Início</dt>
-                          <dd className="font-mono txt-corpo text-foreground">
+                        <div className="min-w-0">
+                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Início</dt>
+                          <dd className="mt-0.5 font-mono txt-corpo text-foreground">
                             {fmtData(locacao.dataInicio)}
                           </dd>
                         </div>
                         {encerrada && (
-                          <div>
-                            <dt className="text-muted-foreground">Encerrada em</dt>
-                            <dd className="font-mono txt-corpo text-foreground">
+                          <div className="min-w-0">
+                            <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Encerrada em</dt>
+                            <dd className="mt-0.5 font-mono txt-corpo text-foreground">
                               {fmtData(locacao.dataFim)}
                             </dd>
                           </div>
@@ -311,7 +318,7 @@ export function Vagas() {
                         <Button
                           variant="outline"
                           onClick={() => setContrato(locacao)}
-                          className="min-h-[48px] w-full sm:w-auto"
+                          className="w-full sm:w-auto"
                         >
                           <FileText className="mr-2 h-4 w-4" />
                           {locacao.contratoUrl ? 'Ver contrato' : 'Anexar contrato'}
@@ -321,7 +328,7 @@ export function Vagas() {
                             <Button
                               variant="outline"
                               onClick={() => setLocacaoForm({ aberto: true, locacao })}
-                              className="min-h-[48px] w-full sm:w-auto"
+                              className="w-full sm:w-auto"
                             >
                               <Pencil className="mr-2 h-4 w-4" />
                               Editar
@@ -329,7 +336,7 @@ export function Vagas() {
                             <Button
                               variant="outline"
                               onClick={() => setEncerrando(locacao)}
-                              className="min-h-[48px] w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
+                              className="w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
                             >
                               <XCircle className="mr-2 h-4 w-4" />
                               Encerrar
@@ -404,6 +411,7 @@ export function Vagas() {
         loading={encerrar.isPending}
         onConfirm={() => encerrando && encerrar.mutate(encerrando.id)}
       />
-    </div>
+      </div>
+    </PageShell>
   );
 }

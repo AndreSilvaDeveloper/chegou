@@ -114,7 +114,7 @@ export function QrAutocadastroDialog({
             </div>
 
             {!carregando && (
-              <div className="rounded-md border border-border bg-muted px-3 py-2">
+              <div className="rounded-md bg-muted px-3 py-2">
                 <p className="break-all txt-apoio text-muted-foreground">{url}</p>
               </div>
             )}

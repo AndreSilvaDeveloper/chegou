@@ -180,7 +180,7 @@ export function Combobox({
           // pareceria não fazer nada.
           onClick={abrir}
           onKeyDown={aoTeclar}
-          className="h-12 pr-11"
+          className="pr-9"
         />
         <button
           type="button"
@@ -194,7 +194,7 @@ export function Combobox({
             if (aberto) setAberto(false);
             else abrir();
           }}
-          className="absolute right-0 top-0 flex h-12 w-11 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+          className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
         >
           <ChevronDown className={cn('h-4 w-4 transition-transform', aberto && 'rotate-180')} />
         </button>
@@ -227,7 +227,7 @@ export function Combobox({
                   onMouseEnter={() => setDestaque(i)}
                   onClick={() => escolher(o.valor)}
                   className={cn(
-                    'flex min-h-[48px] w-full items-center justify-between gap-2 px-3 py-2 text-left txt-corpo',
+                    'flex w-full items-center justify-between gap-2 px-3 py-2 text-left txt-corpo',
                     i === destaque && 'bg-accent',
                     escolhida && 'font-medium',
                   )}

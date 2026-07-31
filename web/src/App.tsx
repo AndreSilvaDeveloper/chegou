@@ -34,7 +34,7 @@ export default function App() {
   useAtualizacaoAutomatica();
 
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center text-muted-foreground">Carregando...</div>}>
+    <Suspense fallback={<div className="flex h-dvh items-center justify-center text-muted-foreground">Carregando...</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
         {/* Autocadastro de morador via QR: público, fora do Layout e sem login.

@@ -138,7 +138,7 @@ export function WhatsappTemplateCard({ basePath = '' }: { basePath?: string }) {
               variant="ghost"
               onClick={descartar}
               disabled={saveMutation.isPending}
-              className="min-h-[48px] w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               Descartar alterações
             </Button>
@@ -146,7 +146,7 @@ export function WhatsappTemplateCard({ basePath = '' }: { basePath?: string }) {
           <Button
             onClick={salvar}
             disabled={!dirty || saveMutation.isPending}
-            className="min-h-[48px] w-full sm:w-auto"
+            className="w-full sm:w-auto"
           >
             {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Salvar modelos

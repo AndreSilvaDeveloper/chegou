@@ -152,9 +152,7 @@ export function WhatsappConnectionCard({ basePath = '' }: { basePath?: string })
             {conn?.connected ? (
               <Button
                 variant="outline"
-                size="lg"
-                className="min-h-[48px]"
-                onClick={() => setConfirmDisconnect(true)}
+                size="lg" onClick={() => setConfirmDisconnect(true)}
                 disabled={busy}
               >
                 <Power className="mr-2 h-5 w-5" /> Desconectar
@@ -162,9 +160,7 @@ export function WhatsappConnectionCard({ basePath = '' }: { basePath?: string })
             ) : showQr ? (
               <Button
                 variant="outline"
-                size="lg"
-                className="min-h-[48px]"
-                onClick={() => restartMutation.mutate()}
+                size="lg" onClick={() => restartMutation.mutate()}
                 disabled={busy}
               >
                 {restartMutation.isPending
@@ -174,9 +170,7 @@ export function WhatsappConnectionCard({ basePath = '' }: { basePath?: string })
               </Button>
             ) : (
               <Button
-                size="lg"
-                className="min-h-[48px]"
-                onClick={() => connectMutation.mutate()}
+                size="lg" onClick={() => connectMutation.mutate()}
                 disabled={busy}
               >
                 {connectMutation.isPending
@@ -198,7 +192,7 @@ export function WhatsappConnectionCard({ basePath = '' }: { basePath?: string })
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="mt-5 flex flex-col items-center gap-4 rounded-xl border border-border bg-muted/30 p-5 sm:flex-row sm:items-center sm:gap-6">
+              <div className="mt-5 flex flex-col items-center gap-4 rounded-xl bg-muted/30 p-5 sm:flex-row sm:items-center sm:gap-6">
                 <div className="flex h-56 w-56 shrink-0 items-center justify-center rounded-lg bg-white p-3 shadow-xs">
                   {qrQuery.data?.qrCode ? (
                     <img src={qrQuery.data.qrCode} alt="QR Code para conectar o WhatsApp" className="h-full w-full" />

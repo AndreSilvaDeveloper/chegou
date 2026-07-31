@@ -13,6 +13,9 @@ export default {
     extend: {
       colors: {
         border: "hsl(var(--border))",
+        // Borda de superfície (card, diálogo): quase invisível no claro, onde
+        // quem separa é a sombra; no escuro é ela que dá o contorno.
+        "border-surface": "hsl(var(--border-surface))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -32,6 +35,14 @@ export default {
           800: "#8A6600",
           900: "#5C4400",
           950: "#3A2003",
+        },
+        // Faixa âmbar do topo no mobile. Token próprio porque no escuro ela
+        // fecha (#5C4400) enquanto `primary` segue no #FFC72C dos botões.
+        banner: {
+          DEFAULT: "hsl(var(--banner))",
+          foreground: "hsl(var(--banner-foreground))",
+          surface: "hsl(var(--banner-surface))",
+          border: "hsl(var(--banner-border))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar))",
@@ -76,14 +87,24 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // Raio das SUPERFÍCIES (card, diálogo, gaveta). Maior que o dos
+        // controles de propósito: é o que dá o ar arredondado e sóbrio sem
+        // deformar botão e campo, que continuam em `--radius`.
+        surface: "var(--radius-surface)",
       },
       fontFamily: {
         sans: ["Poppins", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        panel: "0 1px 2px 0 hsl(240 6% 4% / 0.04), 0 1px 3px 0 hsl(240 6% 4% / 0.06)",
-        "panel-lg": "0 8px 24px -8px hsl(240 6% 4% / 0.12)",
+        // A SOMBRA É O SEPARADOR — não a borda.
+        // Difusa e de opacidade baixa: o card se destaca do fundo sem desenhar
+        // uma linha em volta. Duas camadas porque uma só ou fica dura (curta) ou
+        // suja o fundo (longa): a curta assenta o card, a longa dá a elevação.
+        panel:
+          "0 1px 2px -1px hsl(30 20% 12% / 0.06), 0 4px 16px -4px hsl(30 20% 12% / 0.08)",
+        "panel-lg":
+          "0 2px 4px -2px hsl(30 20% 12% / 0.06), 0 12px 32px -8px hsl(30 20% 12% / 0.12)",
         signal: "0 0 0 1px hsl(var(--signal) / 0.35), 0 8px 24px -8px hsl(var(--signal) / 0.35)",
       },
       keyframes: {

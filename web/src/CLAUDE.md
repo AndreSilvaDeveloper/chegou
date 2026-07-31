@@ -1,8 +1,9 @@
 # Frontend — painel web
 
-React + Vite + TailwindCSS + shadcn/ui. Quem mais usa é o **porteiro**, muitas
-vezes pessoa mais velha, no celular, em pé na portaria — todo padrão daqui existe
-por causa disso.
+React + Vite + TailwindCSS + shadcn/ui. Quem mais usa é o **porteiro**, no
+celular, em pé na portaria — é por isso que tudo aqui é mobile-first. Os
+tamanhos (texto e controle) são os **padrões do shadcn/ui**: o projeto já teve
+uma escala aumentada para público mais velho, e essa premissa saiu.
 
 ## Estrutura
 
@@ -85,7 +86,7 @@ O que troca o endpoint é `podeEditar` (assinatura) e `basePath` (WhatsApp) —
 plataforma. É o mesmo mecanismo de `ApartamentosManager` e `MoradoresManager`.
 
 No celular as sete abas ficam 2 por linha (`grid-cols-2 sm:grid-cols-4
-lg:grid-cols-7`): o alvo de toque não encolhe para caber tudo numa fita.
+lg:grid-cols-7`): a aba não encolhe para caber tudo numa fita.
 
 ## Padrões de tela
 
@@ -93,10 +94,12 @@ lg:grid-cols-7`): o alvo de toque não encolhe para caber tudo numa fita.
 |---|---|
 | Carregando | `Skeleton` (nunca o texto "Carregando…") |
 | Lista vazia | `EmptyState` com ação |
+| Lista de registros | `DataTable` com `mobileCard` — card no celular, tabela no desktop (ver abaixo) |
+| Um registro como card | `ListCard` (`components/ui/list-card.tsx`) |
 | Formulário | `FormDialog` (`components/ui/form-dialog.tsx`) |
 | Ação destrutiva | `ConfirmDialog` (nunca `confirm()`) |
 | Indicador numérico | `StatCard` |
-| Escolha de sim/não numa linha | `CheckboxField` (caixa + texto, alvo de 48px). `Switch` é para liga/desliga que vale na hora |
+| Escolha de sim/não numa linha | `CheckboxField` (caixa + texto clicável). `Switch` é para liga/desliga que vale na hora |
 | Select | `SimpleSelect` |
 | Select com lista grande | `SearchSelect` (busca por digitação; use `onSearchChange` para buscar no servidor) |
 | Campo com sugestões, mas que aceita o que for digitado | `Combobox` (ver abaixo) |
@@ -106,38 +109,48 @@ lg:grid-cols-7`): o alvo de toque não encolhe para caber tudo numa fita.
 | Erro de request | `toast.error(mensagemErro(err, 'Não foi possível …'))` |
 | Dinheiro, data, competência | `fmtMoeda` / `fmtData` / `fmtCompetencia` de `@/lib/formato` |
 
-Regras fixas: mobile-first (base = celular, `sm:`/`md:` amplia), `min-h-[48px]`
-em botão de ação, ícone **sempre** com texto, `Label` sempre visível, ícones só
-do Lucide, dark mode em tudo, testar em 375px.
+Regras fixas: mobile-first (base = celular, `sm:`/`md:` amplia), tamanhos padrão
+do shadcn (não force `h-12`/`min-h-[48px]`), `aria-label` em botão só de ícone,
+`Label` no campo de formulário, ícones só do Lucide, dark mode em tudo, testar em
+375px.
 
 ### Tamanho de texto: use a escala, nunca `text-sm`
 
 A escala vive em `styles.css` (bloco "ESCALA TIPOGRÁFICA"). Cada classe é um
-**papel**, e já carrega o tamanho do celular e o do desktop — por isso não se
-escreve `text-sm`, `text-xs`, `md:text-lg` nem `text-[13px]` em tela nenhuma:
+**papel** — por isso não se escreve `text-sm`, `text-xs`, `md:text-lg` nem
+`text-[13px]` em tela nenhuma. É a escala padrão do shadcn: **mesmo tamanho em
+qualquer viewport**.
 
-| Classe | Celular | Desktop | Papel |
-|---|---|---|---|
-| `txt-numero` | 30px | 36px | KPI, número em destaque |
-| `txt-numero-sm` | 20px | 24px | valor numérico em linha (total, contador) |
-| `txt-titulo` | 24px | 30px | título da tela (um por tela) |
-| `txt-secao` | 18px | 20px | título de card, diálogo, seção |
-| `txt-subtitulo` | 16px | 18px | nome do item no card, subtítulo de bloco |
-| `txt-corpo` | 16px | 14px | texto padrão, campo, botão, tabela |
-| `txt-apoio` | 14px | 14px | descrição, dica, texto secundário |
-| `txt-nota` | 12px | 12px | chrome: badge, legenda de gráfico, atalho |
-| `eyebrow` | 11px | 11px | rótulo mono maiúsculo |
+| Classe | Tamanho | Papel |
+|---|---|---|
+| `txt-numero` | 24px | KPI, número em destaque |
+| `txt-numero-sm` | 18px | valor numérico em linha (total, contador) |
+| `txt-titulo` | 24px | título da tela (um por tela) |
+| `txt-secao` | 16px | título de card, diálogo, seção |
+| `txt-subtitulo` | 14px | nome do item no card, subtítulo de bloco |
+| `txt-corpo` | 14px | texto padrão, campo, botão, tabela |
+| `txt-apoio` | 14px | descrição, dica, texto secundário |
+| `txt-nota` | 12px | chrome: badge, legenda de gráfico, atalho |
+| `eyebrow` | 11px | rótulo mono maiúsculo |
 
-**O corpo encolhe do celular para o desktop (16 → 14) de propósito.** No celular
-o porteiro está em pé, com o aparelho na mão e frequentemente com presbiopia:
-16px é o mínimo confortável — e é também o que impede o iOS de dar zoom ao focar
-um campo. No desktop a mesma pessoa está sentada, mais perto e com mais
-informação na tela; 14px é o tamanho certo ali. O `Input` já fazia isso
-(`text-base md:text-sm`); a escala só estendeu a regra para o resto.
+**`txt-subtitulo`, `txt-corpo` e `txt-apoio` medem os mesmos 14px** — e as três
+classes continuam existindo. Numa escala padrão os degraus são curtos, então
+quem separa esses papéis é **peso e cor**:
 
-`txt-apoio` **não** encolhe: ele já é secundário pela cor, e encolher também o
-levaria a 12px no desktop. A hierarquia contra o corpo vem da cor, e no celular
-também do tamanho.
+```tsx
+<h3 className="txt-subtitulo font-semibold">Apto 302 — Bloco B</h3>
+<p  className="txt-corpo">Encomenda da Shopee, recebida às 14h20.</p>
+<p  className="txt-apoio text-muted-foreground">Retirar na portaria.</p>
+```
+
+Use a classe do **papel**, não a que "dá no mesmo": quando a escala for retunada
+de novo (é um arquivo só), quem estiver com o papel certo acompanha sozinho.
+
+**Não existe mais `text-base md:text-sm` no campo.** O `Input` é 14px em
+qualquer tela. Efeito colateral aceito conscientemente: no Safari do iPhone a
+página dá um leve zoom ao focar um campo (o navegador faz isso abaixo de 16px) e
+não desfaz sozinho. Foi decisão de produto — se um dia incomodar, o conserto é
+devolver `text-base md:text-sm` só ao `Input`/`Textarea`, não à escala inteira.
 
 **Quem já traz a classe** (não repita): `PageHeader` (título + descrição),
 `CardTitle`/`DialogTitle`/`SheetTitle`/`AlertDialogTitle` e suas descrições,
@@ -251,6 +264,133 @@ Escolha pelo papel da superfície, não pela cor:
 | Hover | `hover:bg-accent` |
 
 Cor fixa (`bg-[#...]`) quebra o dark mode e a troca de tema — não use.
+
+### Superfície: a sombra separa, a borda quase não aparece
+
+O card se destaca do fundo por **tom + sombra**; a borda (`border-surface`) é um
+fio que só impede o card de sumir em tela muito clara. Três consequências que
+mudam como se escreve tela:
+
+1. **Card dentro de card é proibido.** Duas sombras empilhadas viram sujeira.
+   Para agrupar dentro de um card, use bloco **chapado**: `rounded-lg bg-muted`,
+   sem `border` e sem sombra. O preenchimento já delimita.
+2. **Raio de superfície é `rounded-surface`** (20px), não `rounded-xl`. Controle
+   (botão, campo) continua no raio menor — `Card` e `DialogContent` já trazem o
+   certo.
+3. **Barra de busca/ações fica FORA do card da lista.** Ela comanda a lista, não
+   é conteúdo dela; dentro, virava mais uma caixa dentro da caixa.
+
+### A casca de uma tela de listagem: `PageShell`
+
+No **celular** toda tela de listagem/cadastro abre com uma **faixa âmbar** que
+carrega menu, condomínio, avatar, título, busca e filtro; a folha branca sobe por
+cima dela com o canto arredondado. No **desktop** a faixa não existe — a sidebar
+já dá a identidade — e as mesmas declarações viram um cabeçalho comum.
+
+```tsx
+<PageShell
+  icon={Building2} eyebrow="Condomínio" title="Apartamentos"
+  description="Unidades do condomínio…"
+  busca={{ valor: search, aoMudar: setSearch, placeholder: 'Buscar…' }}
+  filtros={<CamposDaGaveta />} filtrosAtivos={n} aoLimparFiltros={limpar}
+  acoes={<><Button>Importar CSV</Button><Button>+ Novo</Button></>}
+>
+  <DataTable … />
+</PageShell>
+```
+
+**A faixa é uma coisa só partida em dois arquivos**: a barra com
+menu/condomínio/avatar mora no `Layout`, o título e a busca no `PageShell`. Elas
+se unem porque o `<main>` do `Layout` **não tem padding nem fundo no celular** —
+pôr fundo ali parte a faixa no meio. Não é context nem portal de propósito:
+custaria um efeito por tela e título piscando na troca de rota; do jeito atual o
+que une as duas metades é só a cor, que vem do mesmo token.
+
+**Cor pelo token `banner`, nunca `primary`.** No escuro o âmbar puro num bloco
+desse tamanho vira um holofote, então `--banner` fecha para `#5C4400` com texto
+claro (8:1). O botão de ação segue no `#FFC72C` cheio — ali a cor tem o tamanho
+de um botão. Use `bg-banner`, `text-banner-foreground` e, para controle dentro
+dela, `bg-banner-surface`.
+
+**Dentro de uma aba, passe `embutido`.** Em `/admin/condominios/:id` e
+`/meus-condominios/:id` a listagem é uma aba: sem `embutido` apareceria um
+"Apartamentos" âmbar no meio da página — cabeçalho de tela dentro de outro.
+
+**A página fica magra**: sem `PageHeader` e sem `<div className="space-y-6 pb-10">`.
+Quem desenha cabeçalho e respiro é o `PageShell`.
+
+**`PageHeader` está aposentado.** Toda tela dentro do `Layout` usa `PageShell` —
+listagem, painel, detalhe e formulário. As únicas fora são `Login` e o
+autocadastro (`/cadastro/:token`), que são públicas e não têm barra de topo.
+
+**Detalhe e formulário passam `voltar`**: o botão da esquerda da barra do topo
+vira uma seta em vez do menu. Quem atravessa a fronteira entre página e `Layout`
+é só essa rota, por um contexto de um valor só (`voltar-slot.tsx`) — título,
+busca e ações continuam desenhados pela página.
+
+```tsx
+<PageShell icon={Package} eyebrow="Encomenda" title={`Apto ${apto}`} voltar="/encomendas">
+```
+
+**Abas ficam na folha branca**, dentro de `children` — nunca presas à faixa.
+
+#### Nunca dê altura de viewport à folha
+
+A folha do `PageShell` **cresce só com o conteúdo**. O container de rolagem
+(`main > div` no `Layout`) mede `100dvh − altura do header`; qualquer
+`h-dvh`/`min-h-dvh` na folha faz o conteúdo medir `faixa + 100dvh` e cria barra
+de rolagem em **toda** tela, com lista ou sem.
+
+Quem faz a folha *parecer* chegar ao rodapé numa tela curta é o `bg-background`
+do container de rolagem — a área abaixo da folha já é da mesma cor. Foi assim
+que o `min-h-dvh` saiu.
+
+> Extensões de "canonical classes" do editor já trocaram `h-full` por `h-dvh` em
+> massa neste projeto e injetaram `h-dvh` aqui. São coisas diferentes: `h-full` é
+> 100% do pai, `h-dvh` é a altura da janela. Se a rolagem fantasma voltar, é o
+> primeiro lugar a conferir.
+
+Passo a passo e os quatro tipos de tela: skill `tela-listagem`.
+
+### Lista de registros: card no celular, tabela no desktop
+
+Tabela de 5 colunas em 375px obriga o porteiro a arrastar para ver o telefone —
+e aí some o nome. Por isso `DataTable` aceita `mobileCard`: abaixo de `md` cada
+linha vira um `ListCard`; a tabela volta no desktop.
+
+```tsx
+<DataTable
+  columns={columns}
+  data={dados}
+  mobileCard={(m) => (
+    <ListCard
+      icone={User}
+      titulo={m.nome}
+      selo={m.principal ? <Badge variant="secondary">Principal</Badge> : undefined}
+      acoes={<Button variant="ghost" size="icon-sm" aria-label={`Editar ${m.nome}`}>…</Button>}
+      campos={[
+        { rotulo: 'Unidade', valor: m.apartamento?.identificador ?? '—' },
+        { rotulo: 'Telefone', valor: formatarTelefone(m.telefoneE164) },
+        { rotulo: 'Notificação', valor: <Badge>…</Badge>, largura: 'inteira' },
+      ]}
+    />
+  )}
+/>
+```
+
+**`mobileCard` é uma prop, não algo derivado das `columns`** — de propósito.
+Derivar produziria "rótulo: valor" para toda coluna, inclusive as que só existem
+para ordenar. No celular não cabe tudo: o card é uma **escolha** do que importa,
+e quem escolhe é a tela.
+
+O par **rótulo pequeno apagado em cima, valor legível embaixo** (`txt-nota
+uppercase text-muted-foreground` sobre `txt-corpo`) é o que substitui o cabeçalho
+da tabela. Sem ele o card vira uma lista de valores sem nome. `largura: 'inteira'`
+para texto longo (e-mail, observação), que não cabe em meia coluna.
+
+Quem já usa: `MoradoresManager`, `ApartamentosManager`, `EquipeManager`. Vagas
+monta os cards direto (a tela nunca teve tabela), mas segue o mesmo par
+rótulo/valor.
 
 ## Versão e atualização automática
 

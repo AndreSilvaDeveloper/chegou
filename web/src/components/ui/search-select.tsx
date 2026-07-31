@@ -108,7 +108,7 @@ export function SearchSelect({
         type="button"
         disabled={disabled}
         onClick={() => setAberto((a) => !a)}
-        className="flex h-12 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 txt-corpo ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-1 txt-corpo ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={cn('truncate text-left', !selecionada && 'text-muted-foreground')}>
           {selecionada ? selecionada.label : placeholder}
@@ -135,7 +135,7 @@ export function SearchSelect({
                 }
               }}
               placeholder={searchPlaceholder}
-              className="h-11 pl-9"
+              className="pl-9"
             />
           </div>
 
@@ -155,7 +155,7 @@ export function SearchSelect({
                     aria-selected={o.value === value}
                     onClick={() => escolher(o.value)}
                     className={cn(
-                      'flex min-h-[48px] w-full items-center justify-between gap-2 px-3 py-2 text-left txt-corpo hover:bg-accent',
+                      'flex w-full items-center justify-between gap-2 px-3 py-2 text-left txt-corpo hover:bg-accent',
                       o.value === value && 'bg-accent/60',
                     )}
                   >

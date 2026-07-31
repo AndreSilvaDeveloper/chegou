@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { Apartamento } from '../api/types';
 import { useDebounce } from '@/hooks';
@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Search, Plus, Building2, Pencil, Trash2, Loader2, ArrowUpDown, Upload } from 'lucide-react';
+import { Plus, Building2, Pencil, Trash2, Loader2, ArrowUpDown, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { ListCard } from '@/components/ui/list-card';
+import { PageShell } from '@/components/ui/page-shell';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import { ImportDialog } from './ImportDialog';
 import { mensagemErro } from '@/lib/erros';
 import {
@@ -30,10 +32,13 @@ const LIMITE_LISTAGEM = 50;
 export function ApartamentosManager({
   basePath = '',
   permiteVagas = false,
+  embutido = false,
 }: {
   basePath?: string;
   /** Mostra as vagas da unidade — exige módulo Vagas e perfil que gerencia vagas. */
   permiteVagas?: boolean;
+  /** Dentro de uma aba: sem faixa âmbar e sem título (ver `PageShell`). */
+  embutido?: boolean;
 }) {
   const [list, setList] = useState<Apartamento[]>([]);
   const [, setLoading] = useState(true);
@@ -56,8 +61,14 @@ export function ApartamentosManager({
   const [openDelete, setOpenDelete] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Filtro por bloco (gaveta do `PageShell`). Fica no cliente de propósito: os
+  // blocos são poucos e já vieram na lista, então filtrar aqui não perde nada —
+  // ao contrário da BUSCA, que precisa ir ao servidor por causa do corte em 50.
+  const [filtroBloco, setFiltroBloco] = useState<string | null>(null);
+
   const url = (p: string) => `${basePath}/apartamentos${p}`;
-  
+
+
   // Busca no SERVIDOR (não no cliente): a lista vem cortada em 50, então filtrar
   // localmente só enxergaria as 50 primeiras — era o que fazia "501" não achar
   // uma unidade que existe. O backend casa por número/bloco/identificador.
@@ -183,6 +194,17 @@ export function ApartamentosManager({
     carregarTotal();
   };
 
+  // Blocos existentes, para a gaveta de filtro.
+  const blocos = useMemo(
+    () => [...new Set(list.map((a) => a.bloco).filter((b): b is string => !!b))].sort(),
+    [list],
+  );
+
+  const listaFiltrada = useMemo(
+    () => (filtroBloco ? list.filter((a) => a.bloco === filtroBloco) : list),
+    [list, filtroBloco],
+  );
+
   const columns: ColumnDef<Apartamento>[] = [
     {
       accessorKey: "identificador",
@@ -237,109 +259,161 @@ export function ApartamentosManager({
   ];
 
   return (
-    <Card className="p-4 shadow-xs">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-        <div className="relative w-full md:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar unidade..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-            className="pl-9 h-10"
-          />
-        </div>
-        <div className="flex flex-col gap-2 w-full sm:flex-row md:w-auto">
-          <Button variant="outline" onClick={() => setOpenImport(true)} className="w-full sm:w-auto">
+    <PageShell
+      embutido={embutido}
+      icon={Building2}
+      eyebrow="Condomínio"
+      title="Apartamentos"
+      description="Unidades do condomínio e as vagas que pertencem a elas."
+      busca={{
+        valor: search,
+        aoMudar: setSearch,
+        placeholder: 'Buscar apartamentos…',
+      }}
+      filtrosAtivos={filtroBloco ? 1 : 0}
+      aoLimparFiltros={() => setFiltroBloco(null)}
+      filtros={
+        usaBloco ? (
+          <div className="space-y-2">
+            <Label htmlFor="filtro-bloco">Bloco</Label>
+            <SimpleSelect
+              id="filtro-bloco"
+              value={filtroBloco ?? ''}
+              onValueChange={(v) => setFiltroBloco(v || null)}
+              placeholder="Todos os blocos"
+              options={[
+                { value: '', label: 'Todos os blocos' },
+                ...blocos.map((b) => ({ value: b, label: `Bloco ${b}` })),
+              ]}
+            />
+            <p className="txt-nota text-muted-foreground">
+              O filtro age sobre as unidades já carregadas; a busca é que procura no
+              condomínio inteiro.
+            </p>
+          </div>
+        ) : undefined
+      }
+      acoes={
+        <>
+          <Button variant="outline" onClick={() => setOpenImport(true)} className="flex-1 rounded-full sm:flex-none">
             <Upload className="mr-2 h-4 w-4" />
             Importar CSV
           </Button>
-          <Button onClick={openCreate} className="w-full sm:w-auto">
+          <Button onClick={openCreate} className="flex-1 rounded-full sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
             Novo Apartamento
           </Button>
-        </div>
-      </div>
-
-      {total !== null && (
-        <p className="mb-3 txt-apoio text-muted-foreground">
-          <span className="font-semibold text-foreground">{total}</span>{' '}
-          {total === 1 ? 'unidade cadastrada' : 'unidades cadastradas'}
-          {!search.trim() && total > LIMITE_LISTAGEM && (
-            <> · mostrando as primeiras {LIMITE_LISTAGEM} — use a busca para encontrar as demais</>
-          )}
-        </p>
-      )}
-
-      <DataTable
-        columns={columns}
-        data={list}
-        emptyStateTitle="Nenhum apartamento encontrado"
-        emptyStateDescription="Adicione apartamentos para que eles recebam encomendas."
-      />
-
-      <Dialog open={openForm} onOpenChange={setOpenForm}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{editId ? 'Editar Apartamento' : 'Novo Apartamento'}</DialogTitle>
-            <DialogDescription>
-              {editId ? 'Altere os dados da unidade.' : 'Cadastre uma nova unidade no condomínio.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={submitForm} className="space-y-4 pt-4">
-            <div className={usaBloco ? 'grid grid-cols-1 gap-4 sm:grid-cols-2' : 'space-y-2'}>
-              {/* Condomínio de bloco único não tem bloco para informar. */}
-              {usaBloco && (
-                <div className="space-y-2">
-                  <Label htmlFor="bloco">Bloco *</Label>
-                  <Input id="bloco" placeholder="Ex: A" value={form.bloco} onChange={e => setForm({...form, bloco: e.target.value})} required />
-                </div>
+        </>
+      }
+    >
+      <div className="space-y-4">
+          {total !== null && (
+            <p className="txt-apoio text-muted-foreground">
+              <span className="font-semibold text-foreground">{total}</span>{' '}
+              {total === 1 ? 'unidade cadastrada' : 'unidades cadastradas'}
+              {!search.trim() && total > LIMITE_LISTAGEM && (
+                <> · mostrando as primeiras {LIMITE_LISTAGEM} — use a busca para encontrar as demais</>
               )}
-              <div className="space-y-2">
-                <Label htmlFor="numero">Número *</Label>
-                <Input id="numero" placeholder="Ex: 101" value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} autoFocus required />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="observacoes">Observações (Opcional)</Label>
-              <Input id="observacoes" placeholder="Informações adicionais" value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})} />
-            </div>
+            </p>
+          )}
 
-            {permiteVagas && (
-              <VagasDoApartamento
-                apartamentoId={editId}
-                valor={editId ? undefined : vagas}
-                onChange={setVagas}
+          <div className="md:rounded-surface md:border md:border-border-surface md:bg-card md:p-4 md:shadow-panel">
+          <DataTable
+            columns={columns}
+            data={listaFiltrada}
+            emptyStateTitle="Nenhum apartamento encontrado"
+            emptyStateDescription="Adicione apartamentos para que eles recebam encomendas."
+            mobileCard={(a) => (
+              <ListCard
+                icone={Building2}
+                titulo={<span className="font-mono">{a.identificador}</span>}
+                selo={a.bloco ? <Badge variant="outline" className="shrink-0">{a.bloco}</Badge> : undefined}
+                acoes={
+                  <>
+                    <Button variant="ghost" size="icon-sm" aria-label={`Editar unidade ${a.identificador}`} onClick={() => openEdit(a)}>
+                      <Pencil className="h-4 w-4 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" aria-label={`Remover unidade ${a.identificador}`} onClick={() => confirmarDelete(a.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </>
+                }
+                campos={[
+                  { rotulo: 'Bloco', valor: a.bloco || '—' },
+                  { rotulo: 'Número', valor: <span className="font-mono">{a.numero}</span> },
+                  ...(a.observacoes
+                    ? [{ rotulo: 'Observações', valor: a.observacoes, largura: 'inteira' as const }]
+                    : []),
+                ]}
               />
             )}
+          />
+          </div>
 
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpenForm(false)}>Cancelar</Button>
-              <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editId ? 'Salvar Alterações' : 'Cadastrar'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          <Dialog open={openForm} onOpenChange={setOpenForm}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>{editId ? 'Editar Apartamento' : 'Novo Apartamento'}</DialogTitle>
+                <DialogDescription>
+                  {editId ? 'Altere os dados da unidade.' : 'Cadastre uma nova unidade no condomínio.'}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <form onSubmit={submitForm} className="space-y-4 pt-4">
+                <div className={usaBloco ? 'grid grid-cols-1 gap-4 sm:grid-cols-2' : 'space-y-2'}>
+                  {/* Condomínio de bloco único não tem bloco para informar. */}
+                  {usaBloco && (
+                    <div className="space-y-2">
+                      <Label htmlFor="bloco">Bloco *</Label>
+                      <Input id="bloco" placeholder="Ex: A" value={form.bloco} onChange={e => setForm({...form, bloco: e.target.value})} required />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="numero">Número *</Label>
+                    <Input id="numero" placeholder="Ex: 101" value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} autoFocus required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="observacoes">Observações (Opcional)</Label>
+                  <Input id="observacoes" placeholder="Informações adicionais" value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})} />
+                </div>
 
-      <ConfirmDialog
-        open={openDelete}
-        onOpenChange={setOpenDelete}
-        title="Desativar Apartamento"
-        description="Tem certeza? Os moradores associados a este apartamento ficarão sem apartamento ativo."
-        confirmLabel="Desativar"
-        variant="destructive"
-        onConfirm={handleDelete}
-      />
+                {permiteVagas && (
+                  <VagasDoApartamento
+                    apartamentoId={editId}
+                    valor={editId ? undefined : vagas}
+                    onChange={setVagas}
+                  />
+                )}
 
-      <ImportDialog
-        open={openImport}
-        onOpenChange={setOpenImport}
-        type="apartamentos"
-        onSuccess={aposImportar}
-      />
-    </Card>
+                <DialogFooter className="pt-4">
+                  <Button type="button" variant="outline" onClick={() => setOpenForm(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {editId ? 'Salvar Alterações' : 'Cadastrar'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <ConfirmDialog
+            open={openDelete}
+            onOpenChange={setOpenDelete}
+            title="Desativar Apartamento"
+            description="Tem certeza? Os moradores associados a este apartamento ficarão sem apartamento ativo."
+            confirmLabel="Desativar"
+            variant="destructive"
+            onConfirm={handleDelete}
+          />
+
+          <ImportDialog
+            open={openImport}
+            onOpenChange={setOpenImport}
+            type="apartamentos"
+            onSuccess={aposImportar}
+          />
+      </div>
+    </PageShell>
   );
 }

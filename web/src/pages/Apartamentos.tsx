@@ -1,5 +1,3 @@
-import { Building2 } from 'lucide-react';
-import { PageHeader } from '@/components/ui/page-header';
 import { ApartamentosManager } from '../components/ApartamentosManager';
 import { useAuthMe, useModuleEnabled } from '@/hooks/use-tenant-config';
 
@@ -12,15 +10,8 @@ export function Apartamentos() {
   const permiteVagas =
     vagasAtivo === true && (usuario?.role === 'sindico' || usuario?.role === 'admin');
 
-  return (
-    <div className="space-y-6 pb-10">
-      <PageHeader
-        icon={Building2}
-        eyebrow="Condomínio"
-        title="Apartamentos"
-        description="Unidades do condomínio e as vagas que pertencem a elas."
-      />
-      <ApartamentosManager basePath="" permiteVagas={permiteVagas} />
-    </div>
-  );
+  // Sem `PageHeader` e sem wrapper com padding: quem desenha o cabeçalho (a
+  // faixa âmbar no celular) e o respiro da folha é o `PageShell`, dentro do
+  // manager — que é quem tem a busca, os filtros e as ações para entregar a ele.
+  return <ApartamentosManager basePath="" permiteVagas={permiteVagas} />;
 }

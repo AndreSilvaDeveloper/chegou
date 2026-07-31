@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Notificacao, StatusNotificacao } from '@/api/types';
@@ -197,23 +197,23 @@ export function Notificacoes() {
   ];
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex items-start justify-between gap-3">
-        <PageHeader
-          title="Filas de Disparo"
-          description="Acompanhe o status de cada mensagem na fila do WhatsApp e reenvie as que falharam."
-        />
+    <PageShell
+      icon={ListChecks}
+      eyebrow="Comunicação"
+      title="Filas de Disparo"
+      description="Acompanhe o status de cada mensagem na fila do WhatsApp e reenvie as que falharam."
+      acoes={
         <Button
           variant="outline"
-          size="icon"
           onClick={() => invalidate()}
-          title="Atualizar"
-          className="shrink-0"
+          className="flex-1 rounded-full sm:flex-none"
         >
-          <RefreshCw className={cn('h-4 w-4', (notificacoesQuery.isFetching || statsQuery.isFetching) && 'animate-spin')} />
+          <RefreshCw className={cn('mr-2 h-4 w-4', (notificacoesQuery.isFetching || statsQuery.isFetching) && 'animate-spin')} />
+          Atualizar
         </Button>
-      </div>
-
+      }
+    >
+      <div className="space-y-6">
       {/* Cards de status — clique para filtrar */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         {cards.map((c) => (
@@ -257,6 +257,7 @@ export function Notificacoes() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </PageShell>
   );
 }

@@ -356,7 +356,7 @@ export function ScannerModal({
             <Button
               type="button"
               variant="outline"
-              className="min-h-[48px] w-full"
+              className="w-full"
               onClick={() => {
                 const arquivo = revisao.foto.arquivo;
                 descartarRevisao();
@@ -479,7 +479,7 @@ export function ScannerModal({
                   <Button
                     type="button"
                     variant="ghost"
-                    className="min-h-[48px] w-full"
+                    className="w-full"
                     disabled={preparando}
                     onClick={() => arquivoRef.current?.click()}
                   >
@@ -520,7 +520,7 @@ export function ScannerModal({
                 <Button
                   type="button"
                   variant="outline"
-                  className="min-h-[48px] w-full"
+                  className="w-full"
                   onClick={() => {
                     setError(null);
                     setErroCamera(null);
@@ -544,7 +544,7 @@ export function ScannerModal({
               type="button"
               variant="ghost"
               onClick={fechar}
-              className={cn('min-h-[48px] w-full', !onEtiqueta && 'mt-1')}
+              className={cn('w-full', !onEtiqueta && 'mt-1')}
             >
               Fechar / digitar manualmente
             </Button>
