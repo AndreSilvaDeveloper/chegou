@@ -11,6 +11,32 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.4 — 2026-07-31
+
+### Alterado
+- **A barra do sistema do app instalado agora é âmbar (`#FFC72C`).** Era o
+  grafite `#18181b`, herdado do tema antigo. Como o topo do app é a faixa âmbar,
+  a barra vira continuação dela em vez de uma listra de outra cor.
+  - `theme_color` no manifest (Android e barra de título no desktop) e as duas
+    metas `theme-color` do `index.html` (barra do navegador quando o app não
+    está instalado). Os dois temas usam o mesmo valor porque a faixa hoje é
+    âmbar nos dois; se o escuro voltar ao âmbar fechado, a meta `dark` acompanha.
+- **Splash (`background_color`) saiu do quase-preto para `#F3F0EA`**, o tom da
+  folha clara. Ela não acompanha claro/escuro, e âmbar não serve: o ícone é
+  âmbar e sumiria dentro de um fundo da mesma cor.
+
+### Corrigido
+- **iOS: status bar ilegível e conteúdo por baixo dela.** O
+  `apple-mobile-web-app-status-bar-style` era `black-translucent`, que pinta o
+  texto da status bar de **branco** (1,9:1 sobre o âmbar) e joga o conteúdo por
+  **baixo** dela — e como não existe `padding-top: env(safe-area-inset-top)` em
+  lugar nenhum, o menu e o avatar ficavam parcialmente sob o relógio do iPhone.
+  Passou a `default`: texto escuro e conteúdo começando abaixo da barra.
+  - iOS **não lê** `theme_color` do manifest, então essa meta é a única forma de
+    tratar a status bar lá.
+
+---
+
 ## 0.24.3 — 2026-07-31
 
 ### Corrigido

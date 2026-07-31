@@ -26,8 +26,15 @@ export default defineConfig({
         name: 'Chegou — Central de Portaria',
         short_name: 'Chegou',
         description: 'Gestão de encomendas e condomínio com notificação via WhatsApp',
-        theme_color: '#18181b',
-        background_color: '#09090b',
+        // Barra do sistema com o app instalado: status bar no Android, barra de
+        // título na janela do desktop. É o âmbar do tema, para ela virar
+        // continuação da faixa do topo em vez de uma listra de outra cor.
+        // Mantenha igual às metas `theme-color` do index.html.
+        theme_color: '#FFC72C',
+        // Tela de abertura (splash): fundo + ícone centralizado, e ela NÃO
+        // acompanha claro/escuro. Fica no tom da folha clara, não no âmbar: o
+        // ícone já é âmbar e sumiria dentro de um fundo da mesma cor.
+        background_color: '#F3F0EA',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

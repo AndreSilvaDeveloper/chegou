@@ -7,14 +7,30 @@
 
     <title>Chegou — Central de Portaria</title>
     <meta name="description" content="Chegou — Gestão inteligente de condomínios com notificação via WhatsApp" />
-    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+    <!-- Cor da barra do sistema (status bar no Android, barra de título no
+         desktop) e da barra do navegador quando o app não está instalado.
+         É o âmbar #FFC72C: o topo do app é a faixa âmbar, então a barra do
+         sistema vira continuação dela em vez de uma listra de outra cor.
+
+         Os dois temas usam o mesmo valor porque a faixa hoje é âmbar nos dois.
+         Se o âmbar do ESCURO voltar ao fechado (`--banner` em styles.css, hoje
+         em teste), o `prefers-color-scheme: dark` aqui acompanha: #5C4400. -->
+    <meta name="theme-color" content="#FFC72C" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#FFC72C" media="(prefers-color-scheme: light)" />
 
     <!-- PWA / instalação (o link do manifest é injetado pelo vite-plugin-pwa) -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- iOS não lê `theme_color` do manifest: quem manda na status bar é isto.
+         `default` = texto ESCURO, e o conteúdo começa ABAIXO da status bar.
+
+         Era `black-translucent`, que faz duas coisas incompatíveis com a faixa
+         âmbar: pinta o texto da status bar de BRANCO (branco sobre #FFC72C é
+         1,9:1, ilegível) e joga o conteúdo POR BAIXO dela — e como não há
+         `padding-top: env(safe-area-inset-top)` em lugar nenhum, o menu e o
+         avatar ficavam parcialmente sob o relógio do iPhone. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Chegou" />
 
     <meta property="og:title" content="Chegou — Central de Portaria" />
