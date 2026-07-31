@@ -43,7 +43,11 @@ export default function App() {
         {/* O wrapper do Layout só exige login: a regra de "escolha um condomínio"
             fica em cada rota, senão a própria tela da carteira cairia nela. */}
         <Route element={<ProtectedRoute semCondominio><Layout /></ProtectedRoute>}>
-          <Route path="/" element={<ProtectedRoute><Encomendas /></ProtectedRoute>} />
+          <Route path="/encomendas" element={<ProtectedRoute><Encomendas /></ProtectedRoute>} />
+          {/* A tela de encomendas já morou na raiz. O redirect fica: é o
+              `start_url` do PWA já instalado no celular do porteiro, e o
+              endereço que quem salvou o atalho continua abrindo. */}
+          <Route path="/" element={<Navigate to="/encomendas" replace />} />
           <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Dashboard /></ProtectedRoute>} />
           <Route path="/encomendas/nova" element={<ProtectedRoute><NovaEncomenda /></ProtectedRoute>} />
           <Route path="/encomendas/:id" element={<ProtectedRoute><DetalheEncomenda /></ProtectedRoute>} />
@@ -72,7 +76,7 @@ export default function App() {
           <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Notificacoes /></ProtectedRoute>} />
           <Route path="/whatsapp" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Whatsapp /></ProtectedRoute>} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/encomendas" replace />} />
       </Routes>
     </Suspense>
   );

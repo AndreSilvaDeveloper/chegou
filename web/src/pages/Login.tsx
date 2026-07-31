@@ -14,8 +14,8 @@ import { clearLoginLembrado, getLoginLembrado, setLoginLembrado } from '@/lib/le
 const DESTINO_POR_PAPEL: Record<AuthenticatedUser['role'], string> = {
   superadmin: '/admin',
   admin: '/meus-condominios',
-  sindico: '/',
-  porteiro: '/',
+  sindico: '/encomendas',
+  porteiro: '/encomendas',
 };
 
 export function Login() {
@@ -30,7 +30,7 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const nav = useNavigate();
 
-  if (getToken()) return <Navigate to="/" replace />;
+  if (getToken()) return <Navigate to="/encomendas" replace />;
 
   /**
    * Desmarcar apaga na hora, sem esperar um login novo: quem desmarca num
@@ -60,7 +60,7 @@ export function Login() {
       // A administradora começa pela carteira: ela ainda não está "dentro" de
       // nenhum condomínio, e é lá que escolhe.
       clearTenantAtivo();
-      nav(DESTINO_POR_PAPEL[res.user.role] ?? '/', { replace: true });
+      nav(DESTINO_POR_PAPEL[res.user.role] ?? '/encomendas', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'E-mail ou senha incorretos.');
     } finally {

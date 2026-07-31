@@ -344,6 +344,13 @@ A documentação é dividida em duas camadas, e cada uma tem um dono claro:
 |---|---|---|
 | Geral | este arquivo | Arquitetura, perfis de acesso, padrões e regras que valem para o projeto inteiro |
 | Local | `CLAUDE.md` de cada módulo | Rotas + perfis, entidades, regras de negócio e armadilhas daquele módulo |
+| Planejado | `docs/` | Trabalho combinado que ainda não virou código |
+
+### Planejado (ainda não implementado)
+
+| Doc | O que é |
+|---|---|
+| [Landing + painel no mesmo domínio](docs/plano-landing-monorepo.md) | A landing entra como app próprio (`landing/`) e o painel passa a viver sob `/app/`. Inclui o porquê de **não** migrar para Next.js |
 
 **Por que `CLAUDE.md` e não `README.md`**: arquivos `CLAUDE.md` em subpastas são
 carregados automaticamente no contexto quando se trabalha naquela pasta. Na

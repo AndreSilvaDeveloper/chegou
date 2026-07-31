@@ -11,6 +11,16 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.21.1 — 2026-07-31
+
+### Alterado
+- **A lista de encomendas saiu da raiz e passou a ser `/encomendas`.** O menu já
+  apontava para lá e só funcionava por acidente, via o redirect de rota
+  desconhecida. A raiz continua existindo como redirect: ela é o `start_url` do
+  PWA já instalado no celular do porteiro, e o endereço de quem salvou o atalho.
+
+---
+
 ## 0.21.0 — 2026-07-30
 
 **O condomínio virou o lugar onde tudo sobre ele é resolvido.** Antes, para
