@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Bell, Building2, CalendarDays, Car, Clock, CreditCard, DoorClosed,
-  Layers, Loader2, Lock, MapPin, Save, Settings2, SlidersHorizontal, Users,
+  Layers, Loader2, Lock, MapPin, MessageCircle, Receipt, Save, Settings2,
+  SlidersHorizontal, Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, getTenantAtivo } from '@/api/client';
@@ -11,6 +12,8 @@ import type { Tenant, TenantConfig } from '@/api/types';
 import { ApartamentosManager } from '@/components/ApartamentosManager';
 import { MoradoresManager } from '@/components/MoradoresManager';
 import { EquipeManager } from '@/components/EquipeManager';
+import { AssinaturaCondominioPanel } from '@/components/condominio/AssinaturaCondominioPanel';
+import { WhatsappCondominioPanel } from '@/components/condominio/WhatsappCondominioPanel';
 import {
   DEFAULT_CONFIG,
   ESTRUTURA_META,
@@ -33,7 +36,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrocarCondominio } from '@/hooks/use-tenant-config';
 import { mensagemErro } from '@/lib/erros';
 
-type Tab = 'dados' | 'config' | 'apartamentos' | 'moradores' | 'equipe';
+type Tab =
+  | 'dados'
+  | 'config'
+  | 'apartamentos'
+  | 'moradores'
+  | 'equipe'
+  | 'assinatura'
+  | 'whatsapp';
 
 const TABS: { key: Tab; label: string; icon: typeof Building2 }[] = [
   { key: 'dados', label: 'Dados gerais', icon: Building2 },
@@ -41,6 +51,8 @@ const TABS: { key: Tab; label: string; icon: typeof Building2 }[] = [
   { key: 'apartamentos', label: 'Unidades', icon: DoorClosed },
   { key: 'moradores', label: 'Moradores', icon: Users },
   { key: 'equipe', label: 'Acessos', icon: Settings2 },
+  { key: 'assinatura', label: 'Assinatura', icon: Receipt },
+  { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
 ];
 
 const CADASTRO_VAZIO = {
@@ -242,7 +254,7 @@ export function MeuCondominio() {
       </Card>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-xs sm:grid-cols-5">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-xs sm:grid-cols-4 lg:grid-cols-7">
           {TABS.map((t) => (
             <TabsTrigger
               key={t.key}
@@ -504,6 +516,20 @@ export function MeuCondominio() {
 
         <TabsContent value="equipe" className="mt-0">
           <EquipeManager basePath="" allowedRoles={['porteiro', 'sindico']} />
+        </TabsContent>
+
+        {/* Assinatura em leitura: quem paga por este condomínio é a carteira
+            dela, e é lá (`/assinatura`) que a fatura é operada. Aqui ela vê
+            quanto este condomínio pesa e o que já foi cobrado. */}
+        <TabsContent value="assinatura" className="mt-0">
+          <AssinaturaCondominioPanel tenantId={id!} podeEditar={false} />
+        </TabsContent>
+
+        {/* WhatsApp editável: é operacional do condomínio, o mesmo que ela já
+            fazia em `/whatsapp` depois de entrar nele. `basePath=""` porque
+            esta tela entra no condomínio (veja `prontoParaCarregar`). */}
+        <TabsContent value="whatsapp" className="mt-0">
+          <WhatsappCondominioPanel basePath="" />
         </TabsContent>
       </Tabs>
     </div>

@@ -157,6 +157,66 @@ export class AdminEtiquetasService {
     return montarPlacar(amostras, PARSER_VERSAO);
   }
 
+  /**
+   * Reprocessa o **OCR** — baixa a foto do bucket, lê de novo e regrava as
+   * linhas antes de rodar o parser.
+   *
+   * Por que existe: `reprocessar()` acima roda só o parser sobre as linhas já
+   * gravadas, então nenhum ajuste no serviço de OCR (pré-processamento,
+   * parâmetros do engine, ordenação) movia o placar — as linhas continuavam
+   * sendo as antigas. Na prática, toda mudança de OCR era imensurável, e a
+   * equipe voltava a discutir de memória exatamente o que o `PARSER_VERSAO`
+   * existe para evitar.
+   *
+   * É caro de propósito e serializado: cada foto custa 1 a 3s de CPU no
+   * container de OCR, que roda com um worker só. Não é o botão do dia a dia —
+   * é o que se roda depois de mexer no `ocr/app.py`.
+   *
+   * Amostra cuja leitura falhar mantém as linhas antigas: perder o histórico de
+   * uma amostra por uma indisponibilidade momentânea seria destruir justamente
+   * o caso de regressão que ela guarda.
+   */
+  async reprocessarOcr(): Promise<Placar & { relidas: number; falhas: number }> {
+    const amostras = await this.repo.find({ where: { ativo: true } });
+    let relidas = 0;
+    let falhas = 0;
+
+    for (const amostra of amostras) {
+      if (amostra.fotoKey) {
+        try {
+          const buffer = await this.storage.baixar(amostra.fotoKey);
+          if (buffer) {
+            const resultado = await this.ocr.ler({
+              buffer,
+              mimetype: 'image/jpeg',
+              originalname: amostra.fotoKey,
+            });
+            amostra.ocrLinhas = resultado.linhas;
+            amostra.ocrMs = resultado.ms;
+            relidas++;
+          } else {
+            falhas++;
+          }
+        } catch (err) {
+          falhas++;
+          this.logger.warn(`OCR falhou na amostra ${amostra.id}: ${err}`);
+        }
+      } else {
+        falhas++;
+      }
+
+      amostra.extraido = extrairCampos(amostra.ocrLinhas ?? []);
+      amostra.parserVersao = PARSER_VERSAO;
+    }
+
+    if (amostras.length) {
+      await this.repo.save(amostras, { chunk: 100 });
+    }
+    this.logger.log(`OCR reprocessado: ${relidas} relidas, ${falhas} falhas`);
+
+    return { ...montarPlacar(amostras, PARSER_VERSAO), relidas, falhas };
+  }
+
   /** Placar sem reprocessar — usa o que já está gravado em cada amostra. */
   async placar(): Promise<Placar> {
     const amostras = await this.repo.find({

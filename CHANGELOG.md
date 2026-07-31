@@ -11,6 +11,180 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.21.1 — 2026-07-31
+
+### Alterado
+- **A lista de encomendas saiu da raiz e passou a ser `/encomendas`.** O menu já
+  apontava para lá e só funcionava por acidente, via o redirect de rota
+  desconhecida. A raiz continua existindo como redirect: ela é o `start_url` do
+  PWA já instalado no celular do porteiro, e o endereço de quem salvou o atalho.
+
+---
+
+## 0.21.0 — 2026-07-30
+
+**O condomínio virou o lugar onde tudo sobre ele é resolvido.** Antes, para
+atender um cliente, a plataforma pulava entre um painel de WhatsApp com todos os
+condomínios juntos e uma tela de assinaturas com todos os clientes juntos.
+Agora `/admin/condominios/:id` tem sete abas e as duas novas — **Assinatura** e
+**WhatsApp** — respondem por aquele condomínio, sem precisar "entrar" nele.
+
+### Adicionado
+- **Aba WhatsApp do condomínio** (`/admin/tenants/:tenantId/whatsapp`): conexão
+  (QR, reconectar, desconectar), modelos de mensagem e ritmo de envio, operados
+  pela plataforma. Existe por suporte: o QR e o "desconectar" eram só do
+  síndico, então, quando o número caía, a plataforma não tinha como reconectar
+  sem pedir a senha do cliente.
+  - As faixas de edição **mudam com quem edita**: o síndico continua preso às
+    regras anti-bloqueio (intervalo ≥ 60s, janela 08:00–21:00, 20 a 300/dia); a
+    plataforma edita livre e ainda ajusta o `jitter`, que o condomínio nem
+    enxerga. A tela é a mesma — ela valida pelo que o `GET` devolve em `limites`
+    e `jitterEditavel`, em vez de repetir os números.
+  - **Janela invertida continua recusada nos dois escopos**: não é uma licença
+    da plataforma, é fila parada — nenhuma mensagem sairia.
+- **Aba Assinatura do condomínio** (`/admin/assinaturas/condominios/:tenantId`):
+  quanto ele custa e por quê, preço especial, dia de vencimento e o histórico de
+  cobrança, numa resposta só.
+  - **Condomínio de carteira deixou de mostrar histórico vazio.** Ele não tem
+    fatura própria — é uma *linha* da fatura da administradora —, e agora a tela
+    mostra exatamente isso: em quais faturas dela ele entrou, com o subtotal
+    dele ao lado do total, e quanto ele pesa na conta hoje.
+- **Dia de vencimento por condomínio** (`tenants.assinatura_dia_vencimento`,
+  migration 027): o cliente que negociou "eu pago dia 5" passa a ter o dia dele
+  na geração do lote. Sem isso, atendê-lo exigiria gerar a competência duas
+  vezes, o que a idempotência da geração impede.
+  - `NULL` (o caso da maioria) segue o dia pedido na geração, ou o padrão da
+    plataforma — dia 10. A tela diz qual é o padrão que ele está seguindo.
+  - **Não muda fatura já emitida**: o vencimento dela é fotografia. Vale da
+    próxima geração em diante.
+  - Recusado em condomínio de carteira: quem vence lá é a administradora, e
+    aceitar o dia daria a impressão de um combinado que nunca seria aplicado.
+- **A administradora vê a assinatura de cada condomínio da carteira**
+  (`/minha-administradora/condominios/:tenantId/assinatura`), em leitura: quanto
+  aquele condomínio pesa na conta dela e o que já foi cobrado. Negociar preço e
+  vencimento continua só do superadmin.
+- **Abas Assinatura e WhatsApp também em `/meus-condominios/:id`**, a tela da
+  administradora — a de assinatura em leitura, a de WhatsApp editável (é
+  operacional do condomínio, o mesmo que ela já fazia entrando nele).
+
+### Alterado
+- **Os três cards de WhatsApp (conexão, modelos, envio) aceitam `basePath`** e
+  são empilhados por `WhatsappCondominioPanel`, usado pelas três telas que
+  mostram isso. Card novo entra uma vez e aparece nas três. Mesma ideia do
+  `AssinaturaCondominioPanel`, que muda de endpoint pelo `podeEditar`.
+- Chaves de query do WhatsApp passaram a carregar o `basePath` — sem isso, a
+  config de um condomínio apareceria na aba de outro.
+
+### Removido
+- **Painel consolidado `/admin/whatsapp`** (tela, controller e serviço). Sessão,
+  modelos e ritmo são de **um** condomínio de cada vez; a lista de todos junta
+  não era onde o problema era resolvido. O item some do menu da Plataforma.
+- **Provisionamento em lote** (`provisionMissing`): existia para aquele painel, e
+  o status da conexão já provisiona sozinho quando a instância falta.
+
+---
+
+## 0.20.1 — 2026-07-30
+
+### Adicionado
+- **"Lembrar meus dados" na tela de login**: caixa de seleção que guarda e-mail
+  e senha no aparelho e traz os campos preenchidos no próximo acesso. O porteiro
+  entra e sai do painel várias vezes por turno, quase sempre no mesmo celular da
+  portaria — digitar e-mail e senha em teclado de celular era o atrito do
+  começo de cada uso.
+  - A caixa vem **desmarcada** e diz o que faz ("só marque se ele for seu"): a
+    senha fica em texto puro no `localStorage`, e quem marca precisa saber.
+  - Grava **só depois do login dar certo** — senha errada não vira senha salva.
+  - Desmarcar apaga na hora, sem esperar um login novo.
+- **`Checkbox` / `CheckboxField`** (`web/src/components/ui/checkbox.tsx`): caixa
+  de seleção do design system, sem dependência nova, com o texto dentro de um
+  alvo de toque de 48px.
+
+### Alterado
+- Campos de e-mail e senha do login agora declaram `autoComplete`, para o
+  gerenciador de senhas do navegador funcionar como o usuário espera.
+
+---
+
+## 0.20.0 — 2026-07-30
+
+**A leitura de etiqueta passou de protótipo a ferramenta.** A foto agora é
+preparada no celular antes de subir, o OCR foi reajustado para etiqueta térmica
+e o parser aprendeu as escritas que apareciam nas amostras reais. Junto veio o
+que faltava para medir tudo isso: um botão que relê as fotos no OCR.
+
+### Adicionado
+- **Preparo da foto no cliente** (`web/src/lib/imagem.ts`): reduz para o tamanho
+  que o OCR de fato usa e recomprime antes de subir. No 4G ruim de uma portaria
+  é a diferença entre ~30s e ~4s de espera, sem perder um pixel útil.
+- **Aviso de foto tremida** antes do upload — mede a nitidez na hora e oferece
+  "tirar outra" em vez de gastar upload e 1 a 3s de CPU para não ler nada.
+- **Visor de captura no desktop** (webcam, com escolha de câmera lembrada e
+  aviso quando a resolução da stream é baixa demais para o OCR). No celular
+  continua abrindo a câmera nativa, que tem autofoco e resolução melhores.
+- **Cancelar a leitura**: leitura travada prendia o porteiro por até 30s com
+  fila na frente.
+- **Selo "lido"** ao lado de cada campo que veio do OCR, na revisão — a leitura
+  é sugestão, e ele precisa saber onde olhar duas vezes.
+- **`POST /admin/etiquetas/reprocessar-ocr`** (superadmin) e o botão "Reler tudo
+  no OCR": baixa as fotos do bucket e relê antes de rodar o parser.
+- **HEIC no serviço de OCR** — a API já aceitava `image/heic` e o serviço não
+  abria: foto de iPhone morria como "Imagem inválida".
+- 15 transportadoras novas no reconhecimento (Magalu, Shein, AliExpress,
+  Rodonaves, Jamef, GOL Log, entre outras).
+
+### Corrigido
+- **Captura atravessando a quebra de linha no parser** — a classe de bug mais
+  cara que ele já teve: `QTD 1 UN` numa linha e `0,350 KG` na seguinte davam
+  `numero = 0`, e esse zero **vencia** o `APTO 51` verdadeiro impresso mais
+  abaixo. Campo preenchido com valor errado é pior que campo vazio: ninguém
+  confere o que já veio preenchido.
+- **Nome de morador descartado por palavra que só o contém**: "Maria Chaves",
+  "Ana Cristina Praça" e "Roberto Total" eram reprovados como se fossem
+  endereço ou dado logístico — e o parser caía no fallback que devolve o
+  **remetente**.
+- **Remetente eleito como destinatário** quando quem enviou é uma loja ("Loja
+  Fulano ME") ou quando a etiqueta marca `DESTINATÁRIO` mas não traz nome
+  legível ali.
+- **Etiqueta de marketplace classificada como Correios** por causa do "PAC" no
+  rodapé; e código com prefixo `BR…` rotulado como Shopee (é prefixo nacional
+  genérico, de várias transportadoras).
+- **Unidade não encontrada por diferença de escrita**: `302`, `0302`, `302-B` e
+  `302B` são a mesma porta, e o cadastro guarda o que o síndico digitou.
+- **Morador não encontrado** por pontuação, preposição, sufixo ("Junior") ou
+  nome cortado pela impressora térmica.
+- **`/health` do OCR mudo durante a inferência**, o que marcava o container como
+  unhealthy no meio de um lote de amostras.
+- **Sessão expirada durante um upload** virava toast genérico em vez de levar
+  ao login.
+- Escala tipográfica na tela de etiquetas do superadmin (era a única tela do
+  painel ainda com `text-sm`/`text-xs` solto).
+
+### Regras
+- **A busca da unidade olha fora do bloco, mas nunca escolhe.** A terceira
+  tentativa só aceita quando existe uma única unidade com aquele número no
+  condomínio inteiro. A regra é *nunca escolher entre várias* — desistir quando
+  não há ambiguidade nenhuma jogava fora o caso mais comum, a etiqueta cujo
+  bloco não saiu legível.
+- **Mudança no serviço de OCR só aparece no placar via `reprocessar-ocr`.** O
+  reprocessar barato roda apenas o parser sobre as linhas já gravadas — com ele,
+  todo ajuste em `ocr/app.py` era imensurável.
+- **Amostra cuja releitura falhar mantém as linhas antigas**: perder o histórico
+  por uma indisponibilidade momentânea destruiria o caso de regressão.
+- `PARSER_VERSAO` foi para **2**.
+
+### Infra
+- O container de OCR passa a limitar threads (`OMP_NUM_THREADS=2`), serializar a
+  inferência e recusar rajada rápido em vez de enfileirar até o timeout — numa
+  VPS onde API, Postgres, Redis e MinIO dividem a máquina, cada leitura roubava
+  CPU do banco.
+- Aquecimento do motor no start: a primeira inferência custa 2 a 4x o normal, e
+  quem pagava era sempre a primeira etiqueta do dia do porteiro.
+- `onnxruntime` travado em `<1.20`: o ORT muda default de threading entre
+  minors, e uma minor nova num rebuild alterava a latência sem mudança de código.
+
+---
+
 ## 0.19.0 — 2026-07-28
 
 **A leitura de etiqueta chegou à portaria.** No "Escanear" do cadastro de

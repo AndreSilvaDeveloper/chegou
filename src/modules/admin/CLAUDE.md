@@ -1,7 +1,7 @@
 # Módulo: Admin (plataforma)
 
-Rotas do **superadmin**: os condomínios da plataforma, a gestão de dentro de
-qualquer um deles (suporte) e a visão consolidada do WhatsApp.
+Rotas do **superadmin**: os condomínios da plataforma e a gestão de dentro de
+qualquer um deles (suporte).
 
 Todas as rotas aqui são `@Roles('superadmin')`.
 
@@ -16,10 +16,13 @@ Usuários, apartamentos e moradores de um condomínio específico. **É por aqui
 o superadmin enxerga dado de condomínio** — ele não entra pelas rotas normais
 (`/apartamentos` e afins não o listam em `@Roles`).
 
-### `AdminWhatsappController` — `/admin/whatsapp`
-Panorama das sessões, provisionamento em lote e ajuste por condomínio (ritmo de
-envio + os dois modelos de mensagem, chegada e retirada). **É o mesmo dado que o
-síndico edita em `/whatsapp`** — modelo novo precisa aparecer nas duas telas.
+> **O WhatsApp não mora mais aqui.** O painel consolidado `/admin/whatsapp`
+> deixou de existir: sessão, modelos e ritmo são de **um** condomínio de cada
+> vez, em `/admin/tenants/:tenantId/whatsapp` — controller
+> `AdminTenantWhatsappController`, no [módulo OpenWA](../openwa/CLAUDE.md), ao
+> lado do serviço que opera a sessão. Mesma coisa para a assinatura de um
+> condomínio: `/admin/assinaturas/condominios/:tenantId`, no
+> [módulo Assinaturas](../assinaturas/CLAUDE.md).
 
 ## Regras de negócio
 
@@ -42,9 +45,12 @@ síndico edita em `/whatsapp`** — modelo novo precisa aparecer nas duas telas.
 
 ## Frontend
 
-`web/src/pages/SuperAdmin.tsx` (lista de condomínios),
-`SuperAdminTenant.tsx` (um condomínio: dados, config, módulos, cadastros),
-`AdminWhatsapp.tsx`.
+`web/src/pages/SuperAdmin.tsx` (lista de condomínios) e `SuperAdminTenant.tsx`
+(um condomínio, em sete abas: dados, config, unidades, moradores, equipe,
+assinatura e WhatsApp). As duas últimas abas são os painéis compartilhados
+`components/condominio/AssinaturaCondominioPanel.tsx` e
+`WhatsappCondominioPanel.tsx` — os mesmos que a administradora usa em
+`MeuCondominio.tsx`, trocando só o `basePath` e o `podeEditar`.
 
 ## Ao alterar este módulo
 

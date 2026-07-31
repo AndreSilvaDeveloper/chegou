@@ -9,10 +9,17 @@
 # NOME de pacote (`rapidocr`) e de API, então não vem por engano num rebuild.
 # Exige Python < 3.13 — é por isso que o Dockerfile usa 3.11 e não a última.
 rapidocr-onnxruntime>=1.4,<1.5
-onnxruntime>=1.17,<2
+# Faixa estreita de propósito: o ORT muda default de threading e de otimização
+# de grafo entre minors, então uma minor nova entrando num rebuild altera a
+# latência (e, raramente, o resultado) sem nenhuma mudança de código nossa.
+onnxruntime>=1.17,<1.20
 
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 python-multipart==0.0.20
 pillow==11.1.0
+# A API aceita `image/heic` (etiquetas.controller.ts) e o Pillow puro não abre.
+# Sem isto, foto de iPhone não convertida pelo navegador morre como "Imagem
+# inválida" — a promessa da API não era cumprida pelo serviço.
+pillow-heif>=0.21,<1.0
 numpy==1.26.4

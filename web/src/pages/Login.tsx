@@ -6,25 +6,41 @@ import { Mail, Lock, Eye, EyeOff, Loader2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CheckboxField } from '@/components/ui/checkbox';
 import { CodigoStrip } from '@/components/ui/codigo-strip';
+import { clearLoginLembrado, getLoginLembrado, setLoginLembrado } from '@/lib/lembrar-login';
 
 /** Onde cada papel cai depois de entrar. */
 const DESTINO_POR_PAPEL: Record<AuthenticatedUser['role'], string> = {
   superadmin: '/admin',
   admin: '/meus-condominios',
-  sindico: '/',
-  porteiro: '/',
+  sindico: '/encomendas',
+  porteiro: '/encomendas',
 };
 
 export function Login() {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  // Lido uma vez, na montagem: ler o localStorage a cada render trocaria o que
+  // o usuário está digitando pelo que estava salvo.
+  const [lembrado] = useState(getLoginLembrado);
+  const [email, setEmail] = useState(lembrado?.email ?? '');
+  const [senha, setSenha] = useState(lembrado?.senha ?? '');
+  const [lembrar, setLembrar] = useState(lembrado !== null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const nav = useNavigate();
 
-  if (getToken()) return <Navigate to="/" replace />;
+  if (getToken()) return <Navigate to="/encomendas" replace />;
+
+  /**
+   * Desmarcar apaga na hora, sem esperar um login novo: quem desmarca num
+   * aparelho emprestado quer que a senha saia dali agora, não quando alguém
+   * conseguir entrar.
+   */
+  const alternarLembrar = (marcado: boolean) => {
+    setLembrar(marcado);
+    if (!marcado) clearLoginLembrado();
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -37,10 +53,14 @@ export function Login() {
       );
       setToken(res.accessToken);
       setUser(res.user);
+      // Só depois do 200: guardar antes gravaria a senha errada de quem errou a
+      // digitação, e ela voltaria pronta para errar de novo amanhã.
+      if (lembrar) setLoginLembrado({ email, senha });
+      else clearLoginLembrado();
       // A administradora começa pela carteira: ela ainda não está "dentro" de
       // nenhum condomínio, e é lá que escolhe.
       clearTenantAtivo();
-      nav(DESTINO_POR_PAPEL[res.user.role] ?? '/', { replace: true });
+      nav(DESTINO_POR_PAPEL[res.user.role] ?? '/encomendas', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'E-mail ou senha incorretos.');
     } finally {
@@ -140,7 +160,8 @@ export function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 pl-10"
                   required
-                  autoFocus
+                  autoComplete="email"
+                  autoFocus={!lembrado}
                   disabled={loading}
                 />
               </div>
@@ -158,6 +179,7 @@ export function Login() {
                   onChange={(e) => setSenha(e.target.value)}
                   className="h-12 px-10"
                   required
+                  autoComplete="current-password"
                   disabled={loading}
                 />
                 <button
@@ -170,6 +192,17 @@ export function Login() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <CheckboxField
+                id="lembrar"
+                checked={lembrar}
+                onCheckedChange={alternarLembrar}
+                disabled={loading}
+                label="Lembrar meus dados"
+                description="Preenche e-mail e senha neste aparelho. Só marque se ele for seu."
+              />
             </motion.div>
 
             <motion.div variants={itemVariants} className="pt-2">

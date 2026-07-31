@@ -71,7 +71,8 @@ base): `horarioEnvioInicio` / `horarioEnvioFim`, `whatsappIntervaloSegundos`,
 
 **Quem edita isso**: o síndico, em `/whatsapp`, dentro de faixas seguras
 (intervalo ≥ 60s, janela dentro de 08:00–21:00, limite de 20 a 300/dia); o
-superadmin, sem essas amarras, em `/admin/whatsapp`. As faixas e o porquê estão
+superadmin, sem essas amarras, na aba WhatsApp do condomínio
+(`/admin/tenants/:tenantId/whatsapp`). As faixas e o porquê estão
 no [módulo OpenWA](../openwa/CLAUDE.md). A leitura é sempre direta do banco, sem
 cache — mudou, vale no próximo disparo.
 
@@ -92,7 +93,10 @@ vazia**, para nunca vazar `{{...}}` na mensagem do morador.
 A retirada não tem `{{codigo}}`: o código já foi usado. E as variáveis `data` /
 `hora` dela são as **da retirada**, não as do recebimento.
 
-A edição é pela tela `/whatsapp` (módulo OpenWA) e por `/admin/whatsapp`.
+A edição é pelos mesmos cards em três telas (módulo OpenWA): `/whatsapp` (o
+síndico no próprio condomínio), `/admin/condominios/:id` (superadmin) e
+`/meus-condominios/:id` (administradora). É o mesmo dado — modelo novo aparece
+nas três de uma vez.
 
 ## Regras de negócio
 

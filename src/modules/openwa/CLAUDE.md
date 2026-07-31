@@ -14,8 +14,32 @@ sessão.
 | `GET /whatsapp/connection/qr` | — | ✅ | ✅ | — |
 | `POST /whatsapp/connection/restart` \| `/disconnect` | — | ✅ | ✅ | — |
 | `POST /webhooks/openwa/:tenantId` | `@Public()` — vive no módulo **WhatsApp** | | | |
+| `GET`/`PATCH /admin/tenants/:tenantId/whatsapp/config` | ✅ | — | — | — |
+| `GET /admin/tenants/:tenantId/whatsapp/connection` (+ `connect`, `qr`, `restart`, `disconnect`, `provision`) | ✅ | — | — | — |
 
-Visão consolidada da plataforma fica em `/admin/whatsapp` (módulo Admin).
+### As mesmas rotas com o condomínio no path (`AdminTenantWhatsappController`)
+
+O superadmin opera o WhatsApp de **um** condomínio sem "entrar" nele: o
+condomínio vem da URL, nunca de `X-Tenant-Id`. Não existe mais painel
+consolidado (`/admin/whatsapp` foi removido) — sessão, modelos e ritmo são de um
+condomínio de cada vez, e viraram uma aba de `/admin/condominios/:id`.
+
+Por que aqui e não no módulo Admin: o serviço que opera a sessão é este. Lá
+ficaria um segundo service reimplementando o merge de `config_json`, que foi
+exatamente o que se desfez.
+
+O que muda entre os dois escopos é o parâmetro `escopo` de `getWhatsappConfig`
+(`'condominio' | 'plataforma'`) e o DTO do `PATCH`:
+
+| | Condomínio (`/whatsapp`) | Plataforma (`/admin/tenants/:id/whatsapp`) |
+|---|---|---|
+| DTO | `AtualizarConfigWhatsappDto` | `AtualizarConfigWhatsappPlataformaDto` |
+| Faixas devolvidas em `limites` | as travas anti-bloqueio | campo livre (`LIMITES_PLATAFORMA`) |
+| `jitterEditavel` | `false` | `true` |
+| Janela invertida (início ≥ fim) | recusada | **recusada também** — não é licença, é fila parada |
+
+A tela é a mesma nos dois casos porque ela valida pelo que vem em `limites` e
+`jitterEditavel`, em vez de repetir os números.
 
 ## Dados
 
@@ -48,9 +72,10 @@ tela lê de lá em vez de repetir os números:
 | `limiteDiario` | **20 a 300** | "0 = ilimitado" continua existindo, mas só pela plataforma |
 | `jitterSegundos` | — | Só o superadmin: é o disfarce de cadência, não uma preferência |
 
-Acima dessas faixas, só o superadmin em `/admin/whatsapp` (módulo Admin), que
-usa outro DTO, mais frouxo. A validação de janela é do service porque depende
-dos dois horários juntos; o resto é `class-validator` no DTO.
+Acima dessas faixas, só o superadmin em `/admin/tenants/:tenantId/whatsapp`, que
+usa outro DTO, mais frouxo (ver a tabela de escopos acima). A validação de
+janela é do service porque depende dos dois horários juntos; o resto é
+`class-validator` no DTO.
 
 O dispatcher lê essa config **direto do banco** a cada notificação
 (`NotificationService.getAntiBanConfig`), então a mudança vale no próximo envio,
@@ -89,6 +114,9 @@ outros condomínios.
 1. **Provisionamento na criação do condomínio é best-effort**
    (`provisionForTenant` engole erro): gateway fora do ar não pode impedir o
    cadastro. O `provision()` manual, chamado pela tela, **propaga** o erro.
+   Não há mais provisionamento em lote (`provisionMissing`): ele existia para o
+   painel consolidado, e o `getConnection` já provisiona sozinho quando a
+   instância falta.
 2. **Estados**: `connected` · `connecting` · `qr` (esperando leitura) ·
    `disconnected` · `error`.
 3. **QR é efêmero** — a tela busca sob demanda, nunca guarda.
@@ -104,6 +132,15 @@ outros condomínios.
 `web/src/pages/Whatsapp.tsx`, `components/WhatsappConnectionCard.tsx`,
 `components/WhatsappTemplateCard.tsx`, `components/WhatsappEnvioCard.tsx` e
 `web/src/components/whatsapp/`.
+
+> **Os três cards recebem `basePath`** e é só isso que separa a tela do síndico
+> da aba do superadmin: `''` fala com `/whatsapp/...`, `/admin/tenants/:id` fala
+> com as rotas da plataforma. Quem os empilha é
+> `components/condominio/WhatsappCondominioPanel.tsx`, usado por `/whatsapp`,
+> `/admin/condominios/:id` e `/meus-condominios/:id` — card novo entra lá, uma
+> vez, e aparece nas três.
+> A query key carrega o `basePath` (`['whatsapp-config', basePath]`), senão a
+> config de um condomínio apareceria na aba de outro.
 
 > Os dois cards de configuração compartilham a query `['whatsapp-config']` e
 > cada um salva só os seus campos. Por isso ambos só relêem do servidor quando

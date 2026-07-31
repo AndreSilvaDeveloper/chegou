@@ -97,14 +97,23 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
-async function upload<T>(path: string, formData: FormData): Promise<T> {
+async function upload<T>(path: string, formData: FormData, signal?: AbortSignal): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const tenantAtivo = getTenantAtivo();
   if (tenantAtivo) headers['X-Tenant-Id'] = tenantAtivo;
   const base = import.meta.env.VITE_API_URL || '';
-  const res = await fetch(`${base}/api${path}`, { method: 'POST', headers, body: formData });
+  const res = await fetch(`${base}/api${path}`, { method: 'POST', headers, body: formData, signal });
+
+  // Mesma regra do `request()`: sessão que expira durante uma leitura de
+  // etiqueta precisa levar ao login, e não virar um toast genérico de erro.
+  if (res.status === 401) {
+    clearToken();
+    window.location.assign('/login');
+    throw new ApiError(401, null, 'Sessão expirada');
+  }
+
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
@@ -122,7 +131,8 @@ export const api = {
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
-  upload: <T>(path: string, formData: FormData) => upload<T>(path, formData),
+  upload: <T>(path: string, formData: FormData, signal?: AbortSignal) =>
+    upload<T>(path, formData, signal),
 };
 
 /**

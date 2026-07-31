@@ -25,7 +25,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  AlertTriangle, Check, ImagePlus, Loader2, RefreshCw, ScanText, Tag, Trash2, X, Wand2,
+  AlertTriangle, Check, ImagePlus, Loader2, RefreshCw, ScanLine, ScanText, Tag, Trash2, X, Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -52,8 +52,8 @@ function BarraAcerto({ acertos, total }: { acertos: number; total: number }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className={cn('text-lg font-bold', corDoAcerto(pct))}>{pct}%</span>
-        <span className="font-mono text-xs text-muted-foreground">{acertos}/{total}</span>
+        <span className={cn('txt-numero-sm font-bold', corDoAcerto(pct))}>{pct}%</span>
+        <span className="font-mono txt-nota text-muted-foreground">{acertos}/{total}</span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
@@ -167,22 +167,22 @@ function DialogoConferencia({
                 />
               </a>
               <div>
-                <Label className="mb-1.5 flex items-center gap-2 text-sm">
+                <Label className="mb-1.5 flex items-center gap-2">
                   <ScanText className="h-4 w-4 text-muted-foreground" />
                   O que o OCR leu
                   {amostra.ocrMs != null && (
-                    <span className="font-mono text-xs text-muted-foreground">{amostra.ocrMs}ms</span>
+                    <span className="font-mono txt-nota text-muted-foreground">{amostra.ocrMs}ms</span>
                   )}
                 </Label>
                 <div className="max-h-40 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3">
                   {amostra.ocrLinhas.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="txt-apoio text-muted-foreground">
                       O OCR não encontrou texto nenhum nesta imagem.
                     </p>
                   ) : (
                     <ul className="space-y-1">
                       {amostra.ocrLinhas.map((linha, i) => (
-                        <li key={i} className="flex items-baseline gap-2 font-mono text-xs">
+                        <li key={i} className="flex items-baseline gap-2 font-mono txt-nota">
                           <span
                             className={cn(
                               'shrink-0 tabular-nums',
@@ -212,7 +212,7 @@ function DialogoConferencia({
                 const bate = (lido ?? '') === atual;
                 return (
                   <div key={campo} className="space-y-1">
-                    <Label htmlFor={`g-${campo}`} className="text-sm">
+                    <Label htmlFor={`g-${campo}`}>
                       {ROTULO_CAMPO_ETIQUETA[campo]}
                     </Label>
                     <Input
@@ -224,7 +224,7 @@ function DialogoConferencia({
                         setGabarito((g) => ({ ...g, [campo]: e.target.value || null }))
                       }
                     />
-                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <p className="flex items-center gap-1.5 txt-nota text-muted-foreground">
                       {bate ? (
                         <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
@@ -237,7 +237,7 @@ function DialogoConferencia({
               })}
 
               <div className="space-y-1">
-                <Label htmlFor="g-rotulo" className="text-sm">Rótulo da transportadora</Label>
+                <Label htmlFor="g-rotulo">Rótulo da transportadora</Label>
                 <Input
                   id="g-rotulo"
                   className="h-11"
@@ -245,13 +245,13 @@ function DialogoConferencia({
                   placeholder="Ex: Correios"
                   onChange={(e) => setTransportadora(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="txt-nota text-muted-foreground">
                   Serve para agrupar o placar por transportadora.
                 </p>
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="g-obs" className="text-sm">Observação</Label>
+                <Label htmlFor="g-obs">Observação</Label>
                 <Input
                   id="g-obs"
                   className="h-11"
@@ -326,13 +326,13 @@ function CardAmostra({
             {amostra.conferida ? 'Conferida' : 'Pendente'}
           </Badge>
           {amostra.transportadora && (
-            <span className="truncate text-xs text-muted-foreground">{amostra.transportadora}</span>
+            <span className="truncate txt-nota text-muted-foreground">{amostra.transportadora}</span>
           )}
         </div>
-        <p className="truncate text-sm font-medium text-foreground">
+        <p className="truncate txt-corpo font-medium text-foreground">
           {amostra.extraido?.destinatario ?? 'Sem destinatário lido'}
         </p>
-        <p className="font-mono text-xs text-muted-foreground">
+        <p className="font-mono txt-nota text-muted-foreground">
           {resumo || '— sem destino lido —'}
         </p>
       </div>
@@ -403,6 +403,28 @@ export function SuperAdminEtiquetas() {
     onError: (e: ApiError) => toast.error(mensagemErro(e, 'Não foi possível reprocessar')),
   });
 
+  /**
+   * Relê as fotos no OCR antes de rodar o parser.
+   *
+   * É o único jeito de medir mudança no serviço de OCR: o "Reprocessar e medir"
+   * acima roda só o parser sobre as linhas já gravadas, então ajuste de
+   * pré-processamento ou de parâmetro do engine não movia o placar. Fica em
+   * botão separado porque custa 1 a 3s de CPU por amostra.
+   */
+  const reprocessarOcr = useMutation({
+    mutationFn: () =>
+      api.post<PlacarEtiquetas & { relidas: number; falhas: number }>(
+        '/admin/etiquetas/reprocessar-ocr',
+      ),
+    onSuccess: (p) => {
+      toast.success(
+        `OCR relido em ${p.relidas} amostra(s)${p.falhas ? `, ${p.falhas} falha(s)` : ''}`,
+      );
+      invalidarTudo();
+    },
+    onError: (e: ApiError) => toast.error(mensagemErro(e, 'Não foi possível reler o OCR')),
+  });
+
   const transportadoras = useMemo(() => {
     const nomes = new Set(
       (amostras.data ?? []).map((a) => a.transportadora).filter((t): t is string => !!t),
@@ -420,7 +442,7 @@ export function SuperAdminEtiquetas() {
       />
 
       {ocrForaDoAr && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 txt-apoio text-amber-700 dark:text-amber-400">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             <span className="font-semibold">
@@ -475,14 +497,27 @@ export function SuperAdminEtiquetas() {
           )}
           Reprocessar e medir
         </Button>
+        <Button
+          variant="outline"
+          className="min-h-[48px] flex-1"
+          disabled={reprocessarOcr.isPending}
+          onClick={() => reprocessarOcr.mutate()}
+        >
+          {reprocessarOcr.isPending ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <ScanLine className="mr-2 h-5 w-5" />
+          )}
+          Reler tudo no OCR
+        </Button>
       </div>
 
       {/* Placar */}
       <Card>
         <CardContent className="space-y-5 pt-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-lg font-semibold text-foreground">Acerto do parser</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="txt-secao font-semibold text-foreground">Acerto do parser</h2>
+            <p className="txt-apoio text-muted-foreground">
               {placar.data
                 ? `${placar.data.amostrasConferidas} de ${placar.data.amostrasTotal} amostras conferidas · parser v${placar.data.parserVersao}`
                 : '—'}
@@ -494,7 +529,7 @@ export function SuperAdminEtiquetas() {
               {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-20" />)}
             </div>
           ) : !placar.data?.amostrasConferidas ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="txt-apoio text-muted-foreground">
               Nenhuma amostra conferida ainda. Envie fotos e marque o gabarito de cada uma —
               o placar só conta amostra com gabarito, senão ele despencaria toda vez que
               você subisse fotos novas.
@@ -504,7 +539,7 @@ export function SuperAdminEtiquetas() {
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {placar.data.campos.map((c) => (
                   <div key={c.campo} className="rounded-lg border border-border bg-muted/30 p-3">
-                    <p className="mb-1 text-xs text-muted-foreground">
+                    <p className="mb-1 txt-nota text-muted-foreground">
                       {ROTULO_CAMPO_ETIQUETA[c.campo as CampoEtiqueta]}
                     </p>
                     <BarraAcerto acertos={c.acertos} total={c.total} />
@@ -514,7 +549,7 @@ export function SuperAdminEtiquetas() {
 
               {placar.data.porTransportadora.length > 1 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-foreground">
+                  <h3 className="txt-subtitulo font-medium text-foreground">
                     Por transportadora <span className="text-muted-foreground">(pior primeiro)</span>
                   </h3>
                   <div className="space-y-1.5">
@@ -523,10 +558,10 @@ export function SuperAdminEtiquetas() {
                         key={t.transportadora}
                         className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
                       >
-                        <span className="truncate text-sm text-foreground">{t.transportadora}</span>
+                        <span className="truncate txt-corpo text-foreground">{t.transportadora}</span>
                         <span className="flex shrink-0 items-center gap-3">
-                          <span className="text-xs text-muted-foreground">{t.amostras} amostra(s)</span>
-                          <span className={cn('text-sm font-semibold', corDoAcerto(percentual(t.acertos, t.total)))}>
+                          <span className="txt-nota text-muted-foreground">{t.amostras} amostra(s)</span>
+                          <span className={cn('txt-corpo font-semibold', corDoAcerto(percentual(t.acertos, t.total)))}>
                             {percentual(t.acertos, t.total)}%
                           </span>
                         </span>

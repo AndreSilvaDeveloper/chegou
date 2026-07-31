@@ -5,6 +5,7 @@ import {
   ehRuido,
   letrasProvaveis,
   normalizar,
+  pareceEmpresa,
   pareceNomeDePessoa,
 } from './texto';
 
@@ -14,7 +15,7 @@ import {
  * **Suba a cada mudança de regra.** É o que permite olhar o placar e dizer "a
  * v3 melhorou o bloco e piorou o destinatário" em vez de discutir de memória.
  */
-export const PARSER_VERSAO = '1';
+export const PARSER_VERSAO = '2';
 
 const VAZIO: CamposEtiqueta = {
   destinatario: null,
@@ -25,6 +26,24 @@ const VAZIO: CamposEtiqueta = {
   codigoRastreio: null,
   cep: null,
 };
+
+/**
+ * Espaço que **não** atravessa a quebra de linha.
+ *
+ * As linhas do OCR chegam unidas por `' \n '`, e `\s*` casa `\n`. Com ele, uma
+ * etiqueta com `QTD 1 UN` numa linha e `0,350 KG` na seguinte produzia
+ * `numero = 0` — e, como `String.match` devolve a primeira ocorrência do blob,
+ * esse zero VENCIA o `APTO 51` verdadeiro impresso mais abaixo. Campo
+ * preenchido com valor errado é o pior desfecho possível aqui: o porteiro
+ * confirma sem desconfiar e a encomenda vai para a unidade errada.
+ *
+ * Toda regex que atravessa um separador neste arquivo usa isto, nunca `\s`.
+ */
+const ESPACO = '[^\\S\\n]*';
+/** Separador entre a palavra-chave e o valor: `APTO 302`, `AP.302`, `AP-302`. */
+const SEP = `${ESPACO}[:.\\-]?${ESPACO}`;
+/** `Nº`, `N°`, `N.`, `NO` entre a palavra-chave e o número: `APTO Nº 302`. */
+const NUMERAL = `(?:N[º°O]?\\.?${ESPACO})?`;
 
 // ---------------------------------------------------------------------------
 // Código de rastreio
@@ -43,8 +62,9 @@ const FORMATOS_RASTREIO: RegExp[] = [
 ];
 
 /** Rótulos que antecedem o código quando ele não tem formato reconhecível. */
-const ROTULO_RASTREIO =
-  /(?:RASTREIO|RASTREAMENTO|OBJETO|AWB|TRACKING)\s*[:.\-]?\s*([A-Z0-9]{8,30})\b/;
+const ROTULO_RASTREIO = new RegExp(
+  `(?:RASTREIO|RASTREAMENTO|OBJETO|AWB|TRACKING)${SEP}([A-Z0-9]{8,30})\\b`,
+);
 
 function extrairRastreio(texto: string): string | null {
   for (const re of FORMATOS_RASTREIO) {
@@ -98,20 +118,49 @@ function extrairCep(linhas: string[], texto: string): string | null {
  * O valor é apertado de propósito (`B`, `B2`, `02`, `123`) — capturar 4 letras
  * livres transforma qualquer palavra vizinha em nome de bloco.
  */
-const BLOCO = /\b(?:BLOCO|BLC|BL|TORRE|QUADRA|QD|TR)\b\s*[:.\-]?\s*([A-Z]{1,2}\d?|\d{1,3})\b/;
+const BLOCO = new RegExp(
+  `\\b(?:BLOCO|BLC|BL|TORRE|QUADRA|QD|TR)\\b${SEP}([A-Z]{1,2}\\d?|\\d{1,3})\\b`,
+);
 
 /**
  * Unidade. Aqui o valor é numérico, então NÃO se usa `\b` depois da
  * palavra-chave — é o que faz `APTO 302`, `AP.302` e `AP302` casarem igual.
  * Palavra maior vem primeiro na alternância (`APARTAMENTO` antes de `AP`).
+ *
+ * Grupos: 1 = letra de bloco colada (`APTO B102`), 2 = número, 3 = sufixo
+ * (`302-B`, `302B`).
+ *
+ * `UN` saiu da lista: é a abreviação de "unidade" em bloco de **quantidade**
+ * (`QTD 1 UN`), presente em quase toda etiqueta de e-commerce, e valia mais
+ * como fonte de erro do que como acerto — `UNIDADE`, `UNID` e `UND` cobrem o
+ * uso legítimo. Pelo mesmo motivo existe a rejeição de unidade de medida logo
+ * depois do número.
  */
-const UNIDADE =
-  /\b(?:APARTAMENTO|APTO|APT|AP|UNIDADE|UNID|UND|UN|SALA|SL|CONJUNTO|CONJ|CASA|LOTE|LT)\s*[:.\-]?\s*(\d{1,5}[A-Z]?)\b/;
+const UNIDADE = new RegExp(
+  `\\b(?:APARTAMENTO|APTO|APT|AP|UNIDADE|UNID|UND|SALA|SL|CONJUNTO|CONJ|CASA|CS|LOTE|LT)` +
+    `${SEP}${NUMERAL}([A-Z]${ESPACO})?(\\d{1,5})(${ESPACO}-${ESPACO}[A-Z]|[A-Z])?` +
+    `(?!${ESPACO}(?:KG|G|ML|L|CM|MM|UN|PCS)\\b)\\b`,
+);
 
-const ANDAR = /\b(?:(\d{1,2})\s*(?:º|O|A)?\s*ANDAR|ANDAR\s*[:.\-]?\s*(\d{1,2})|PISO\s*[:.\-]?\s*(\d{1,2}))\b/;
+const ANDAR = new RegExp(
+  `\\b(?:(\\d{1,2})${ESPACO}(?:º|ª|O|A)?${ESPACO}ANDAR|ANDAR${SEP}(\\d{1,2})|PISO${SEP}(\\d{1,2}))\\b`,
+);
 
 /** `B-302`, `B 302` — usado só quando nada com palavra-chave apareceu. */
-const COMPACTO = /\b([A-Z])\s*[-/]\s*(\d{2,4})\b/;
+const COMPACTO = new RegExp(`\\b([A-Z])${ESPACO}[-/]${ESPACO}(\\d{2,4})\\b`);
+
+/**
+ * `BLOCO B - 302` / `BLOCO B 302`: o número vem depois do bloco, sem
+ * palavra-chave de unidade. Só é consultado quando o bloco já foi identificado
+ * e o número não — daí o `\\b` no fim, para não engolir o começo de um CEP.
+ */
+function numeroDepoisDoBloco(texto: string, bloco: string): string | null {
+  const re = new RegExp(
+    `\\b(?:BLOCO|BLC|BL|TORRE|QD|TR)\\b${SEP}${bloco}${ESPACO}[-/]?${ESPACO}(\\d{1,5})(?!\\d)`,
+  );
+  const m = texto.match(re);
+  return m ? m[1] : null;
+}
 
 function extrairDestino(texto: string): Pick<CamposEtiqueta, 'bloco' | 'numero' | 'andar'> {
   const mBloco = texto.match(BLOCO);
@@ -119,9 +168,22 @@ function extrairDestino(texto: string): Pick<CamposEtiqueta, 'bloco' | 'numero' 
   const mAndar = texto.match(ANDAR);
 
   let bloco = mBloco && !ehRuido(mBloco[1]) ? mBloco[1] : null;
-  let numero = mUnidade ? mUnidade[1] : null;
+  let numero: string | null = null;
+
+  if (mUnidade) {
+    const prefixo = mUnidade[1]?.trim() || null;
+    const sufixo = mUnidade[3]?.replace(/[\s-]/g, '') || '';
+    numero = `${mUnidade[2]}${sufixo}`;
+    // `APTO B102`: a letra colada no número é o bloco, e só vale quando não há
+    // um bloco declarado — o declarado sempre ganha do inferido.
+    if (!bloco && prefixo) bloco = prefixo;
+  }
+
   // A regex de andar tem três alternativas; vale a que capturou.
   const andar = mAndar ? (mAndar[1] ?? mAndar[2] ?? mAndar[3] ?? null) : null;
+
+  // Bloco identificado e número não: o número costuma estar logo ao lado dele.
+  if (bloco && !numero) numero = numeroDepoisDoBloco(texto, bloco);
 
   // Último recurso, e só quando falta os dois: `B-302` sozinho é ambíguo
   // demais para sobrescrever qualquer coisa que uma palavra-chave já disse.
@@ -140,9 +202,20 @@ function extrairDestino(texto: string): Pick<CamposEtiqueta, 'bloco' | 'numero' 
 // Destinatário
 // ---------------------------------------------------------------------------
 
-// Sem variante acentuada: o texto já passou por `normalizar()`.
-const MARCA_DESTINATARIO = /\b(?:DESTINATARIO|ENTREGAR A|ENTREGA A|PARA)\s*[:.\-]/;
-const MARCA_REMETENTE = /\bREMETENTE\b|\bDE\s*:/;
+/**
+ * Sem variante acentuada: o texto já passou por `normalizar()`.
+ *
+ * A pontuação é **opcional** para os rótulos inequívocos: etiqueta que imprime
+ * `DESTINATÁRIO` sozinho dentro de uma caixa (o normal em Shopee e Mercado
+ * Livre) não casava, e o parser caía na heurística global — que é justamente a
+ * que pode devolver o remetente.
+ *
+ * `PARA` continua exigindo pontuação, e por isso vai numa alternativa separada:
+ * sem ela, a preposição solta em qualquer frase da etiqueta viraria um rótulo.
+ */
+const MARCA_DESTINATARIO =
+  /\b(?:DESTINATARIO|DESTINATARIA|DEST|RECEBEDOR|ENTREGAR PARA|ENTREGAR A|ENTREGA A|ENTREGAR EM|SHIP TO|RECIPIENT|A\/C)\b[^\S\n]*[:.\-]?|\bPARA[^\S\n]*[:.\-]/;
+const MARCA_REMETENTE = /\bREMETENTE\b|\bDE[^\S\n]*:/;
 
 /**
  * Prioriza o bloco marcado como destinatário. Só cai na heurística de "parece
@@ -158,10 +231,17 @@ function extrairDestinatario(linhas: string[]): string | null {
     const depoisDoRotulo = linhas[iDest].split(MARCA_DESTINATARIO)[1]?.trim();
     if (depoisDoRotulo && pareceNomeDePessoa(depoisDoRotulo)) return depoisDoRotulo;
 
-    // ...ou na linha de baixo.
-    for (const l of linhas.slice(iDest + 1, iDest + 3)) {
+    // ...ou nas linhas de baixo.
+    for (const l of linhas.slice(iDest + 1, iDest + 4)) {
       if (pareceNomeDePessoa(l)) return l;
     }
+
+    // A etiqueta DISSE onde está o destinatário e ali não há nome reconhecível.
+    // Cair na varredura global aqui seria devolver o primeiro nome da etiqueta
+    // — que, quando o bloco do remetente vem antes (Shopee, Mercado Livre), é o
+    // nome de quem enviou. Vazio é ruim; o nome errado é pior, porque ninguém
+    // confere um campo que já veio preenchido.
+    return null;
   }
 
   // Sem rótulo de destinatário, o único ponto de apoio é o remetente: o
@@ -169,9 +249,15 @@ function extrairDestinatario(linhas: string[]): string | null {
   // não pode ser escolhido. Descartar uma janela fixa de linhas não serve —
   // bloco de remetente tem tamanho variável (com ou sem endereço, CNPJ, tel),
   // e a janela ora engole o destinatário ora deixa o remetente passar.
+  // Quem ocupa o lugar do remetente pode ser uma pessoa OU uma loja — e essa
+  // diferença decide o resultado. Procurando só por nome de pessoa, uma etiqueta
+  // cujo remetente é "Loja Fulano ME" fazia o primeiro nome de gente da etiqueta
+  // (que já é o destinatário) ser descartado como se fosse o remetente.
   const iRem = linhas.findIndex((l) => MARCA_REMETENTE.test(l));
   const iNomeRemetente =
-    iRem >= 0 ? linhas.findIndex((l, i) => i > iRem && pareceNomeDePessoa(l)) : -1;
+    iRem >= 0
+      ? linhas.findIndex((l, i) => i > iRem && (pareceNomeDePessoa(l) || pareceEmpresa(l)))
+      : -1;
 
   const candidato = linhas.findIndex((l, i) => i !== iNomeRemetente && pareceNomeDePessoa(l));
   return candidato >= 0 ? linhas[candidato] : null;

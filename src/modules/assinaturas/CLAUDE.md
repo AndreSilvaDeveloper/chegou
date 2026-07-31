@@ -14,6 +14,7 @@ cobra o morador pelo aluguel de vaga. Aqui a plataforma cobra quem usa o sistema
 |---|:---:|:---:|:---:|:---:|
 | `/admin/assinaturas/*` | ✅ | — | — | — |
 | `/minha-administradora/assinatura` | — | ✅ | — | — |
+| `/minha-administradora/condominios/:tenantId/assinatura` | — | ✅ (leitura) | — | — |
 | `/assinatura` | — | — | ✅ | — |
 
 **O porteiro não entra em nenhuma**: a conta do condomínio não é assunto de
@@ -21,7 +22,10 @@ portaria.
 
 **A administradora não usa `/assinatura`.** A conta dela é a da carteira, não a
 de um condomínio — daria a impressão de que cada condomínio tem uma fatura, que
-é exatamente o contrário da regra deste módulo.
+é exatamente o contrário da regra deste módulo. O que ela abre por condomínio
+(`/minha-administradora/condominios/:tenantId/assinatura`) é **quanto aquele
+condomínio pesa na conta dela** e o histórico dele, sempre em leitura: não há
+fatura própria ali para operar.
 
 ### Plataforma — `/admin/assinaturas`
 
@@ -34,6 +38,8 @@ rota.
 | `GET /faixas` · `PUT /faixas` | Lê e substitui a tabela de preços (lista completa) |
 | `GET /previas` | Quanto entra se o mês fechar hoje, cliente a cliente |
 | `GET /previas/condominio/:id` · `/administradora/:id` | A conta de um cliente |
+| `GET /condominios/:tenantId` | A aba "Assinatura" de um condomínio, inteira (ver abaixo) |
+| `PATCH /condominios/:tenantId/vencimento` | Dia negociado com aquele condomínio (`null` volta ao padrão) |
 | `GET /condicoes` · `POST /condicoes` | Preço especial: histórico e negociação nova |
 | `POST /condicoes/:id/encerrar` | Cliente volta para a tabela da plataforma |
 | `GET /resumo` | Cards: faturado, recebido, em aberto, vencido |
@@ -49,12 +55,20 @@ rota.
 | `GET /minha-administradora/assinatura/faturas/:id` | admin | Uma fatura da carteira |
 | `GET /assinatura` | sindico | A conta do condomínio + o histórico + o `aviso` |
 | `GET /assinatura/faturas/:id` | sindico | Uma fatura do condomínio |
+| `GET /minha-administradora/condominios/:tenantId/assinatura` | admin | A conta de **um condomínio da carteira**, em leitura |
 
 **O id do cliente nunca vem da URL**: da administradora sai de
 `@AdministradoraId()`, do condomínio sai de `@TenantId()`. Nas rotas de `:id` de
 fatura, o service confere o dono e responde **404 — não 403** quando a fatura é
 de outro: quem não é dono não pode nem descobrir que ela existe. Isso está
 provado em `test/assinaturas-cliente.e2e-spec.ts`.
+
+A rota nova é a única com um `:tenantId` no path, e ela **não** foge dessa
+regra: o `:tenantId` diz *qual* condomínio, mas a carteira continua saindo de
+`@AdministradoraId()` — `assertCondominioDaCarteira()` confere um contra o outro
+e responde 404 (não 403) para condomínio de outra carteira. Ela também não passa
+pelo `X-Tenant-Id`: a administradora abre a aba de um condomínio sem "entrar"
+nele.
 
 Nenhuma rota do cliente escreve. Dar baixa, cancelar e mexer em preço é só do
 superadmin — o cliente vê a conta, não a opera.
@@ -72,6 +86,27 @@ Condomínio de carteira **não** aparece em `listarPrevias()` — ele está dent
 fatura da administradora. `responsavelPeloCondominio()` responde quem paga por
 um condomínio; é o que permite a tela do síndico dizer "a cobrança é com a sua
 administradora" em vez de mostrar uma fatura vazia.
+
+### A conta de **um** condomínio (`contaDoCondominio`)
+
+É a resposta única que a aba "Assinatura" de um condomínio consome — a mesma
+para o superadmin e para a administradora dona dele. Ela difere de
+`minhaContaDoCondominio` (a do síndico) em dois pontos, que são o motivo de
+existir:
+
+1. **Traz a negociação**: histórico de preço especial e dia de vencimento. O
+   síndico não vê isso; quem administra, sim.
+2. **Não devolve conta vazia para condomínio de carteira.** Ali `conta` é `null`
+   (ele não tem fatura própria) e o histórico vem em `participacoes`: as faturas
+   da administradora em que ele entrou como item, com o subtotal dele ao lado do
+   total da fatura. Sem isso a tela diria "nunca foi cobrado" sobre um
+   condomínio que é cobrado todo mês.
+
+`participacaoAtual` completa o par: quanto ele soma **hoje** na conta de quem
+paga por ele — sai do item correspondente na prévia do responsável.
+
+Vem tudo junto, e não em cinco rotas, porque a tela abre com tudo isso na mesma
+pergunta: quanto custa, por quê, quando vence e o que já foi cobrado.
 
 ## Preço
 
@@ -149,12 +184,42 @@ cliente:
 2. **Fatura de R$ 0,00 não nasce.** Cliente sem apartamento ativo ainda não usa
    o sistema; cobrança zerada só atrapalha a leitura do mês. Ele volta em
    `ignorados`, com o motivo — o superadmin precisa saber por quê.
-3. **Vencimento é no mês seguinte** (padrão dia 10). A assinatura é pós-paga: a
-   contagem de apartamentos só fecha quando o mês acaba, então cobrar dentro da
-   própria competência seria cobrar um número que ainda vai mudar.
+3. **Vencimento é no mês seguinte** (padrão dia 10, `DIA_VENCIMENTO_PADRAO`). A
+   assinatura é pós-paga: a contagem de apartamentos só fecha quando o mês
+   acaba, então cobrar dentro da própria competência seria cobrar um número que
+   ainda vai mudar. **O dia não é um só para o lote** — ver abaixo.
 4. **Fatura vencida vira `vencida` sozinha** na consulta, não por job — mesma
    escolha do módulo Vagas.
 5. **Cancelada não entra em nenhum total**: não foi cobrada e não é dívida.
+
+### Dia de vencimento negociado (`tenants.assinatura_dia_vencimento`)
+
+Um condomínio pode ter o **próprio** dia (1–31, migration 027); `NULL` — o caso
+da esmagadora maioria — segue o dia pedido na geração ou o padrão da plataforma.
+Sem isso, atender o cliente que negociou "eu pago dia 5" exigiria gerar o lote
+duas vezes com dias diferentes, e a idempotência impede exatamente isso.
+
+Quatro decisões que não são óbvias:
+
+1. **Coluna, não `config_json`.** Aquele JSONB é o operacional que o síndico e a
+   administradora editam; vencimento é **contrato**, e contrato é do superadmin.
+   A geração ainda lê o dia de todos os condomínios de uma vez
+   (`diasDeVencimentoPorCondominio()`, uma consulta só) — num JSONB isso viraria
+   filtro por chave.
+2. **Só condomínio direto tem dia próprio.** Em condomínio de carteira o
+   `PATCH` responde 400: a fatura da carteira é uma só para vários condomínios,
+   então o dia dele nunca seria aplicado. Mesmo motivo pelo qual o preço
+   especial dele é recusado.
+3. **Não toca fatura já emitida** — o vencimento dela é fotografia, gravada na
+   própria fatura. Vale da próxima geração em diante, e a tela precisa dizer
+   isso.
+4. **`null` é valor legítimo no DTO**, não campo ausente: é como o superadmin
+   devolve o condomínio ao padrão. Por isso `DefinirDiaVencimentoDto` exige o
+   campo e o `ValidateIf` libera só o `null` — omitir por engano não pode
+   apagar em silêncio um combinado com o cliente.
+
+Dia maior que o mês (31 em fevereiro) é encaixado no último dia pela mesma
+`vencimentoDaCompetencia()` de sempre, coberta em `datas.spec.ts`.
 
 ### Trocar a tabela de preços
 
@@ -210,6 +275,14 @@ sobra vai para o maior condomínio (desempate estável por id) — a soma dos it
 |---|---|---|
 | Assinatura (a própria conta) | admin e sindico | `web/src/pages/Assinatura.tsx` |
 | Assinaturas (a receita) | superadmin | `web/src/pages/SuperAdminAssinaturas.tsx` |
+| Aba "Assinatura" de um condomínio | superadmin e admin | `components/condominio/AssinaturaCondominioPanel.tsx` |
+
+O painel da aba é **um componente para dois perfis**, e quem decide é o
+`podeEditar`: ele escolhe o endpoint (`/admin/assinaturas/condominios/:id` para
+a plataforma, `/minha-administradora/condominios/:id/assinatura` para a
+carteira) e libera preço especial e vencimento. A administradora vê o mesmo
+conteúdo, sem os botões — a negociação é do superadmin. Ele é montado por
+`SuperAdminTenant.tsx` e `MeuCondominio.tsx`.
 
 `Assinatura.tsx` é **uma tela para dois perfis**: a pergunta é a mesma ("quanto
 eu pago e por quê?"), muda de onde vem a resposta. Ela escolhe o endpoint pelo
@@ -248,6 +321,7 @@ npm run assinatura:previa    # imprime o que cada cliente pagaria hoje
 | `aviso-vencimento.spec.ts` | A régua do aviso: 3 dias, no dia, atraso, qual fatura entra em destaque, total em aberto |
 | `test/assinaturas.e2e-spec.ts` | O SQL: quem é o sacado, quais apartamentos contam, condição vigente vs. vencida, geração idempotente e baixa |
 | `test/assinaturas-cliente.e2e-spec.ts` | O acesso, por HTTP: quem vê a própria conta, quem toma 404/403 tentando ver a de outro, e para quem o `aviso` chega |
+| `test/multitenant.e2e-spec.ts` | A rota com `:tenantId` no path: a administradora lê a assinatura de um condomínio da carteira e toma 404 no de outra |
 
 > O e2e gera na competência **2099-01** de propósito: a geração varre o banco
 > inteiro, então precisa de um mês que não esbarre em dado real nem em outra
@@ -262,8 +336,13 @@ npm run assinatura:previa    # imprime o que cada cliente pagaria hoje
 - [ ] Campo novo na fatura → lembre que ela precisa se explicar sozinha daqui a
       um ano, sem depender das tabelas de configuração de hoje.
 - [ ] Rota nova → superadmin em `/admin/assinaturas`; administradora em
-      `/minha-administradora/assinatura` (id vem de `@AdministradoraId()`, nunca
-      da URL); síndico só vê a do próprio condomínio e só quando direto.
+      `/minha-administradora/...` (a carteira vem de `@AdministradoraId()`,
+      nunca da URL — se houver `:tenantId` no path, confira com
+      `assertCondominioDaCarteira()` e responda 404); síndico só vê a do próprio
+      condomínio e só quando direto.
+- [ ] Campo novo na aba do condomínio → ele entra em `ContaDoCondominio` (uma
+      resposta só) e precisa fazer sentido **nos dois casos**: condomínio direto
+      (tem `conta` e `faturas`) e de carteira (tem `participacoes`).
 - [ ] Status novo de fatura → reveja `resumo()` (cancelada fica fora dos totais),
       `atualizarVencidas()`, o `EM_ABERTO` de `aviso-vencimento.ts` e
       `STATUS_FATURA_META` no front.

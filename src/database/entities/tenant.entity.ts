@@ -80,6 +80,14 @@ export class Tenant {
   @Column({ name: 'autocadastro_token', type: 'varchar', length: 32, nullable: true })
   autocadastroToken!: string | null;
 
+  /**
+   * Dia do vencimento da fatura da assinatura (1-31). NULL = usa o padrão da
+   * plataforma. Fica fora do `config_json` de propósito: aquilo é o operacional
+   * que o condomínio edita, isto é contrato — só o superadmin mexe.
+   */
+  @Column({ name: 'assinatura_dia_vencimento', type: 'smallint', nullable: true })
+  assinaturaDiaVencimento!: number | null;
+
   @Column({ name: 'config_json', type: 'jsonb', default: () => "'{}'::jsonb" })
   configJson!: Record<string, unknown>;
 

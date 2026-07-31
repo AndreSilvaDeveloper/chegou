@@ -92,4 +92,115 @@ describe('extrairCampos', () => {
     expect(extrairDeTexto(['ANDAR: 12']).andar).toBe('12');
     expect(extrairDeTexto(['PISO 2']).andar).toBe('2');
   });
+
+  /**
+   * A classe de bug mais cara que este parser já teve: as linhas do OCR são
+   * unidas por `' \n '` e `\s*` casa `\n`, então uma palavra-chave no fim de uma
+   * linha capturava o primeiro número da linha SEGUINTE. Como `String.match`
+   * devolve a primeira ocorrência do blob, o valor falso ainda vencia o
+   * verdadeiro impresso mais abaixo — campo preenchido com valor errado, que é
+   * pior que campo vazio: ninguém confere o que já veio preenchido.
+   */
+  describe('não deixa a captura atravessar a quebra de linha', () => {
+    it('não tira o número da unidade do bloco de peso', () => {
+      const r = extrairDeTexto(['QTD 1 UN', '0,350 KG', 'APTO 51']);
+      expect(r.numero).toBe('51');
+    });
+
+    it('não confunde CASA com o telefone da linha seguinte', () => {
+      expect(extrairDeTexto(['CASA', '1234-5678']).numero).toBeNull();
+    });
+
+    it('não tira o bloco do número da rua na linha seguinte', () => {
+      expect(extrairDeTexto(['AVENIDA BRASIL 1500 BL', '12']).bloco).toBeNull();
+    });
+
+    it('ignora unidade de medida colada no número', () => {
+      expect(extrairDeTexto(['PESO LIQUIDO 2 KG']).numero).toBeNull();
+    });
+  });
+
+  describe('variações de escrita da unidade', () => {
+    it('aceita o numeral entre a palavra-chave e o número', () => {
+      expect(extrairDeTexto(['APTO Nº 302']).numero).toBe('302');
+      expect(extrairDeTexto(['APTO N 302']).numero).toBe('302');
+      expect(extrairDeTexto(['APTO NO 302']).numero).toBe('302');
+    });
+
+    it('junta o sufixo de letra ao número', () => {
+      expect(extrairDeTexto(['APTO 302-B']).numero).toBe('302B');
+      expect(extrairDeTexto(['APTO 302B']).numero).toBe('302B');
+    });
+
+    it('lê a letra colada como bloco quando não há bloco declarado', () => {
+      const r = extrairDeTexto(['APTO B102']);
+      expect(r.bloco).toBe('B');
+      expect(r.numero).toBe('102');
+    });
+
+    it('não deixa a letra colada sobrescrever um bloco declarado', () => {
+      const r = extrairDeTexto(['BLOCO C', 'APTO B102']);
+      expect(r.bloco).toBe('C');
+    });
+
+    it('lê o número que vem logo depois do bloco, sem palavra-chave', () => {
+      const r = extrairDeTexto(['BLOCO B - 302']);
+      expect(r.bloco).toBe('B');
+      expect(r.numero).toBe('302');
+    });
+  });
+
+  describe('destinatário', () => {
+    it('aceita o rótulo sem pontuação, sozinho na linha', () => {
+      const r = extrairDeTexto(['DESTINATARIO', 'Carla Mendes Rocha', 'APTO 44']);
+      expect(r.destinatario).toBe('CARLA MENDES ROCHA');
+    });
+
+    it('não devolve o remetente quando o rótulo existe mas não há nome perto', () => {
+      const r = extrairDeTexto([
+        'Joao Pedro Alves',
+        'DESTINATARIO:',
+        'CEP 36010-000',
+        'RUA DAS FLORES 100',
+      ]);
+      expect(r.destinatario).toBeNull();
+    });
+
+    it('não descarta nome de pessoa por causa de palavra que só o contém', () => {
+      // Estes caíam com o `includes`: `CHAVE` dentro de "Chaves", `SERIE`
+      // dentro de "Seriema". São sobrenomes reais de moradores reais.
+      expect(extrairDeTexto(['DEST:', 'Maria Chaves Souza']).destinatario).toBe('MARIA CHAVES SOUZA');
+      expect(extrairDeTexto(['DEST:', 'Ana Paula Seriema']).destinatario).toBe('ANA PAULA SERIEMA');
+    });
+
+    it('trata tipo de logradouro pela posição, não pela palavra', () => {
+      // "Praça" abre um endereço e também é sobrenome. Quem decide é onde ela
+      // está: primeira palavra da linha é logradouro, no meio é nome.
+      expect(extrairDeTexto(['DEST:', 'Ana Cristina Praca']).destinatario).toBe('ANA CRISTINA PRACA');
+      expect(extrairDeTexto(['DEST:', 'Praca da Liberdade']).destinatario).toBeNull();
+    });
+
+    it('aceita inicial abreviada', () => {
+      expect(extrairDeTexto(['DEST:', 'Maria A. Silva']).destinatario).toBe('MARIA A. SILVA');
+    });
+
+    it('não elege razão social como destinatário', () => {
+      const r = extrairDeTexto(['MERCADO LIVRE BRASIL LTDA', 'APTO 10']);
+      expect(r.destinatario).toBeNull();
+    });
+  });
+
+  describe('transportadora', () => {
+    it('reconhece a marca quebrada em duas linhas', () => {
+      // `\s?` não atravessa o separador de 3 caracteres `' \n '` — e logotipo
+      // impresso em duas linhas é a regra, não a exceção.
+      expect(extrairDeTexto(['MERCADO', 'LIVRE']).transportadora).toBe('Mercado Livre');
+      expect(extrairDeTexto(['TOTAL', 'EXPRESS']).transportadora).toBe('Total Express');
+    });
+
+    it('a marca própria ganha do PAC no rodapé', () => {
+      const r = extrairDeTexto(['MERCADO LIVRE', 'ENVIO VIA PAC']);
+      expect(r.transportadora).toBe('Mercado Livre');
+    });
+  });
 });

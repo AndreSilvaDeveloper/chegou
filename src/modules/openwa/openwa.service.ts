@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, Logger, NotFoundException } fr
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import Redis from 'ioredis';
-import { IsNull, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { REDIS_CLIENT } from '../../common/redis/redis.module';
 import { Tenant } from '../../database/entities';
 import { DEFAULT_TENANT_CONFIG } from '../admin/dto/config-tenant.dto';
@@ -13,6 +13,7 @@ import {
   VARIAVEIS_ENCOMENDA,
   VARIAVEIS_RETIRADA,
 } from '../notificacoes/message-template';
+import { AtualizarConfigWhatsappPlataformaDto } from './dto/atualizar-config-plataforma.dto';
 import {
   AtualizarConfigWhatsappDto,
   INTERVALO_MINIMO_SEGUNDOS,
@@ -41,7 +42,11 @@ export interface WhatsappTenantConfig {
   limiteDiario: number;
   horarioEnvioInicio: string;
   horarioEnvioFim: string;
-  /** Faixas que o condomínio pode escolher — a tela mostra e valida por elas. */
+  /**
+   * Faixas que quem está editando pode escolher — a tela mostra e valida por
+   * elas, em vez de repetir os números. Elas **mudam com o escopo**: o
+   * superadmin não tem as travas anti-bloqueio do condomínio.
+   */
   limites: {
     intervaloMinimoSegundos: number;
     janelaMinima: string;
@@ -49,7 +54,30 @@ export interface WhatsappTenantConfig {
     limiteDiarioMinimo: number;
     limiteDiarioMaximo: number;
   };
+  /**
+   * O jitter é editável nesta tela? Só na da plataforma: ele é o disfarce da
+   * cadência, não uma preferência do condomínio.
+   */
+  jitterEditavel: boolean;
 }
+
+/**
+ * Quem está mexendo na config: o próprio condomínio ou a plataforma.
+ *
+ * A diferença **não é cosmética** — é ela que decide as faixas devolvidas e a
+ * validação aplicada no `PATCH`. O condomínio escolhe dentro das regras
+ * anti-bloqueio; o superadmin responde pelo número e pode sair delas.
+ */
+export type EscopoConfigWhatsapp = 'condominio' | 'plataforma';
+
+/** Faixas da plataforma: sem trava, porque quem edita responde pelo número. */
+const LIMITES_PLATAFORMA = {
+  intervaloMinimoSegundos: 0,
+  janelaMinima: '00:00',
+  janelaMaxima: '23:59',
+  limiteDiarioMinimo: 0,
+  limiteDiarioMaximo: 100000,
+};
 
 /** Estado simplificado da conexão para a UI. */
 export type ConnectionState = 'connected' | 'connecting' | 'qr' | 'disconnected' | 'error';
@@ -237,37 +265,6 @@ export class OpenwaService {
     const session = await this.ensureSession(tenant);
     this.logger.log(`Instância OpenWA provisionada (manual) p/ ${tenant.slug}: ${session.name}`);
     return this.buildInfo(tenant, session);
-  }
-
-  /**
-   * Provisiona todos os condomínios ativos que ainda não têm instância. Best-effort por
-   * condomínio (coleta as falhas em vez de abortar). Sequencial para não sobrecarregar o gateway.
-   */
-  async provisionMissing(): Promise<{
-    total: number;
-    provisionadas: number;
-    falhas: Array<{ tenantId: string; nome: string; erro: string }>;
-  }> {
-    if (!this.configured) {
-      throw new BadRequestException('Integração OpenWA não configurada no servidor');
-    }
-    const pendentes = await this.tenantRepo.find({
-      where: { ativo: true, whatsappSessionId: IsNull() },
-      order: { nome: 'ASC' },
-    });
-
-    const falhas: Array<{ tenantId: string; nome: string; erro: string }> = [];
-    let provisionadas = 0;
-    for (const tenant of pendentes) {
-      try {
-        await this.ensureSession(tenant);
-        provisionadas++;
-      } catch (err) {
-        falhas.push({ tenantId: tenant.id, nome: tenant.nome, erro: errMsg(err) });
-        this.logger.warn(`Falha ao provisionar ${tenant.slug}: ${errMsg(err)}`);
-      }
-    }
-    return { total: pendentes.length, provisionadas, falhas };
   }
 
   private async loadTenant(tenantId: string): Promise<Tenant> {
@@ -569,10 +566,20 @@ export class OpenwaService {
     throw new WhatsappNumberNotFoundError(digits);
   }
 
-  /** Config de disparo/template do condomínio (para o síndico ver/editar o próprio). */
-  async getWhatsappConfig(tenantId: string): Promise<WhatsappTenantConfig> {
+  /**
+   * Config de disparo/template do condomínio.
+   *
+   * O `escopo` decide as faixas devolvidas: o síndico recebe as travas
+   * anti-bloqueio, a plataforma recebe o campo livre. A tela é a mesma nos dois
+   * casos — ela valida pelo que vem daqui.
+   */
+  async getWhatsappConfig(
+    tenantId: string,
+    escopo: EscopoConfigWhatsapp = 'condominio',
+  ): Promise<WhatsappTenantConfig> {
     const tenant = await this.loadTenant(tenantId);
     const cfg = { ...DEFAULT_TENANT_CONFIG, ...(tenant.configJson ?? {}) } as typeof DEFAULT_TENANT_CONFIG;
+    const plataforma = escopo === 'plataforma';
     return {
       templateEncomenda: cfg.whatsappTemplateEncomenda || '',
       templatePadrao: DEFAULT_TEMPLATE_ENCOMENDA,
@@ -585,13 +592,16 @@ export class OpenwaService {
       limiteDiario: cfg.whatsappLimiteDiario,
       horarioEnvioInicio: cfg.horarioEnvioInicio,
       horarioEnvioFim: cfg.horarioEnvioFim,
-      limites: {
-        intervaloMinimoSegundos: INTERVALO_MINIMO_SEGUNDOS,
-        janelaMinima: JANELA_MINIMA,
-        janelaMaxima: JANELA_MAXIMA,
-        limiteDiarioMinimo: LIMITE_DIARIO_MINIMO,
-        limiteDiarioMaximo: LIMITE_DIARIO_MAXIMO,
-      },
+      limites: plataforma
+        ? LIMITES_PLATAFORMA
+        : {
+            intervaloMinimoSegundos: INTERVALO_MINIMO_SEGUNDOS,
+            janelaMinima: JANELA_MINIMA,
+            janelaMaxima: JANELA_MAXIMA,
+            limiteDiarioMinimo: LIMITE_DIARIO_MINIMO,
+            limiteDiarioMaximo: LIMITE_DIARIO_MAXIMO,
+          },
+      jitterEditavel: plataforma,
     };
   }
 
@@ -646,6 +656,42 @@ export class OpenwaService {
     tenant.configJson = configJson;
     await this.tenantRepo.save(tenant);
     return this.getWhatsappConfig(tenantId);
+  }
+
+  /**
+   * A mesma config, salva pela **plataforma**.
+   *
+   * Não repassa para `updateWhatsappConfig` de propósito: aquela aplica as
+   * travas anti-bloqueio do condomínio (piso de 60s, janela 08:00–21:00), e é
+   * justamente delas que o superadmin precisa poder sair. O que fica igual é a
+   * disciplina do merge: campo `undefined` não é tocado.
+   */
+  async updateWhatsappConfigPlataforma(
+    tenantId: string,
+    dto: AtualizarConfigWhatsappPlataformaDto,
+  ): Promise<WhatsappTenantConfig> {
+    const tenant = await this.loadTenant(tenantId);
+    const configJson = { ...(tenant.configJson ?? {}) };
+
+    if (dto.templateEncomenda !== undefined) configJson.whatsappTemplateEncomenda = dto.templateEncomenda;
+    if (dto.templateRetirada !== undefined) configJson.whatsappTemplateRetirada = dto.templateRetirada;
+    if (dto.intervaloSegundos !== undefined) configJson.whatsappIntervaloSegundos = dto.intervaloSegundos;
+    if (dto.jitterSegundos !== undefined) configJson.whatsappJitterSegundos = dto.jitterSegundos;
+    if (dto.limiteDiario !== undefined) configJson.whatsappLimiteDiario = dto.limiteDiario;
+    if (dto.horarioEnvioInicio !== undefined) configJson.horarioEnvioInicio = dto.horarioEnvioInicio;
+    if (dto.horarioEnvioFim !== undefined) configJson.horarioEnvioFim = dto.horarioEnvioFim;
+
+    // Ordem dos horários vale em qualquer escopo: janela invertida não é uma
+    // licença da plataforma, é fila parada — nenhuma mensagem sairia.
+    const inicio = (configJson.horarioEnvioInicio ?? DEFAULT_TENANT_CONFIG.horarioEnvioInicio) as string;
+    const fim = (configJson.horarioEnvioFim ?? DEFAULT_TENANT_CONFIG.horarioEnvioFim) as string;
+    if (inicio >= fim) {
+      throw new BadRequestException('O horário de início precisa ser antes do de término');
+    }
+
+    tenant.configJson = configJson;
+    await this.tenantRepo.save(tenant);
+    return this.getWhatsappConfig(tenantId, 'plataforma');
   }
 
   /** Aplica um status vindo do webhook do gateway (best-effort, chamado pelo controller público). */

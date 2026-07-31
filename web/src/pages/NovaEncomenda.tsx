@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { AuthenticatedUser } from '../api/client';
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { SimpleSelect } from '@/components/ui/simple-select';
 import { Combobox } from '@/components/ui/combobox';
 import { OPCOES_TRANSPORTADORA, type TransportadoraNome } from '@/lib/transportadoras';
+import { prepararFoto } from '@/lib/imagem';
 import {
   Camera, Package, Building2, User, Truck, FileText, ArrowRight, ArrowLeft, CheckCircle2,
   Loader2, Image as ImageIcon, X, AlertTriangle, ScanLine, Keyboard, Layers, DoorClosed,
@@ -81,6 +82,25 @@ function extrairCodigo(raw: string): string {
   return code.slice(0, 80);
 }
 
+/** Campos que a leitura da etiqueta preencheu — o resto o porteiro digitou. */
+type CampoLido = 'apartamento' | 'destinatario' | 'rastreio' | 'transportadora';
+
+/**
+ * Marca visual de campo que veio do OCR.
+ *
+ * Existe porque a leitura é sugestão, não verdade: na revisão o porteiro precisa
+ * saber, sem contar de cabeça, o que ele mesmo digitou e o que a máquina leu —
+ * é aí que ele decide onde olhar duas vezes.
+ */
+function MarcaLida({ ativo }: { ativo: boolean }) {
+  if (!ativo) return null;
+  return (
+    <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/5 text-primary">
+      <ScanLine className="h-3 w-3" /> lido
+    </Badge>
+  );
+}
+
 export function NovaEncomenda() {
   const nav = useNavigate();
   const [step, setStep] = useState(1);
@@ -113,6 +133,10 @@ export function NovaEncomenda() {
   const [saving, setSaving] = useState(false);
   const [scanTarget, setScanTarget] = useState<'destino' | 'pacote' | null>(null);
   const [lendoEtiqueta, setLendoEtiqueta] = useState(false);
+  const [lidos, setLidos] = useState<Partial<Record<CampoLido, boolean>>>({});
+  /** Prévia da foto durante a leitura: ancora a espera em algo concreto. */
+  const [previaEtiqueta, setPreviaEtiqueta] = useState<string | null>(null);
+  const leituraRef = useRef<AbortController | null>(null);
   // A leitura de etiqueta é de quem está na portaria. A administradora também
   // registra encomenda, mas não tem essa rota (`@Roles` em etiquetas.controller)
   // — sem isto ela veria o botão e tomaria 403.
@@ -199,19 +223,29 @@ export function NovaEncomenda() {
   const handleEtiqueta = async (file: File) => {
     setScanTarget(null);
     setLendoEtiqueta(true);
+    // A foto já vem reduzida e recomprimida pelo ScannerModal (ver
+    // `lib/imagem.ts`): o que sobe é o que o OCR usaria, e não os 4 MB do sensor.
+    const previa = URL.createObjectURL(file);
+    setPreviaEtiqueta(previa);
+    const controller = new AbortController();
+    leituraRef.current = controller;
+
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const r = await api.upload<LeituraEtiqueta>('/etiquetas/ler', fd);
+      const r = await api.upload<LeituraEtiqueta>('/etiquetas/ler', fd, controller.signal);
 
       const preenchidos: string[] = [];
+      const marcados: Partial<Record<CampoLido, boolean>> = {};
 
       if (r.campos.codigoRastreio && !codigoRastreio.trim()) {
         setCodigoRastreio(r.campos.codigoRastreio);
+        marcados.rastreio = true;
         preenchidos.push('rastreio');
       }
       if (r.campos.transportadora && !transportadora.trim()) {
         setTransportadora(r.campos.transportadora);
+        marcados.transportadora = true;
         preenchidos.push('transportadora');
       }
       // A própria foto vira a foto do pacote: é o registro do que chegou e
@@ -223,15 +257,24 @@ export function NovaEncomenda() {
 
       if (r.apartamento) {
         setSelectedApto(r.apartamento);
+        marcados.apartamento = true;
         preenchidos.unshift(`apartamento ${r.apartamento.identificador}`);
         if (r.moradorId) {
           setMoradorId(r.moradorId);
+          marcados.destinatario = true;
           preenchidos.push(`destinatário ${r.moradorNome ?? ''}`.trim());
         }
-        setStep(2);
+        setLidos((atual) => ({ ...atual, ...marcados }));
+        // Com o destino E algo do pacote na mão, o passo 2 não teria o que
+        // perguntar — vai direto para a revisão, que é onde ele confere e
+        // registra. Sem nada do pacote, o passo 2 ainda tem serventia.
+        const temDadosDoPacote = marcados.rastreio || marcados.transportadora;
+        setStep(temDadosDoPacote ? 3 : 2);
         toast.success(`Etiqueta lida — ${preenchidos.join(', ')}`);
         return;
       }
+
+      setLidos((atual) => ({ ...atual, ...marcados }));
 
       // Sem unidade identificada: leva para o manual já com o que foi lido.
       irParaManual();
@@ -246,8 +289,14 @@ export function NovaEncomenda() {
         toast.message('Não identifiquei o apartamento na etiqueta. Confirme na mão.');
       }
     } catch (err) {
-      toast.error(mensagemErro(err, 'Não foi possível ler a etiqueta'));
+      // Cancelamento é escolha do porteiro, não erro: avisar seria ruído.
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        toast.error(mensagemErro(err, 'Não foi possível ler a etiqueta'));
+      }
     } finally {
+      leituraRef.current = null;
+      URL.revokeObjectURL(previa);
+      setPreviaEtiqueta(null);
       setLendoEtiqueta(false);
     }
   };
@@ -259,11 +308,16 @@ export function NovaEncomenda() {
     if (target === 'pacote') {
       const code = extrairCodigo(text);
       setCodigoRastreio(code);
+      const marcados: Partial<Record<CampoLido, boolean>> = { rastreio: true };
       const t = detectarTransportadora(text);
       if (t) {
-        if (!transportadora.trim()) setTransportadora(t);
+        if (!transportadora.trim()) {
+          setTransportadora(t);
+          marcados.transportadora = true;
+        }
         if (!descricao.trim()) setDescricao(`Encomenda ${t}`);
       }
+      setLidos((atual) => ({ ...atual, ...marcados }));
       toast.success('Código lido com sucesso!');
       return;
     }
@@ -274,6 +328,7 @@ export function NovaEncomenda() {
       const res = await api.get<Apartamento[]>(`/apartamentos?q=${encodeURIComponent(termo)}`);
       if (res.length === 1) {
         setSelectedApto(res[0]);
+        setLidos((atual) => ({ ...atual, apartamento: true }));
         setStep(2);
         toast.success(`Apartamento ${res[0].identificador} localizado`);
         return;
@@ -434,15 +489,15 @@ export function NovaEncomenda() {
                   className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-primary/20 bg-primary/5 p-8 text-center transition-all hover:border-primary hover:bg-primary/10"
                 >
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                    <ScanLine className="h-8 w-8" />
+                    {podeLerEtiqueta ? <Camera className="h-8 w-8" /> : <ScanLine className="h-8 w-8" />}
                   </div>
                   <div>
                     <p className="txt-subtitulo font-semibold text-foreground">
-                      {podeLerEtiqueta ? 'Escanear ou fotografar' : 'Escanear código'}
+                      {podeLerEtiqueta ? 'Fotografar a etiqueta' : 'Escanear código'}
                     </p>
                     <p className="mt-1 txt-apoio text-muted-foreground">
                       {podeLerEtiqueta
-                        ? 'Código de barras, QR ou foto da etiqueta'
+                        ? 'Preenche apartamento, destinatário e transportadora'
                         : 'QR code ou código de barras'}
                     </p>
                   </div>
@@ -668,7 +723,7 @@ export function NovaEncomenda() {
                             'flex h-12 items-center justify-center gap-2.5 rounded-xl border-1 txt-corpo font-medium transition-all',
                             ativo
                               ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary/20'
-                              : 'border-border bg-[#FBF9F6] dark:bg-[#121212] text-foreground hover:border-primary/40 text-muted-foreground',
+                              : 'border-border bg-background text-foreground hover:border-primary/40',
                           )}
                         >
                           <opt.icon className={cn('h-5 w-5', ativo ? 'text-primary' : 'text-muted-foreground')} />
@@ -713,7 +768,13 @@ export function NovaEncomenda() {
                         variant="destructive"
                         size="icon"
                         className="absolute -right-2 -top-2 h-8 w-8 rounded-full shadow-md"
-                        onClick={() => { setFoto(null); setFotoPreview(null); }}
+                        onClick={() => {
+                          setFoto(null);
+                          setFotoPreview((anterior) => {
+                            if (anterior) URL.revokeObjectURL(anterior);
+                            return null;
+                          });
+                        }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -729,12 +790,18 @@ export function NovaEncomenda() {
                         accept="image/*"
                         capture="environment"
                         className="hidden"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const f = e.target.files?.[0];
-                          if (f) {
-                            setFoto(f);
-                            setFotoPreview(URL.createObjectURL(f));
-                          }
+                          e.target.value = '';
+                          if (!f) return;
+                          // Mesma redução da etiqueta: a foto do pacote é só
+                          // registro visual, não precisa dos 4 MB do sensor.
+                          const { arquivo } = await prepararFoto(f);
+                          setFoto(arquivo);
+                          setFotoPreview((anterior) => {
+                            if (anterior) URL.revokeObjectURL(anterior);
+                            return URL.createObjectURL(arquivo);
+                          });
                         }}
                       />
                     </div>
@@ -759,8 +826,10 @@ export function NovaEncomenda() {
               </CardHeader>
               <CardContent className="pt-0 md:pt-0">
                 <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
-                  <div className="flex items-center justify-between border-b pb-3">
-                    <div className="txt-apoio text-muted-foreground">Destino</div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                    <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
+                      Destino <MarcaLida ativo={!!lidos.apartamento} />
+                    </div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{moradores.find(m => m.id === moradorId)?.nome || 'Qualquer morador'}</span>
                       <Badge variant="default" className="font-mono txt-apoio">{selectedApto?.identificador}</Badge>
@@ -769,11 +838,15 @@ export function NovaEncomenda() {
 
                   <div className="grid grid-cols-2 gap-4 txt-corpo">
                     <div>
-                      <div className="text-muted-foreground mb-1">Rastreio</div>
+                      <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                        Rastreio <MarcaLida ativo={!!lidos.rastreio} />
+                      </div>
                       <div className="font-mono font-medium">{codigoRastreio || '—'}</div>
                     </div>
                     <div>
-                      <div className="text-muted-foreground mb-1">Transportadora</div>
+                      <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                        Transportadora <MarcaLida ativo={!!lidos.transportadora} />
+                      </div>
                       <div className="font-medium">{transportadora || '—'}</div>
                     </div>
                     <div>
@@ -821,10 +894,29 @@ export function NovaEncomenda() {
           de novo achando que não funcionou, e sobem duas leituras. */}
       {lendoEtiqueta && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 backdrop-blur-xs">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-8 py-7 text-center shadow-panel-lg">
+          <div className="flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl border border-border bg-popover px-6 py-6 text-center shadow-panel-lg">
+            {/* A foto na tela ancora a espera em algo concreto: o porteiro já vê
+                se tremeu, em vez de encarar um giro sobre fundo preto. */}
+            {previaEtiqueta && (
+              <img
+                src={previaEtiqueta}
+                alt="Etiqueta sendo lida"
+                className="max-h-40 w-full rounded-lg border border-border object-contain"
+              />
+            )}
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="txt-subtitulo font-semibold text-foreground">Lendo a etiqueta...</p>
             <p className="txt-apoio text-muted-foreground">Isso leva alguns segundos.</p>
+            {/* Sem saída, uma leitura travada prendia o porteiro por até 30s com
+                fila na frente. Cancelar devolve o controle na hora. */}
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[48px] w-full"
+              onClick={() => leituraRef.current?.abort()}
+            >
+              <X className="mr-2 h-4 w-4" /> Cancelar e digitar
+            </Button>
           </div>
         </div>
       )}

@@ -24,7 +24,7 @@ export function ProtectedRoute({
 
   const user = getUser();
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/encomendas" replace />;
   }
 
   // A administradora não tem condomínio fixo: sem escolher um, as telas de
@@ -42,7 +42,7 @@ export function ProtectedRoute({
         </div>
       );
     }
-    if (gate === 'negado') return <Navigate to="/" replace />;
+    if (gate === 'negado') return <Navigate to="/encomendas" replace />;
   }
 
   return <>{children}</>;

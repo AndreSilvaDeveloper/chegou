@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
-import { AssinaturaFatura, AssinaturaFaturaItem } from '../../database/entities';
+import { AssinaturaCondicao, AssinaturaFatura, AssinaturaFaturaItem } from '../../database/entities';
 import { StatusFatura } from '../../database/entities/assinatura-fatura.entity';
 import {
   AssinaturasService,
@@ -18,8 +18,14 @@ import {
   QueryFaturasDto,
 } from './dto/faturas.dto';
 
-/** Dia do vencimento quando a geração não pede outro. */
-const DIA_VENCIMENTO_PADRAO = 10;
+/**
+ * Dia do vencimento quando nem o condomínio nem a geração pedem outro.
+ *
+ * Exportado porque a tela do condomínio mostra qual é o padrão que ele está
+ * seguindo — "vence dia 10 (padrão da plataforma)" evita o superadmin
+ * configurar 10 achando que está mudando alguma coisa.
+ */
+export const DIA_VENCIMENTO_PADRAO = 10;
 
 /** Código do PostgreSQL para violação de unicidade. */
 const UNIQUE_VIOLATION = '23505';
@@ -52,6 +58,50 @@ export interface MinhaAssinatura {
   aviso: AvisoVencimento | null;
 }
 
+/**
+ * A participação de um condomínio numa fatura que não é dele.
+ *
+ * Condomínio de carteira não recebe fatura: ele é uma **linha** da fatura da
+ * administradora. Sem isso, a tela dele mostraria histórico vazio — como se
+ * nunca tivesse sido cobrado.
+ */
+export interface ParticipacaoEmFatura {
+  faturaId: string;
+  competencia: string;
+  vencimento: string;
+  status: StatusFatura;
+  apartamentos: number;
+  subtotal: number;
+  /** O total da fatura inteira, para o item ser lido em proporção. */
+  valorFatura: number;
+  /** Quem recebeu a cobrança — a administradora, nesse caso. */
+  sacadoNome: string;
+}
+
+/**
+ * Tudo o que a aba "Assinatura" de um condomínio mostra, numa resposta só.
+ *
+ * Vem junto (e não em cinco rotas) porque a tela abre com tudo isso na mesma
+ * pergunta: quanto custa, por quê, quando vence e o que já foi cobrado.
+ */
+export interface ContaDoCondominio {
+  responsavel: ResponsavelPeloCondominio;
+  /** A conta do próprio condomínio. `null` quando quem paga é a administradora. */
+  conta: PreviaAssinatura | null;
+  /** Quanto este condomínio soma **hoje** na conta de quem paga por ele. */
+  participacaoAtual: { apartamentos: number; subtotal: number } | null;
+  /** Dia negociado com este condomínio. `null` = segue o padrão. */
+  diaVencimento: number | null;
+  diaVencimentoPadrao: number;
+  /** Histórico de preço especial, do mais recente para o mais antigo. */
+  condicoes: AssinaturaCondicao[];
+  /** Faturas do próprio condomínio (vazio quando ele é de carteira). */
+  faturas: FaturaComSacado[];
+  /** As faturas da administradora em que ele entrou (vazio quando é direto). */
+  participacoes: ParticipacaoEmFatura[];
+  aviso: AvisoVencimento | null;
+}
+
 export interface ResultadoGeracaoFaturas {
   competencia: string;
   criadas: number;
@@ -74,6 +124,8 @@ export class AssinaturaFaturasService {
 
   constructor(
     @InjectRepository(AssinaturaFatura) private readonly repo: Repository<AssinaturaFatura>,
+    @InjectRepository(AssinaturaFaturaItem)
+    private readonly itemRepo: Repository<AssinaturaFaturaItem>,
     private readonly assinaturas: AssinaturasService,
   ) {}
 
@@ -89,17 +141,21 @@ export class AssinaturaFaturasService {
    * Idempotente: os índices únicos `(tenant, competencia)` e
    * `(administradora, competencia)` seguram a corrida entre duas gerações
    * simultâneas; rodar de novo só reporta o que já existia.
+   *
+   * O vencimento **não é um só para o lote**: o condomínio que negociou um dia
+   * próprio (`tenants.assinatura_dia_vencimento`) usa o dele. O dia pedido na
+   * geração — ou o padrão — atende todos os outros. Sem isso, atender um
+   * cliente que paga dia 5 exigiria gerar o lote duas vezes, o que a
+   * idempotência impede.
    */
   async gerar(dto: GerarFaturasDto): Promise<ResultadoGeracaoFaturas> {
     const competencia = primeiroDia(dto.competencia);
-    const vencimento = vencimentoDaCompetencia(
-      dto.competencia,
-      dto.diaVencimento ?? DIA_VENCIMENTO_PADRAO,
-    );
+    const diaDoLote = dto.diaVencimento ?? DIA_VENCIMENTO_PADRAO;
 
-    const [previas, existentes] = await Promise.all([
+    const [previas, existentes, diasNegociados] = await Promise.all([
       this.assinaturas.listarPrevias(),
       this.repo.find({ where: { competencia }, select: { id: true, tenantId: true, administradoraId: true } }),
+      this.assinaturas.diasDeVencimentoPorCondominio(),
     ]);
 
     const jaFaturados = new Set(existentes.map((f) => this.chave(f.tenantId, f.administradoraId)));
@@ -128,7 +184,16 @@ export class AssinaturaFaturasService {
         continue;
       }
 
-      const criada = await this.gravar(previa, competencia, vencimento);
+      // Só condomínio direto tem dia próprio: a fatura da carteira é uma só
+      // para vários condomínios, e não daria para atender o dia de cada um.
+      const dia =
+        (sacado.tipo === 'condominio' ? diasNegociados.get(sacado.id) : undefined) ?? diaDoLote;
+
+      const criada = await this.gravar(
+        previa,
+        competencia,
+        vencimentoDaCompetencia(dto.competencia, dia),
+      );
       if (criada) criadas++;
       else jaExistiam++;
     }
@@ -249,6 +314,81 @@ export class AssinaturaFaturasService {
       this.listar({ tenantId }),
     ]);
     return { responsavel, conta, faturas, aviso: avaliarVencimento(faturas) };
+  }
+
+  /**
+   * A assinatura de **um** condomínio, para quem administra a plataforma (e,
+   * em leitura, para a administradora dona dele).
+   *
+   * Difere de `minhaContaDoCondominio` em dois pontos que são o motivo de ela
+   * existir: traz o histórico de preço especial e o dia de vencimento (a
+   * negociação, que o síndico não vê), e **não devolve conta vazia** para
+   * condomínio de carteira — nesse caso mostra a participação dele nas faturas
+   * da administradora, que é o histórico de cobrança que ele de fato tem.
+   */
+  async contaDoCondominio(tenantId: string): Promise<ContaDoCondominio> {
+    const responsavel = await this.assinaturas.responsavelPeloCondominio(tenantId);
+    const proprio = responsavel.via === 'condominio';
+
+    const [diaVencimento, condicoes, participacoes, previaDoResponsavel] = await Promise.all([
+      this.assinaturas.diaVencimentoDoCondominio(tenantId),
+      this.assinaturas.listarCondicoes({ tenantId }),
+      this.participacoesEmFaturas(tenantId),
+      proprio
+        ? this.assinaturas.previaDoCondominio(tenantId)
+        : this.assinaturas.previaDaAdministradora(responsavel.administradoraId),
+    ]);
+
+    // A fatura própria só existe para condomínio direto; a de carteira aparece
+    // nas participações, que já foram buscadas acima.
+    const faturas = proprio ? await this.listar({ tenantId }) : [];
+
+    // Na prévia da carteira, este condomínio é um item — é ele que responde
+    // "quanto este condomínio pesa na conta de quem paga por ele hoje".
+    const item = previaDoResponsavel.resultado.itens.find((i) => i.tenantId === tenantId);
+
+    return {
+      responsavel,
+      conta: proprio ? previaDoResponsavel : null,
+      participacaoAtual: item
+        ? { apartamentos: item.apartamentos, subtotal: item.subtotal }
+        : null,
+      diaVencimento,
+      diaVencimentoPadrao: DIA_VENCIMENTO_PADRAO,
+      condicoes,
+      faturas,
+      participacoes,
+      aviso: avaliarVencimento(faturas),
+    };
+  }
+
+  /** As faturas (de outro sacado) em que este condomínio entrou como item. */
+  private async participacoesEmFaturas(tenantId: string): Promise<ParticipacaoEmFatura[]> {
+    // Mesma disciplina do `listar()`: o status é lido depois de acertar o que
+    // já venceu, senão a tela mostraria "em aberto" numa fatura de ontem.
+    await this.atualizarVencidas();
+
+    const itens = await this.itemRepo
+      .createQueryBuilder('i')
+      .innerJoinAndSelect('i.fatura', 'f')
+      .leftJoinAndSelect('f.administradora', 'adm')
+      .leftJoinAndSelect('f.tenant', 't')
+      .where('i.tenant_id = :tenantId', { tenantId })
+      // Só o que foi cobrado de outro: a fatura própria já vai em `faturas`.
+      .andWhere('f.administradora_id IS NOT NULL')
+      .orderBy('f.competencia', 'DESC')
+      .getMany();
+
+    return itens.map((i) => ({
+      faturaId: i.faturaId,
+      competencia: i.fatura.competencia,
+      vencimento: i.fatura.vencimento,
+      status: i.fatura.status,
+      apartamentos: i.apartamentos,
+      subtotal: i.subtotal,
+      valorFatura: i.fatura.valor,
+      sacadoNome: i.fatura.administradora?.nome ?? 'Administradora removida',
+    }));
   }
 
   /** A assinatura da carteira, para a administradora. */

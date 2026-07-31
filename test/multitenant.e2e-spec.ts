@@ -200,6 +200,30 @@ describe('Multitenant (e2e)', () => {
       expect(daOutra.body.map((t: { id: string }) => t.id)).not.toContain(criar.body.id);
     });
 
+    /**
+     * A aba "Assinatura" de um condomínio é a única rota da administradora com
+     * `:tenantId` no path — e é justamente por isso que ela é testada aqui: o
+     * condomínio vem da URL, mas a carteira sai do usuário logado. Se a
+     * conferência sumir, é aqui que aparece.
+     */
+    it('lê a assinatura de um condomínio da carteira, e só dela', async () => {
+      const propria = await http
+        .get(`/api/minha-administradora/condominios/${condA1}/assinatura`)
+        .set('Authorization', `Bearer ${adminAToken}`);
+
+      expect(propria.status).toBe(200);
+      // Condomínio de carteira não tem fatura própria: quem paga é ela.
+      expect(propria.body.conta).toBeNull();
+      expect(propria.body.responsavel.via).toBe('administradora');
+
+      const deOutra = await http
+        .get(`/api/minha-administradora/condominios/${condB1}/assinatura`)
+        .set('Authorization', `Bearer ${adminAToken}`);
+
+      // 404, não 403: quem não é dono não descobre nem que existe.
+      expect(deOutra.status).toBe(404);
+    });
+
     it('uma administradora não lê a carteira da outra', async () => {
       const res = await http
         .get(`/api/admin/administradoras/${administradoraA}`)

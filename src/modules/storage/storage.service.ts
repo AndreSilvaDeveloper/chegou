@@ -1,4 +1,9 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
@@ -100,6 +105,31 @@ export class StorageService {
     file: { buffer: Buffer; mimetype: string; originalname: string },
   ): Promise<{ url: string; key: string }> {
     return this.upload('contratos-vagas', tenantId, file);
+  }
+
+  /**
+   * Baixa um objeto de volta para a memória.
+   *
+   * Existe para o banco de amostras de etiqueta: reprocessar o **OCR** (e não
+   * só o parser) exige a imagem original, e ela já está no bucket. Sem isto,
+   * medir o efeito de um ajuste no serviço de OCR só seria possível reenviando
+   * as fotos à mão — que é o mesmo que não medir.
+   *
+   * Devolve `null` quando o objeto não existe: amostra antiga cuja foto foi
+   * removida não pode derrubar o lote inteiro.
+   */
+  async baixar(key: string): Promise<Buffer | null> {
+    if (!this.isConfigured) return null;
+    try {
+      const res = await this.s3.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      const bytes = await res.Body?.transformToByteArray();
+      return bytes ? Buffer.from(bytes) : null;
+    } catch (err) {
+      this.logger.warn(`Falha ao baixar ${key} do storage: ${err}`);
+      return null;
+    }
   }
 
   /**

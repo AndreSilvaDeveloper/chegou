@@ -26,13 +26,24 @@ const STATE_META: Record<
   error: { label: 'Erro de conexão', badge: 'destructive', dot: 'bg-red-500' },
 };
 
-export function WhatsappConnectionCard() {
+/**
+ * A conexão do número, do condomínio ou de um condomínio escolhido pela
+ * plataforma.
+ *
+ * `basePath` é o mesmo mecanismo dos managers de unidade/morador: vazio usa as
+ * rotas do condomínio da sessão (`/whatsapp/...`), e
+ * `/admin/tenants/:id` opera **outro** condomínio pelas rotas do superadmin. Ele
+ * entra na chave da query de propósito — sem isso, abrir o WhatsApp de dois
+ * condomínios seguidos mostraria o QR do primeiro no segundo.
+ */
+export function WhatsappConnectionCard({ basePath = '' }: { basePath?: string }) {
   const queryClient = useQueryClient();
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const url = (p: string) => `${basePath}/whatsapp/connection${p}`;
 
   const connQuery = useQuery({
-    queryKey: ['whatsapp-connection'],
-    queryFn: () => api.get<WhatsappConnection>('/whatsapp/connection'),
+    queryKey: ['whatsapp-connection', basePath],
+    queryFn: () => api.get<WhatsappConnection>(url('')),
     // Enquanto não conectado, revalida sozinho para refletir a evolução do pareamento.
     refetchInterval: (query) => {
       const s = query.state.data?.state;
@@ -45,31 +56,31 @@ export function WhatsappConnectionCard() {
 
   // Busca o QR apenas durante o pareamento; o QR do WhatsApp rotaciona, então revalida rápido.
   const qrQuery = useQuery({
-    queryKey: ['whatsapp-qr'],
-    queryFn: () => api.get<WhatsappQr>('/whatsapp/connection/qr'),
+    queryKey: ['whatsapp-qr', basePath],
+    queryFn: () => api.get<WhatsappQr>(url('/qr')),
     enabled: Boolean(conn?.configured && conn?.provisioned && showQr),
     refetchInterval: 4000,
   });
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['whatsapp-connection'] });
-    queryClient.invalidateQueries({ queryKey: ['whatsapp-qr'] });
+    queryClient.invalidateQueries({ queryKey: ['whatsapp-connection', basePath] });
+    queryClient.invalidateQueries({ queryKey: ['whatsapp-qr', basePath] });
   };
 
   const connectMutation = useMutation({
-    mutationFn: () => api.post<WhatsappConnection>('/whatsapp/connection/connect'),
+    mutationFn: () => api.post<WhatsappConnection>(url('/connect')),
     onSuccess: () => { toast.success('Iniciando conexão. Leia o QR Code no WhatsApp do condomínio.'); invalidate(); },
     onError: (e: ApiError) => toast.error(e.message || 'Falha ao iniciar a conexão'),
   });
 
   const restartMutation = useMutation({
-    mutationFn: () => api.post<WhatsappConnection>('/whatsapp/connection/restart'),
+    mutationFn: () => api.post<WhatsappConnection>(url('/restart')),
     onSuccess: () => { toast.success('Novo QR Code gerado.'); invalidate(); },
     onError: (e: ApiError) => toast.error(e.message || 'Falha ao gerar novo QR Code'),
   });
 
   const disconnectMutation = useMutation({
-    mutationFn: () => api.post<WhatsappConnection>('/whatsapp/connection/disconnect'),
+    mutationFn: () => api.post<WhatsappConnection>(url('/disconnect')),
     onSuccess: () => { toast.success('WhatsApp desconectado.'); setConfirmDisconnect(false); invalidate(); },
     onError: (e: ApiError) => toast.error(e.message || 'Falha ao desconectar'),
   });
