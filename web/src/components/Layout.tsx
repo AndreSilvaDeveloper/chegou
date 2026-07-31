@@ -384,8 +384,8 @@ function LayoutInterno() {
         {/* Barra do topo. No celular ela é a PRIMEIRA METADE da faixa âmbar — a
             segunda (título, busca) vem do `PageShell` da página. As duas se unem
             porque o `<main>` abaixo não tem padding nem fundo próprio no mobile. */}
-        <header className="flex h-14 shrink-0 items-center justify-between px-4 md:h-16 md:justify-end md:px-6">
-          <div className="flex min-w-0 items-center gap-2 md:hidden">
+        <header className="flex h-14 shrink-0 items-center justify-between px-4 md:h-16 md:justify-end md:px-6 ">
+          <div className="flex min-w-0 items-center gap-2 md:hidden rounded-b-2xl">
             {/* Tela de detalhe/formulário troca o menu pela seta de voltar —
                 quem decide é a página, via `PageShell voltar="…"`. */}
             {rotaVoltar ? (
