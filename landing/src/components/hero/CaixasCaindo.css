@@ -1,0 +1,52 @@
+/* ----------------------------------------------- as caixas que caem ao fundo
+   -------------------------------------------------------------------------
+   Mesma geometria isométrica dos pacotes da cena principal, aqui só em
+   contorno. Cada uma cai numa velocidade, num tamanho e num DESFOQUE
+   diferentes — é o desfoque que cria profundidade: a mais borrada lê como
+   distante, a mais nítida como próxima.
+
+   O blur é FIXO por caixa e só `transform`/`opacity` animam. Blur com raio
+   animado obrigaria o navegador a refazer a rasterização a cada quadro;
+   com raio fixo ele guarda a camada borrada e apenas a desloca.
+
+   Quem apaga as caixas no fim do hero é a MÁSCARA do contêiner, não o
+   keyframe: assim o desaparecimento acompanha a altura da seção em vez de
+   depender da duração de cada queda. */
+.chuva {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 58%, transparent 88%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 58%, transparent 88%);
+  animation: hero-fundo 1.5s ease-out both;
+}
+
+.caixa {
+  position: absolute;
+  left: var(--x);
+  top: -18%;
+  color: var(--cor, var(--tinta));
+  /* Sem `opacity: 0` aqui: o keyframe já começa em zero, e com a animação
+     desligada esta regra deixaria as caixas invisíveis dependendo de alguém
+     lembrar de uma contra-regra em `movimento.css`. Sem ela, o pior caso é
+     aparecerem opacas demais — visível é melhor que sumido. */
+  filter: blur(var(--desf));
+  animation: caixa-cai var(--dur) linear var(--d) infinite;
+}
+.caixa svg { width: var(--tam); height: auto; }
+
+/* No celular a conta de camadas borradas pesa justo no primeiro quadro, que
+   é o que o porteiro vê primeiro. Ficam as cinco menos borradas — a
+   profundidade some um pouco, o tempo de pintura cai bastante. */
+@media (max-width: 767px) {
+  .caixa:nth-child(3), .caixa:nth-child(5),
+  .caixa:nth-child(7), .caixa:nth-child(9) { display: none; }
+}
+
+@keyframes caixa-cai {
+  0%   { opacity: 0;         transform: translateY(0)     rotate(0deg)         scale(var(--esc)); }
+  8%   { opacity: var(--op); }
+  92%  { opacity: var(--op); }
+  100% { opacity: 0;         transform: translateY(126vh) rotate(var(--giro))  scale(var(--esc)); }
+}

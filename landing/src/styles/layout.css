@@ -1,0 +1,20 @@
+/* ------------------------------------------------------------- estrutura */
+.wrap {
+  width: 100%;
+  max-width: var(--largura);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+@media (min-width: 768px) { .wrap { padding-inline: 2rem; } }
+
+/* Uma única regra de respiro vertical, para nada brigar no cascade. */
+.faixa { padding-block: 4.5rem; position: relative; }
+@media (min-width: 768px) { .faixa { padding-block: 7rem; } }
+
+.faixa--shell { background: var(--shell); }
+.faixa--card  { background: var(--card); }
+
+/* Cabeça de seção: eyebrow + título + apoio. */
+.cabeca { display: flex; flex-direction: column; gap: .75rem; max-width: 46rem; margin-bottom: 3rem; }
+
+.cabeca p.t-apoio { font-size: var(--fs-subtitulo); line-height: 1.55; }

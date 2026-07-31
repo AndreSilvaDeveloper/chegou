@@ -1,0 +1,51 @@
+/* ---- os balões que narram a cena ----
+   Cinco recados girando em volta da caixa, cada um contando um momento real
+   do fluxo. O ciclo deles é PRÓPRIO (15s) e não o da caixa (5,6s): cinco
+   recados em 5,6s viraria pisca-pisca.
+
+   O escalonamento é `animation-delay`, não cinco conjuntos de keyframes — em
+   laço infinito o atraso só desloca a fase, então um conjunto serve a todos e
+   ninguém sai de compasso. Cada um fica ~5,7s no ar e as janelas se cruzam,
+   então há sempre dois na tela: um entrando enquanto o outro apaga. */
+.balao {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .7rem .95rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--flutuante);
+  box-shadow: var(--sombra-alta);
+  white-space: nowrap;
+  opacity: 0;
+  animation: balao-vai-e-vem 15s cubic-bezier(.34,1.25,.64,1) var(--atraso) infinite;
+}
+.balao__icone {
+  display: grid; place-items: center;
+  width: 1.75rem; height: 1.75rem;
+  border-radius: .5rem;
+  background: var(--sinal-fundo);
+  color: var(--sinal-leg);
+  flex-shrink: 0;
+}
+.balao__texto { display: flex; flex-direction: column; line-height: 1.3; }
+.balao__texto b { font-size: var(--fs-apoio); font-weight: 600; letter-spacing: -.01em; }
+.balao__texto small { font-size: var(--fs-nota); color: var(--tinta-fraca); }
+
+@keyframes balao-vai-e-vem {
+  0%        { opacity: 0; transform: translateY(10px) scale(.94); }
+  4%        { opacity: 1; transform: translateY(0)    scale(1); }
+  34%       { opacity: 1; transform: translateY(0)    scale(1); }
+  40%, 100% { opacity: 0; transform: translateY(-8px) scale(.97); }
+}
+
+/* Ancorados DENTRO do palco: a seção recorta o que passa da borda. */
+.balao--1 { top: 2%;    left: -2%; }
+.balao--2 { top: 16%;   right: -4%; }
+.balao--3 { top: 46%;   left: -8%; }
+.balao--4 { bottom: 20%; right: -6%; }
+.balao--5 { bottom: 2%;  left: 6%; }
+
+/* No celular o palco é estreito e os balões cobririam a caixa. */
+@media (max-width: 640px) { .balao { display: none; } }

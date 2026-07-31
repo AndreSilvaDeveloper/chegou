@@ -1,0 +1,62 @@
+/* --------------------------------------------------------------- motion */
+/* Uma revelação só, discreta, na entrada de cada bloco. Nada de efeito
+   espalhado — a página é para ser lida, não assistida. */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .55s ease, transform .55s ease; }
+.reveal.visivel { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: .001ms !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+
+  /* Sem animação, a cena precisa parar no quadro que já conta a história:
+     caixa fechada, pacotes dentro, código emitido, prédio aceso. */
+  .cx-pacote--1 { transform: translate(-30px, 26px) rotate(-4deg); }
+  .cx-pacote--2 { transform: translate(24px, 16px) rotate(5deg); }
+  .cx-pacote--3 { transform: translate(-4px, 6px) rotate(-2deg); }
+  .cx-acesa, .cx-selo { opacity: 1; transform: none; }
+  /* Sem animação, os cinco balões empilhados viram poluição: ficam dois. */
+  .balao { opacity: 0; }
+  .balao--1, .balao--3 { opacity: 1; transform: none; }
+  .cx-anel { display: none; }
+
+  /* O estado inicial das letras é invisível — sem a animação para trazê-las
+     de volta, o título sumiria. Aqui elas simplesmente já estão no lugar. */
+  .flutua .char { opacity: 1; transform: none; }
+  /* As formas usam `animation-fill-mode: both`, então não dependem mais de
+     uma regra aqui para reaparecer — só a pose final precisa ser fixada. */
+  .forma { transform: rotate(var(--giro)); }
+  .forma__corpo { transform: none; }
+  /* As caixas param espalhadas pela altura (--y), em vez de sumirem todas. */
+  .caixa { opacity: var(--op); transform: translateY(var(--y)) rotate(var(--giro)) scale(var(--esc)); }
+  /* O separador fica: a marca acesa e parada, sem o pulso correndo na linha. */
+  .separador__linha::after { display: none; }
+  .separador__marca { opacity: 1; transform: none; }
+  .separador__marca::before { opacity: .5; transform: none; }
+  /* Sem empilhar: os três passos viram uma coluna comum. */
+  .passos .passo { position: static; transform: none; opacity: 1; margin-bottom: 1.25rem; }
+  .passos { padding-bottom: 0; }
+}
+
+.pular {
+  position: absolute; left: -9999px;
+  padding: .75rem 1.25rem; background: var(--sinal); color: var(--sinal-tinta);
+  border-radius: var(--raio); font-weight: 600; z-index: 100;
+}
+.pular:focus { left: 1rem; top: 1rem;   /* Sem travar a tela: a pista some, o palco solta e os três passos viram
+     uma coluna comum. Prender a rolagem de quem pediu menos movimento é o
+     oposto do que a preferência pede. */
+  .pilha { height: auto; }
+  .pilha__palco { position: static; height: auto; padding-block: 0; }
+  .pilha__cartoes { display: flex; flex-direction: column; gap: 1.25rem; }
+  .passos .passo {
+    position: static;
+    width: 100%;
+    transform: none;
+    opacity: 1;
+    box-shadow: none;
+  }
+}

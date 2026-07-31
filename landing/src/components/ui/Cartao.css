@@ -1,0 +1,113 @@
+/* ============================================================== O CARTÃO
+   -------------------------------------------------------------------------
+   Quatro famílias de bloco (dor, passo, tijolo, perfil) dividem o tratamento.
+   `--superficie` preserva a hierarquia: o passo mora numa faixa de papel e
+   sobe para `--card`; os outros moram numa faixa de card e descem para
+   `--papel`.
+
+   O ícone aparece DUAS vezes: pequeno e nítido no topo, e grande e apagado
+   no fundo, como marca-d'água — é ele que dá identidade ao card sem precisar
+   de mais nenhum ornamento.
+
+   No hover: a BORDA acende em âmbar (halo por fora, fio de luz por dentro),
+   o ícone ganha brilho e a marca-d'água cresce um pouco. Nada de mancha
+   amarela por dentro do card — o âmbar fica na borda e no ícone. */
+.dor, .passo, .tijolo, .perfil {
+  --superficie: var(--papel);
+  position: relative;
+  isolation: isolate;
+  /* Recorta a marca-d'água e o fio de luz no raio do card. A sombra do hover
+     não é afetada: box-shadow não é cortada pelo overflow do próprio nó. */
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  background:
+    radial-gradient(130% 90% at 50% -25%, var(--bloco) 0%, transparent 62%),
+    var(--superficie);
+  transition:
+    transform .38s cubic-bezier(.34,1.35,.64,1),
+    border-color .35s ease,
+    box-shadow .42s ease;
+}
+
+/* o fio de luz na quina de cima */
+.dor::before, .passo::before, .tijolo::before, .perfil::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aresta), transparent);
+  opacity: .75;
+  pointer-events: none;
+}
+
+/* ---- a marca-d'água: o próprio ícone do card, grande e apagado ---- */
+.cartao__fundo {
+  position: absolute;
+  z-index: -1;
+  right: -1.5rem;
+  bottom: -1.75rem;
+  color: var(--tinta);
+  opacity: .04;
+  pointer-events: none;
+  transform: rotate(-8deg);
+  transition:
+    opacity .45s ease,
+    color .45s ease,
+    transform .55s cubic-bezier(.34,1.25,.64,1);
+}
+.cartao__fundo svg { width: 9.5rem; height: 9.5rem; stroke-width: 1.1; }
+/* No passo o "ícone" é o número — a marca-d'água acompanha. */
+.cartao__fundo--n {
+  font-family: var(--mono);
+  font-size: 9rem;
+  font-weight: 700;
+  line-height: .8;
+  right: -.5rem;
+  bottom: -2.25rem;
+}
+
+/* ---- o hover: borda acesa, ícone com brilho, marca-d'água maior ---- */
+.dor:hover, .passo:hover, .tijolo:hover, .perfil:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--sinal) 55%, var(--borda));
+  box-shadow:
+    /* halo por fora, na linha da borda */
+    0 0 0 1px color-mix(in srgb, var(--sinal) 16%, transparent),
+    0 0 30px -8px var(--brilho-forte),
+    /* fio de luz por dentro, para a borda parecer acesa e não só cercada */
+    inset 0 0 22px -14px color-mix(in srgb, var(--sinal) 70%, transparent),
+    var(--sombra-alta);
+}
+.dor:hover .cartao__fundo, .passo:hover .cartao__fundo,
+.tijolo:hover .cartao__fundo, .perfil:hover .cartao__fundo {
+  opacity: .12;
+  color: var(--sinal-leg);
+  transform: rotate(-3deg) scale(1.07) translate(-6px, -6px);
+}
+
+/* ---- o ícone: neutro em repouso, com brilho âmbar no hover ---- */
+.dor__marca, .tijolo__marca, .perfil__marca {
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border-radius: .7rem;
+  color: var(--sinal-leg);
+  background: var(--bloco);
+  border: 1px solid var(--borda);
+  transition:
+    box-shadow .42s ease,
+    border-color .35s ease,
+    transform .45s cubic-bezier(.34,1.3,.64,1);
+}
+.dor__marca, .perfil__marca { width: 2.5rem;  height: 2.5rem;  }
+.tijolo__marca             { width: 2.75rem; height: 2.75rem; }
+
+.dor:hover .dor__marca,
+.tijolo:hover .tijolo__marca,
+.perfil:hover .perfil__marca,
+.passo:hover .passo__n {
+  transform: translateY(-2px) rotate(-4deg);
+  border-color: color-mix(in srgb, var(--sinal) 60%, transparent);
+  box-shadow:
+    0 0 18px -2px var(--brilho-forte),
+    0 0 0 4px color-mix(in srgb, var(--sinal) 10%, transparent);
+}

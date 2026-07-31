@@ -1,0 +1,26 @@
+/* ---------------------------------------------------------------- botões */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-height: 48px;              /* alvo de toque do porteiro, no celular */
+  padding: 0 1.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--raio);
+  font-family: var(--sans);
+  font-size: var(--fs-corpo);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn--sinal { background: var(--sinal); color: var(--sinal-tinta); box-shadow: var(--sombra); }
+.btn--sinal:hover { background: #FFD65C; }
+
+.btn--linha { background: transparent; color: var(--tinta); border-color: var(--borda-forte); }
+.btn--linha:hover { background: var(--bloco); border-color: var(--tinta-fraca); }
+
+.btn--g { min-height: 56px; padding: 0 2rem; font-size: var(--fs-subtitulo); }

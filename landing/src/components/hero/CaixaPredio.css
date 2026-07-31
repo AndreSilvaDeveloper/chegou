@@ -1,0 +1,132 @@
+/* ================================================= A CAIXA-PRÉDIO (a tese)
+   -------------------------------------------------------------------------
+   A marca é uma caixa de papelão cuja face esquerda é a fachada de um prédio
+   — a caixa É o condomínio. A animação encena o produto inteiro:
+   a caixa abre, os pacotes caem dentro, ela fecha, o código nasce na
+   etiqueta e as janelas acendem (o prédio soube).
+
+   Só `transform` e `opacity` são animados — as duas propriedades que o
+   compositor resolve sem recalcular layout. Todo o ciclo compartilha a mesma
+   duração (--ciclo) e cada peça marca o seu tempo em PORCENTAGEM, então nada
+   sai de sincronia por acúmulo de atraso.
+
+   A dobra de cada aba é uma reflexão sobre o próprio vinco: alinha-se o
+   vinco à horizontal (rotate ∓29°), inverte-se em Y e desfaz-se a rotação.
+   scaleY(1) = fechada · scaleY(-0.9) = aberta, caída para fora.
+   ========================================================================= */
+/* O ciclo mora no palco, não na cena: os rótulos em HTML são IRMÃOS do SVG e
+   precisam herdar a mesma duração, senão saem de compasso ao ajustá-la. */
+.palco { --ciclo: 5.6s; display: grid; place-items: center; position: relative; }
+
+.cena { width: min(30rem, 100%); overflow: hidden; }
+
+.cx-traco { fill: none; stroke: var(--tinta); stroke-width: 4.5;
+  stroke-linejoin: round; stroke-linecap: round; }
+.cx-topo    { fill: var(--flutuante); }
+.cx-esq     { fill: var(--card); }
+.cx-dir     { fill: var(--bloco); }
+.cx-dentro  { fill: var(--shell); }
+.cx-fita    { fill: var(--sinal-fundo); }
+.cx-janela polygon { fill: var(--bloco); stroke: var(--tinta); stroke-width: 3; stroke-linejoin: round; }
+.cx-acesa          { opacity: 0; }
+.cx-acesa polygon  { fill: var(--sinal); stroke: var(--tinta); stroke-width: 3; stroke-linejoin: round; }
+.cx-etiqueta{ fill: var(--flutuante); stroke: var(--tinta); stroke-width: 3;
+  stroke-linejoin: round; }
+.cx-digito  { font-family: var(--mono); font-size: 21px; font-weight: 700;
+  fill: var(--tinta); letter-spacing: 2.5px; }
+.cx-anel    { fill: none; stroke: var(--sinal); stroke-width: 4; opacity: 0; }
+
+.cx-aba { transform-box: view-box; }
+
+/* ---- o ciclo ---- */
+.cx-aba--te { transform-origin: 154px 124.5px; animation: aba-te var(--ciclo) infinite; }
+.cx-aba--td { transform-origin: 246px 124.5px; animation: aba-td var(--ciclo) infinite; }
+.cx-aba--fe { transform-origin: 154px 175.5px; animation: aba-fe var(--ciclo) infinite; }
+.cx-aba--fd { transform-origin: 246px 175.5px; animation: aba-fd var(--ciclo) infinite; }
+
+/* As de trás fecham antes das da frente — é a ordem real de fechar uma caixa. */
+@keyframes aba-te {
+  0%, 9%    { transform: rotate(-29deg) scaleY(1)   rotate(29deg); }
+  20%, 50%  { transform: rotate(-29deg) scaleY(-.9) rotate(29deg); animation-timing-function: cubic-bezier(.34,1.4,.64,1); }
+  58%, 100% { transform: rotate(-29deg) scaleY(1)   rotate(29deg); }
+}
+@keyframes aba-td {
+  0%, 9%    { transform: rotate(29deg)  scaleY(1)   rotate(-29deg); }
+  20%, 50%  { transform: rotate(29deg)  scaleY(-.9) rotate(-29deg); animation-timing-function: cubic-bezier(.34,1.4,.64,1); }
+  58%, 100% { transform: rotate(29deg)  scaleY(1)   rotate(-29deg); }
+}
+/* As da frente abrem menos (-.72): passam de 90° o bastante para ler como
+   abertas, sem varrer a fachada do prédio, que é a leitura da marca. */
+@keyframes aba-fe {
+  0%, 11%   { transform: rotate(29deg)  scaleY(1)    rotate(-29deg); }
+  22%, 52%  { transform: rotate(29deg)  scaleY(-.72) rotate(-29deg); animation-timing-function: cubic-bezier(.34,1.4,.64,1); }
+  62%, 100% { transform: rotate(29deg)  scaleY(1)    rotate(-29deg); }
+}
+@keyframes aba-fd {
+  0%, 11%   { transform: rotate(-29deg) scaleY(1)    rotate(29deg); }
+  22%, 52%  { transform: rotate(-29deg) scaleY(-.72) rotate(29deg); animation-timing-function: cubic-bezier(.34,1.4,.64,1); }
+  62%, 100% { transform: rotate(-29deg) scaleY(1)    rotate(29deg); }
+}
+
+/* Os pacotes caem acelerando (ease-in), assentam com um respiro curto e ficam
+   — quem os esconde no fim é a própria tampa fechando por cima.
+   Sem `transform-origin`: cada pacote vive dentro de um grupo já transladado
+   para o centro da boca, então o giro acontece no eixo dele mesmo. */
+.cx-pacote--1 { animation: cai-1 var(--ciclo) infinite; }
+.cx-pacote--2 { animation: cai-2 var(--ciclo) infinite; }
+.cx-pacote--3 { animation: cai-3 var(--ciclo) infinite; }
+
+@keyframes cai-1 {
+  0%, 21%   { opacity: 0; transform: translate(-30px, -190px) rotate(-10deg); }
+  23%       { opacity: 1; animation-timing-function: cubic-bezier(.55,.06,.68,.19); }
+  31%       { opacity: 1; transform: translate(-30px, 30px) rotate(-4deg); }
+  34%, 100% { opacity: 1; transform: translate(-30px, 26px) rotate(-4deg); }
+}
+@keyframes cai-2 {
+  0%, 28%   { opacity: 0; transform: translate(24px, -190px) rotate(12deg); }
+  30%       { opacity: 1; animation-timing-function: cubic-bezier(.55,.06,.68,.19); }
+  38%       { opacity: 1; transform: translate(24px, 20px) rotate(5deg); }
+  41%, 100% { opacity: 1; transform: translate(24px, 16px) rotate(5deg); }
+}
+@keyframes cai-3 {
+  0%, 35%   { opacity: 0; transform: translate(-4px, -190px) rotate(-6deg); }
+  37%       { opacity: 1; animation-timing-function: cubic-bezier(.55,.06,.68,.19); }
+  45%       { opacity: 1; transform: translate(-4px, 10px) rotate(-2deg); }
+  48%, 100% { opacity: 1; transform: translate(-4px, 6px) rotate(-2deg); }
+}
+
+/* O código nasce na etiqueta, depois que a caixa fecha. Só translada — dentro
+   de um pai com skewY, escalar exigiria origem em coordenadas já deformadas. */
+.cx-selo { animation: selo var(--ciclo) infinite; }
+@keyframes selo {
+  0%, 62%   { opacity: 0; transform: translateY(7px); }
+  70%, 94%  { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(.34,1.5,.64,1); }
+  100%      { opacity: 0; transform: translateY(7px); }
+}
+
+/* E o prédio acende: o morador soube. */
+.cx-acesa { animation: acende var(--ciclo) infinite; }
+@keyframes acende {
+  0%, 66%   { opacity: 0; }
+  74%, 94%  { opacity: 1; }
+  100%      { opacity: 0; }
+}
+
+.cx-anel { transform-box: fill-box; transform-origin: center;
+  animation: anel var(--ciclo) infinite; }
+.cx-anel--2 { animation-name: anel-2; }
+@keyframes anel {
+  0%, 66%  { opacity: 0; transform: scale(.5); }
+  70%      { opacity: .55; }
+  86%,100% { opacity: 0; transform: scale(1.5); }
+}
+@keyframes anel-2 {
+  0%, 71%  { opacity: 0; transform: scale(.5); }
+  75%      { opacity: .35; }
+  91%,100% { opacity: 0; transform: scale(1.55); }
+}
+
+/* Fora da tela a animação para: bateria do celular do porteiro não é detalhe.
+   Marcado no palco para alcançar também os rótulos, que são irmãos do SVG. */
+.palco[data-parada="sim"] *,
+.palco[data-parada="sim"] { animation-play-state: paused !important; }

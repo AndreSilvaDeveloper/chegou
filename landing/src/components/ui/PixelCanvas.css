@@ -1,0 +1,21 @@
+/* ---------------------------------------------------------- pixel canvas */
+/* A malha fica ATRÁS do conteúdo do cartão.
+   `z-index: -1` dentro de um contexto isolado (`.passo` tem `isolation`)
+   pinta acima do fundo do cartão e abaixo do texto — a mesma camada da
+   marca-d'água, que vem depois no DOM e por isso fica por cima dela. */
+.pixels {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* O efeito é ambiente, não protagonista: a opacidade é o que impede o
+     âmbar de competir com o texto do cartão. Junto com o lado menor do pixel
+     (ver PixelCanvas.tsx), sobra metade da tinta da primeira versão. */
+  opacity: .4;
+  /* Some nas bordas, para a malha não terminar num corte reto contra a
+     moldura do cartão. */
+  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 35%, transparent 100%);
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 35%, transparent 100%);
+}
+
+.pixels canvas { display: block; width: 100%; height: 100%; }

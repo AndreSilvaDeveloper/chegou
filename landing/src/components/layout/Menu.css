@@ -1,0 +1,185 @@
+/* ------------------------------------------------------- menu de pílulas
+   -------------------------------------------------------------------------
+   Cada seção é uma pílula. No hover, um círculo âmbar sobe do rodapé da
+   pílula e a preenche, enquanto o rótulo rola para cima e um segundo rótulo
+   (na cor que lê sobre o âmbar) sobe no lugar.
+
+   Tudo em CSS: o círculo é dimensionado em PORCENTAGEM da pílula, então cada
+   uma calcula o próprio raio sem ninguém medir nada em JS. O JS aqui só marca
+   qual seção você está lendo. */
+.menu {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: var(--bloco);
+}
+@media (min-width: 1024px) { .menu { display: flex; } }
+
+.pilula {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  font-size: var(--fs-corpo);
+  font-weight: 500;
+  color: var(--tinta-fraca);
+  transition: color .25s ease, background-color .25s ease;
+}
+
+/* O círculo tem de cobrir a pílula INTEIRA no fim — cantos de baixo inclusive.
+   Encostar o fundo do círculo no fundo da pílula não basta: ali ele toca só no
+   centro, e o arco sobe nas laterais deixando os dois cantos de baixo de fora.
+
+   Com raio R = 0.7·L (o círculo tem 140% da largura L da pílula), a distância
+   que ele precisa descer para o arco passar pelos cantos de baixo é
+       δ = R − √(R² − L²/4) = 0.21·L
+   que, em fração do próprio círculo (diâmetro 1.4·L), dá 0.21/1.4 = 15%.
+
+   Daí os três números abaixo, que andam juntos: 140% de largura, translateY de
+   15% (δ) e origem em 85% (100% − 15%), que devolve o ponto de crescimento
+   para a aresta de baixo da pílula. Porcentagem de translate é sobre a altura
+   do próprio elemento — é isso que permite calcular δ sem medir nada em JS.
+
+   Em scale(1) a corda na linha de base mede exatamente L — ou seja, os cantos
+   de baixo caem EM CIMA da circunferência, não dentro dela. No limite assim, o
+   antialiasing deixa um fio escuro no canto. Por isso o repouso do hover é
+   scale(1.1): a mesma folga que a referência resolve com 1.2. */
+.pilula__circulo {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 0;
+  width: 140%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--sinal);
+  transform: translateX(-50%) translateY(15%) scale(0);
+  transform-origin: 50% 85%;
+  transition: transform .45s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+}
+.pilula:hover .pilula__circulo,
+.pilula:focus-visible .pilula__circulo { transform: translateX(-50%) translateY(15%) scale(1.1); }
+
+/* A pilha recorta os dois rótulos: um sai por cima, o outro entra por baixo. */
+.pilula__pilha { position: relative; z-index: 1; display: block; overflow: hidden; }
+
+/* Classes distintas de propósito: com um modificador do mesmo nome, a regra
+   de hover do rótulo alcançaria os dois e o eco nunca apareceria. */
+.pilula__rotulo, .pilula__eco {
+  display: block;
+  transition: transform .42s cubic-bezier(.4,0,.2,1);
+}
+.pilula__eco {
+  position: absolute;
+  inset: 0;
+  color: var(--sinal-tinta);
+  transform: translateY(105%);
+}
+.pilula:hover .pilula__rotulo,
+.pilula:focus-visible .pilula__rotulo { transform: translateY(-105%); }
+.pilula:hover .pilula__eco,
+.pilula:focus-visible .pilula__eco { transform: translateY(0); }
+
+/* A seção que você está lendo. O ponto fica DENTRO da pílula porque ela
+   recorta o que passa da borda — por fora ele seria cortado ao meio. */
+.pilula[aria-current] { color: var(--tinta); background: var(--flutuante); }
+.pilula[aria-current]::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 5px;
+  width: 4px; height: 4px;
+  border-radius: 999px;
+  background: var(--sinal);
+  transform: translateX(-50%);
+}
+.pilula:hover::after, .pilula:focus-visible::after { opacity: 0; }
+
+/* ---- menu do celular ---- */
+.hamburguer {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  grid-auto-flow: row;
+  width: 44px; height: 44px;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tinta);
+  cursor: pointer;
+  padding: 0;
+}
+@media (min-width: 1024px) { .hamburguer { display: none; } }
+.hamburguer:hover { background: var(--bloco); }
+.hamburguer__traco {
+  width: 16px; height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.hamburguer[aria-expanded="true"] .hamburguer__traco:first-child { transform: translateY(3px) rotate(45deg); }
+.hamburguer[aria-expanded="true"] .hamburguer__traco:last-child  { transform: translateY(-3px) rotate(-45deg); }
+
+/* Abrir/fechar sem JS de animação: `@starting-style` dá o quadro de entrada e
+   `allow-discrete` deixa o `display` participar da transição — é o caminho
+   nativo para animar algo que entra e sai do fluxo. */
+.menu-movel {
+  position: absolute;
+  top: calc(100% + .5rem);
+  left: 1.25rem; right: 1.25rem;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--borda);
+  border-radius: 1.5rem;
+  background: var(--flutuante);
+  box-shadow: var(--sombra-alta);
+  transform-origin: top center;
+  opacity: 0;
+  transform: translateY(-8px) scale(.97);
+  transition: opacity .22s ease, transform .3s cubic-bezier(.4,0,.2,1), display .3s;
+  transition-behavior: allow-discrete;
+}
+.menu-movel[data-aberto="sim"] { display: flex; opacity: 1; transform: none; }
+@starting-style {
+  .menu-movel[data-aberto="sim"] { opacity: 0; transform: translateY(-8px) scale(.97); }
+}
+@media (min-width: 1024px) { .menu-movel { display: none !important; } }
+
+/* No toque não existe hover: a pílula do celular fica só com a forma. */
+.pilula--movel {
+  justify-content: flex-start;
+  height: 48px;
+  padding: 0 1.25rem;
+  border-radius: 999px;
+  color: var(--tinta);
+}
+.pilula--movel:hover { background: var(--bloco); }
+
+.icone-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--borda);
+  border-radius: .7rem;
+  background: transparent;
+  color: var(--tinta-fraca);
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+  flex-shrink: 0;
+}
+.icone-btn:hover { background: var(--bloco); color: var(--tinta); }
+
+.topo .btn { display: none; }
+@media (min-width: 640px) { .topo .btn { display: inline-flex; } }

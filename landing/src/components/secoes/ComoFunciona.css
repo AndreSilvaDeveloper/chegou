@@ -1,0 +1,100 @@
+/* --------------------------------------------------------- como funciona */
+/* --------------------------------------------- os passos, com a tela travada
+   -------------------------------------------------------------------------
+   A seção PRENDE a tela: ao chegar nela, a rolagem deixa de mover a página e
+   passa a trazer um cartão de cada vez, cada um parando um pouco abaixo do
+   anterior. Só depois que o último entra a página volta a rolar.
+
+   São duas peças, e a divisão entre elas é o efeito inteiro:
+
+     .pilha        — a PISTA. Alta de propósito (uma tela de rolagem por
+                     cartão que ainda vai entrar). Ela não aparece: só fornece
+                     a distância que o efeito consome.
+     .pilha__palco — o PALCO. `sticky` no topo, com uma tela de altura. É ele
+                     que fica parado enquanto a pista corre por baixo.
+
+   Sem a pista alta não haveria rolagem a gastar e a seção passaria direto;
+   sem o palco sticky nada ficaria parado. Uma não serve sem a outra.
+
+   ISTO É DIFERENTE de um cartão `sticky` por conta própria — que foi a versão
+   anterior. Lá a página continuava rolando e os cartões apenas grudavam no
+   caminho; aqui a página para de fato, e a rolagem vira o controle da cena.
+
+   Os cartões são `absolute` dentro do palco: eles precisam se sobrepor, e no
+   fluxo normal um empurraria o outro para baixo. Quem entra depois vem depois
+   no DOM, então pinta por cima sem precisar de z-index. */
+
+.pilha {
+  position: relative;
+  /* Uma tela para o palco + uma tela de rolagem por cartão que ainda entra
+     (o primeiro já começa em cena). */
+  height: calc(100vh + (var(--n, 3) - 1) * 80vh);
+}
+
+.pilha__palco {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  /* Folga em cima para a barra fixa não cobrir o título da seção. */
+  padding-block: 6.5rem 3rem;
+}
+
+/* A área onde os cartões se empilham. `relative` porque é ela a referência
+   dos cartões absolutos — sem isso eles se posicionariam pela página. */
+.pilha__cartoes {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.passos .passo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(50rem, 100%);
+  /* O `transform` completo vem do hook: posição de entrada, sobra acumulada
+     e escala. Este é só o estado de repouso, antes de o hook assumir. */
+  transform: translate(-50%, -50%);
+  will-change: transform;
+  /* A sombra separa o cartão da frente do que ficou atrás. */
+  box-shadow: var(--sombra-alta);
+}
+
+@media (min-width: 900px) {
+  .passos .passo { padding: 2.25rem 2.5rem 2rem; }
+}
+
+.passo {
+  --superficie: var(--card);
+  display: flex; flex-direction: column; gap: .75rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+  border-radius: var(--raio);
+}
+
+/* O numerador é o próprio dígito do código de retirada: aqui a ordem é real —
+   registrar vem antes de avisar, que vem antes de retirar. */
+.passo__n {
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  border: 1px solid var(--borda);
+  border-radius: .6rem;
+  background: var(--bloco);
+  color: var(--sinal-leg);
+  font-family: var(--mono);
+  font-size: 1.25rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: box-shadow .42s ease, border-color .35s ease, transform .45s cubic-bezier(.34,1.3,.64,1);
+}
+
+.passo__tempo {
+  align-self: flex-start;
+  padding: .2rem .5rem;
+  border-radius: 999px;
+  background: var(--bloco);
+  font-family: var(--mono);
+  font-size: var(--fs-nota);
+  color: var(--tinta-fraca);
+}

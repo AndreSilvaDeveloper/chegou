@@ -1,0 +1,13 @@
+/* --------------------------------------------------------------- perfis */
+.perfis { display: grid; gap: 1rem; }
+@media (min-width: 900px) { .perfis { grid-template-columns: repeat(3, 1fr); } }
+
+.perfil {
+  display: flex; flex-direction: column; gap: 1rem;
+  padding: 1.75rem;
+  border-radius: var(--raio-g);
+}
+.perfil__topo { display: flex; align-items: center; gap: .75rem; }
+
+.perfil__papel { font-family: var(--mono); font-size: var(--fs-nota); color: var(--tinta-fraca);
+  text-transform: uppercase; letter-spacing: .12em; }

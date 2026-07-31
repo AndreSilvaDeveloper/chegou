@@ -1,0 +1,28 @@
+/* ------------------------------------------------------- escala de texto */
+.t-display   { font-size: var(--fs-display);   font-weight: 800; line-height: 1.02; letter-spacing: -0.035em; }
+.t-titulo    { font-size: var(--fs-titulo);    font-weight: 700; }
+.t-secao     { font-size: var(--fs-secao);     font-weight: 600; letter-spacing: -0.015em; }
+.t-subtitulo { font-size: var(--fs-subtitulo); font-weight: 600; letter-spacing: -0.01em; }
+.t-corpo     { font-size: var(--fs-corpo); }
+.t-apoio     { font-size: var(--fs-apoio);     color: var(--tinta-fraca); line-height: 1.6; }
+.t-nota      { font-size: var(--fs-nota); }
+.t-numero    { font-size: var(--fs-numero);    font-weight: 800; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+
+/* Eyebrow: mono, caixa alta, tracked — o rótulo de seção da mesa de controle */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--tinta-fraca);
+  margin: 0;
+}
+
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* O destaque dentro de texto de apoio.
+   `.t-apoio` é secundário pela COR; o negrito dentro dele precisa voltar ao
+   contraste cheio, senão o trecho que importa fica mais apagado que o resto.
+   Antes isto era um `style="color:var(--tinta)"` repetido em cada parágrafo. */
+.t-apoio strong { color: var(--tinta); font-weight: 600; }

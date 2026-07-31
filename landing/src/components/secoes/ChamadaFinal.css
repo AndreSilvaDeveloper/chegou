@@ -1,0 +1,25 @@
+/* ------------------------------------------------------------ cta final */
+.chamada {
+  position: relative; overflow: hidden;
+  padding: 3rem 1.75rem;
+  border: 1px solid color-mix(in srgb, var(--sinal) 40%, var(--borda));
+  border-radius: var(--raio-g);
+  background: var(--card);
+  text-align: center;
+}
+@media (min-width: 768px) { .chamada { padding: 4.5rem 3rem; } }
+.chamada__brilho {
+  position: absolute; top: -60%; left: 50%; width: 40rem; aspect-ratio: 1;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(255,199,44,.2) 0%, transparent 62%);
+  pointer-events: none;
+}
+.chamada__miolo { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+.chamada__miolo p { max-width: 40rem; }
+
+/* Tamanhos próprios da chamada: menores que o display do hero, que precisa ser
+   a primeira impressão. Antes eram `style=` inline no markup. */
+.chamada__titulo { font-size: clamp(2rem, 1.2rem + 3vw, 3.25rem); }
+.chamada__apoio  { font-size: var(--fs-subtitulo); }
+.chamada__acoes  { justify-content: center; }
+.chamada__nota   { color: var(--tinta-fraca); }

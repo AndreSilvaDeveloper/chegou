@@ -1,0 +1,24 @@
+/* ------------------------------------------------------------------ selo */
+.selo {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem .75rem .4rem .5rem;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: var(--fs-nota);
+  font-weight: 500;
+  color: var(--tinta-fraca);
+}
+.selo b { color: var(--tinta); font-weight: 600; }
+
+/* O halo em volta do ponto o separa do fundo sem precisar de borda. */
+.ponto {
+  width: .5rem;
+  height: .5rem;
+  border-radius: 999px;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent);
+  flex-shrink: 0;
+}

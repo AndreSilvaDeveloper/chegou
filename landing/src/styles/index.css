@@ -1,0 +1,32 @@
+/* =========================================================================
+   CONDO AVISA — folha de estilo raiz
+   -------------------------------------------------------------------------
+   A paleta, a escala tipográfica e as texturas vêm VERBATIM do design system
+   do painel (web/src/styles.css). Esta página não inventa marca: ela aplica a
+   que já existe. Ao mexer no tema do app, espelhe `tokens.css` — os valores
+   estão na mesma ordem do arquivo original.
+
+   Único acréscimo: o degrau `--fs-display`, acima de `txt-numero`. O painel
+   não precisa dele (o maior número lá é um KPI); uma landing precisa de um
+   título que funcione como primeira impressão a dois metros da tela.
+
+   A ORDEM ABAIXO IMPORTA
+   ----------------------
+   1. tokens    — não pinta nada, só declara as variáveis
+   2. base      — reset e regras de elemento
+   3. escala    — as classes de tamanho de texto
+   4. layout    — wrap, faixa, cabeça de seção
+
+   O CSS de cada componente é importado pelo PRÓPRIO componente, não daqui:
+   é o que mantém "um arquivo, uma responsabilidade" também no estilo, e o
+   que garante que apagar um componente leve o CSS dele junto.
+
+   `movimento.css` é a exceção e vem por ÚLTIMO no bundle, importado pelo
+   `main.tsx` depois de tudo: ele desliga animações com `!important` e
+   precisa vencer qualquer regra de componente.
+   ========================================================================= */
+
+@import './tokens.css';
+@import './base.css';
+@import './escala.css';
+@import './layout.css';

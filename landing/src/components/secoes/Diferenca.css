@@ -1,0 +1,17 @@
+/* ---------------------------------------------------------- diferenciais */
+/* Seis colunas para caber 3+2: dois cartões de 3 na primeira linha e três de
+   2 na segunda. Com 4 ou 5 colunas essa divisão não fecha em inteiros. */
+.bento { display: grid; gap: 1rem; }
+@media (min-width: 768px)  { .bento { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .bento { grid-template-columns: repeat(6, 1fr); } }
+
+/* Os filhos do grid são os cartões que viram (`.vira`). O vão do grid mede o
+   contêiner, não a face — por isso o span vive aqui e não no componente. */
+@media (min-width: 1024px) {
+  .bento > .vira { grid-column: span 2; }
+  .bento > .tijolo--largo { grid-column: span 3; }
+}
+
+/* O cartão em destaque sobe uma superfície. `--superficie` é lido pelas duas
+   faces, então frente e verso mudam juntas. */
+.tijolo--destaque { --superficie: var(--card); }

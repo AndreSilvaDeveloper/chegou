@@ -1,0 +1,55 @@
+/* ------------------------------------------------- o campo de encomendas
+   -------------------------------------------------------------------------
+   Pacotes em contorno isométrico — o mesmo desenho que cai ao fundo do hero —
+   que sobem, crescem e acendem conforme o ponteiro chega perto.
+
+   NADA DE 3D AQUI. A referência gira peças sólidas de seis faces; o pacote já
+   está desenhado em perspectiva, e girá-lo em 3D poria duas perspectivas
+   brigando no mesmo objeto. A reação virou altura e brilho, que é como um
+   desenho isométrico responde sem se contradizer.
+
+   Doze peças no desktop e seis no celular: o suficiente para ler como campo,
+   pouco para virar textura. */
+
+.campo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  /* Some nas bordas, para o campo não terminar num corte reto. Sem o buraco
+     no meio que a versão anterior tinha: ali havia texto por cima, aqui o vão
+     é só dele. */
+  -webkit-mask-image: radial-gradient(ellipse 82% 82% at 50% 50%, #000 34%, transparent 92%);
+  mask-image: radial-gradient(ellipse 82% 82% at 50% 50%, #000 34%, transparent 92%);
+}
+
+.campo__palco {
+  display: grid;
+  /* `--cols`/`--rows` vêm do componente: é ele que sabe quantas peças existem,
+     e a conta da reação depende de os dois concordarem. */
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: 4%;
+  width: 100%;
+  height: 100%;
+  padding: 3%;
+}
+
+.campo__peca {
+  display: grid;
+  place-items: center;
+  opacity: .3;
+  color: var(--tinta);
+  transition-property: transform, opacity;
+  transition-timing-function: cubic-bezier(.22, 1, .36, 1);
+  transition-duration: .7s;
+  will-change: transform;
+}
+
+/* Células maiores pedem desenho maior, senão o pacote nada no meio dela. */
+.campo__desenho { width: 100%; height: 100%; max-width: 5.75rem; }
+
+/* A fita é o único âmbar da grade — o mesmo papel que ela tem no pacote do
+   hero: marca o volume sem colorir o desenho inteiro. */
+.campo__peca .pacote__fita { stroke: var(--sinal); }

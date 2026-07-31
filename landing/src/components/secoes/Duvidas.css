@@ -1,0 +1,108 @@
+/* ----------------------------------------------------------------- faq */
+/* Duas colunas no desktop: as perguntas na largura de leitura e o campo de
+   encomendas ocupando o vão que sobrava à direita.
+   `align-items: stretch` (o padrão) é o que faz o campo acompanhar a altura
+   da lista, inclusive quando uma resposta abre. */
+.duvidas__grade { display: grid; gap: 2rem; }
+@media (min-width: 1024px) {
+  .duvidas__grade { grid-template-columns: minmax(0, 48rem) 1fr; gap: 3rem; }
+}
+
+.faq { display: flex; flex-direction: column; gap: .75rem; }
+
+/* O campo é a única coisa da página que existe só para preencher espaço —
+   então ele some quando não há espaço sobrando. */
+.duvidas__campo { display: none; }
+@media (min-width: 1024px) {
+  .duvidas__campo { display: block; position: relative; min-height: 24rem; }
+}
+
+.pergunta {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--papel);
+  overflow: hidden;
+  transition: border-color .3s ease, background-color .3s ease;
+}
+.pergunta[open] { border-color: color-mix(in srgb, var(--sinal) 30%, var(--borda)); }
+
+.pergunta > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  min-height: 56px; padding: 1rem 1.25rem;
+  font-size: var(--fs-subtitulo); font-weight: 600; letter-spacing: -.01em;
+  cursor: pointer; list-style: none;
+  transition: background-color .2s ease;
+}
+.pergunta > summary::-webkit-details-marker { display: none; }
+.pergunta > summary:hover { background: var(--bloco); }
+
+.pergunta > summary svg {
+  color: var(--tinta-fraca);
+  flex-shrink: 0;
+  transition: transform .38s cubic-bezier(.4, 0, .2, 1), color .3s ease;
+}
+.pergunta[open] > summary svg { transform: rotate(180deg); color: var(--sinal-leg); }
+
+.pergunta__corpo {
+  padding: 0 1.25rem 1.25rem;
+  font-size: var(--fs-apoio);
+  color: var(--tinta-fraca);
+  line-height: 1.65;
+}
+.pergunta__corpo strong { color: var(--tinta); font-weight: 600; }
+
+/* ---- a abertura ----
+   `<details>` abre de estalo por natureza: fechado, o conteúdo nem é
+   renderizado, então não há o que transicionar. Quem resolve isso é
+   `::details-content` — o pseudo-elemento que embrulha tudo o que não é o
+   `<summary>` e que, ao contrário do conteúdo em si, pode ser animado.
+
+   `content-visibility` com `allow-discrete` é o que faz o FECHAMENTO também
+   ser animado: sem ele o conteúdo some no primeiro quadro e a altura anima
+   sobre o vazio.
+
+   DOIS CAMINHOS, e o segundo é o exato:
+     1. `max-block-size` até uma medida generosa — funciona em qualquer
+        navegador com `::details-content`, mas a curva é aproximada, porque o
+        alvo não é a altura real do texto.
+     2. com `interpolate-size`, a altura pode ser animada até `auto`: aí a
+        curva termina exatamente onde o conteúdo termina, seja qual for o
+        tamanho da resposta. */
+.pergunta::details-content {
+  max-block-size: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-block-size .4s cubic-bezier(.4, 0, .2, 1),
+    opacity .3s ease,
+    content-visibility .4s allow-discrete;
+}
+.pergunta[open]::details-content {
+  max-block-size: 26rem;
+  opacity: 1;
+}
+
+@supports (interpolate-size: allow-keywords) {
+  :root { interpolate-size: allow-keywords; }
+
+  .pergunta::details-content {
+    max-block-size: none;
+    block-size: 0;
+    transition:
+      block-size .4s cubic-bezier(.4, 0, .2, 1),
+      opacity .3s ease,
+      content-visibility .4s allow-discrete;
+  }
+  .pergunta[open]::details-content { block-size: auto; }
+}
+
+/* Sem movimento, abre e fecha na hora — que é o comportamento nativo. */
+@media (prefers-reduced-motion: reduce) {
+  .pergunta::details-content,
+  .pergunta[open]::details-content {
+    transition: none;
+    max-block-size: none;
+    block-size: auto;
+    opacity: 1;
+  }
+}

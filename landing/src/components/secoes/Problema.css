@@ -1,0 +1,90 @@
+/* --------------------------------------------------------------- a dor */
+.dores { display: grid; gap: 1rem; }
+@media (min-width: 640px)  { .dores { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .dores { grid-template-columns: repeat(4, 1fr); } }
+
+.dor {
+  display: flex; flex-direction: column; gap: .6rem;
+  padding: 1.5rem;
+  border-radius: var(--raio);
+}
+
+/* ---- o ícone que pulsa ----
+   Um halo que abre e some, devagar. O ciclo é longo (3,6s) e a opacidade
+   baixa de propósito: são quatro cartões lado a lado, e quatro pulsos
+   apressados na mesma faixa da tela viram agitação, não sinal.
+
+   O halo é um `::after` com `z-index: -1`: ele abre POR TRÁS do quadrado do
+   ícone, não por cima do desenho. */
+.dor__marca { position: relative; isolation: isolate; }
+.dor__marca::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--sinal) 55%, transparent);
+  animation: dor-pulsa 3.6s ease-out infinite;
+}
+.dor:nth-child(2) .dor__marca::after { animation-delay: .9s; }
+.dor:nth-child(3) .dor__marca::after { animation-delay: 1.8s; }
+.dor:nth-child(4) .dor__marca::after { animation-delay: 2.7s; }
+
+@keyframes dor-pulsa {
+  0%       { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sinal) 50%, transparent); }
+  55%, 100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--sinal) 0%, transparent); }
+}
+
+/* ---- a virada ----
+   Não é uma caixa de aviso: é a CONCLUSÃO da seção. Por isso perdeu o
+   preenchimento âmbar de ponta a ponta — que a igualava a um alerta — e
+   ganhou um trilho, a mesma marca de "item ativo" do painel do produto.
+
+   A frase tem uma dobradiça: nega e depois afirma. A negação fica no tom de
+   apoio, a afirmação em corpo cheio, com a palavra que vira a chave em âmbar.
+   É a forma mostrando o que a sintaxe já fazia. */
+.viravolta {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.1rem;
+  margin-top: 3rem;
+  padding: 1.75rem 1.75rem 1.75rem 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--sinal) 30%, var(--borda));
+  border-radius: var(--raio-g);
+  background:
+    linear-gradient(100deg, var(--sinal-fundo) 0%, transparent 62%),
+    var(--papel);
+  box-shadow: inset 4px 0 0 0 var(--sinal);
+}
+
+.viravolta__marca {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-top: .1rem;
+  border-radius: .7rem;
+  background: var(--papel);
+  border: 1px solid color-mix(in srgb, var(--sinal) 40%, transparent);
+  color: var(--sinal-leg);
+}
+
+.viravolta__texto { display: flex; flex-direction: column; gap: .3rem; }
+
+.viravolta__nega {
+  font-size: var(--fs-apoio);
+  color: var(--tinta-fraca);
+}
+
+.viravolta__afirma {
+  font-size: var(--fs-secao);
+  font-weight: 600;
+  letter-spacing: -.015em;
+  color: var(--tinta);
+}
+.viravolta__afirma strong { color: var(--sinal-leg); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dor__marca::after { animation: none; }
+}

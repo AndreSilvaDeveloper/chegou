@@ -1,0 +1,87 @@
+/* --------------------------------------------- a frase com luz por trás
+   -------------------------------------------------------------------------
+   A frase já é âmbar em repouso. Uma faixa de luz difusa atravessa o FUNDO
+   dela, da esquerda para a direita, e enquanto passa o texto ganha um pouco
+   de brilho. Depois tudo volta ao normal e espera três segundos.
+
+   ISTO É O OPOSTO DA VERSÃO ANTERIOR, que recortava um degradê no formato do
+   texto (`background-clip: text`) e fazia o âmbar atravessar as letras. Ali a
+   cor era o efeito; aqui a cor é o repouso, e o efeito é a luz por trás.
+
+   DUAS COISAS FAZEM A FAIXA PARECER REFLEXO E NÃO RETÂNGULO:
+
+   1. o degradê é RADIAL, não linear. Linear só esmaece na horizontal, e a
+      faixa terminaria com aresta reta em cima e embaixo, na altura da caixa
+      do texto.
+   2. o ladrilho é mais ALTO que a linha (260%). A queda vertical do degradê
+      acontece fora da área visível, então nunca se vê onde ele acaba.
+
+   O `padding`/`margin` negativo alarga a caixa sem mexer no layout: dá à luz
+   um pouco de espaço para vazar além das palavras. */
+
+.brilho {
+  color: var(--sinal-leg);
+  font-weight: 600;
+
+  padding-inline: .3em;
+  margin-inline: -.3em;
+
+  background-image: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--sinal) 22%, transparent) 0%,
+    color-mix(in srgb, var(--sinal) 10%, transparent) 45%,
+    transparent 100%
+  );
+  background-size: 55% 260%;
+  background-repeat: no-repeat;
+  background-position: -140% center;
+
+  /* Cada fragmento ganha o próprio fundo quando a frase quebra de linha —
+     sem isso, uma frase em duas linhas receberia uma faixa só, esticada. */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+
+  /* Duas animações de mesma duração: a luz que passa e o brilho que responde.
+     Separá-las deixa cada uma com a sua curva sem uma atrapalhar a outra. */
+  animation:
+    brilho-reflexo 6s cubic-bezier(.45, 0, .55, 1) infinite,
+    brilho-pulso 6s ease-in-out infinite;
+}
+
+/* -140% E 240%, NÃO -80% E 180%.
+   `background-position` em porcentagem não é "a que distância da borda": o
+   navegador calcula `(largura da caixa − largura do ladrilho) × p`. Com um
+   ladrilho de 55%, os limites em que ele sai INTEIRO do quadro são -122,2% e
+   222,2% — e os valores antigos ficavam dentro dos dois. A faixa estacionava
+   com um pedaço ainda por cima do fim da frase, e era isso que se via parado
+   no fim do ciclo.
+
+   O CICLO É DE 6s PORQUE O QUE SE PEDE SÃO DUAS COISAS: a travessia leva 3s
+   (metade) e o descanso leva os outros 3s. Como a keyframe trabalha em
+   porcentagem, "3 segundos parada" só existe se o total for o dobro disso —
+   encurtar o ciclo aceleraria a passagem junto. */
+@keyframes brilho-reflexo {
+  0%        { background-position: -140% center; }
+  50%       { background-position: 240% center; }
+  100%      { background-position: 240% center; }
+}
+
+/* O pico cai em 25% — metade da travessia, que vai até 50%. É o instante em
+   que a faixa cruza o meio da frase.
+
+   Fora da janela a sombra é TRANSPARENTE, não `none`: `none` não interpola, e
+   o brilho apareceria de estalo em vez de subir junto com a luz. */
+@keyframes brilho-pulso {
+  0%, 6%    { text-shadow: 0 0 6px color-mix(in srgb, var(--sinal) 0%, transparent); }
+  25%       { text-shadow: 0 0 16px color-mix(in srgb, var(--sinal) 42%, transparent); }
+  46%, 100% { text-shadow: 0 0 6px color-mix(in srgb, var(--sinal) 0%, transparent); }
+}
+
+/* Sem movimento: a frase fica no âmbar, sem luz e sem brilho. */
+@media (prefers-reduced-motion: reduce) {
+  .brilho {
+    background-image: none;
+    animation: none;
+    text-shadow: none;
+  }
+}

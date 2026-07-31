@@ -1,0 +1,12 @@
+/* -------------------------------------------------------------- rodapé */
+.rodape { background: var(--shell); border-top: 1px solid var(--borda); padding-block: 3rem 2rem; }
+.rodape__grade { display: grid; gap: 2.5rem; }
+@media (min-width: 768px) { .rodape__grade { grid-template-columns: 1.5fr 1fr 1fr; gap: 3rem; } }
+.rodape__col { display: flex; flex-direction: column; gap: .75rem; }
+.rodape__col a { font-size: var(--fs-apoio); color: var(--tinta-fraca); transition: color .15s ease; }
+.rodape__col a:hover { color: var(--tinta); }
+.rodape__base {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
+  margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--borda);
+  font-size: var(--fs-nota); color: var(--tinta-fraca);
+}

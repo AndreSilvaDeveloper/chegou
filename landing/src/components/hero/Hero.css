@@ -1,0 +1,62 @@
+/* ---------------------------------------------------------------- hero
+   Layout do hero: as duas colunas, o texto e o palco da cena.
+   As camadas de fundo (manchas, formas, véu, rotas) moram em Fundo.css.
+
+   ================== A ENTRADA ==================
+   O hero está acima da dobra, então ele não espera rolagem: entra sozinho ao
+   carregar, escalonado — título, texto, botões, e o palco por último.
+
+   `animation-fill-mode: both` E NÃO `opacity: 0` NA REGRA BASE.
+   A diferença importa: com `both`, o elemento assume o quadro inicial durante
+   o atraso e o final depois, sem que a regra base o esconda. Se a opacidade
+   zero morasse na regra, `prefers-reduced-motion` (que desliga a animação
+   com `!important`) deixaria o hero inteiro invisível — que é exatamente a
+   armadilha que as formas e as caixas do fundo já apresentaram. */
+
+@keyframes hero-entra {
+  from { opacity: 0; transform: translateY(26px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* O fundo resolve primeiro e devagar, para nada aparecer de estalo. */
+@keyframes hero-fundo {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.hero { position: relative; overflow: hidden; padding-block: 3.5rem 4.5rem; }
+@media (min-width: 768px) { .hero { padding-block: 5rem 7rem; } }
+
+/* Fora da tela nada do fundo precisa continuar rodando — nove camadas
+   borradas animando sem ninguém olhando é gasto puro de bateria. */
+.hero[data-parada="sim"] .caixa,
+.hero[data-parada="sim"] .forma,
+.hero[data-parada="sim"] .forma__corpo,
+.hero[data-parada="sim"] .hero__malha { animation-play-state: paused; }
+
+.hero__grade { position: relative; display: grid; gap: 3.5rem; align-items: center; }
+
+@media (min-width: 1024px) {
+  .hero__grade { grid-template-columns: 1.05fr .95fr; gap: 4rem; }
+}
+
+.hero__texto { display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-start; }
+
+/* Cada peça entra um pouco depois da anterior. A escada é curta: o hero
+   precisa se montar rápido, não se apresentar. */
+.hero__texto > * { animation: hero-entra .95s cubic-bezier(.22, 1, .36, 1) both; }
+.hero__texto > *:nth-child(1) { animation-delay: .08s; }
+.hero__texto > *:nth-child(2) { animation-delay: .22s; }
+.hero__texto > *:nth-child(3) { animation-delay: .36s; }
+
+/* O palco entra por último e um pouco mais devagar: ele é o peso da cena. */
+.palco { animation: hero-entra 1.15s cubic-bezier(.22, 1, .36, 1) .3s both; }
+
+.hero h1 .sinal { color: var(--sinal-leg); }
+
+.hero__sub { font-size: var(--fs-subtitulo); color: var(--tinta-fraca); line-height: 1.6; max-width: 34rem; }
+
+.hero__sub strong { color: var(--tinta); font-weight: 600; }
+
+.hero__acoes { display: flex; flex-wrap: wrap; gap: .75rem; }
+

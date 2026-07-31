@@ -1,0 +1,56 @@
+/* --------------------------------------------------------------- preço */
+.preco-grade { display: grid; gap: 1.5rem; align-items: start; }
+@media (min-width: 900px) { .preco-grade { grid-template-columns: 1.1fr .9fr; gap: 2.5rem; } }
+
+.recibo {
+  padding: 1.75rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  background: var(--papel);
+  box-shadow: var(--sombra);
+}
+.recibo__cabeca {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  padding-bottom: 1rem; margin-bottom: .25rem;
+  border-bottom: 1px dashed var(--borda-forte);
+}
+
+/* Régua de recibo: o ponteado leva o olho da faixa até o preço, e o mono com
+   tabular-nums mantém os centavos alinhados linha a linha. */
+.faixa-preco {
+  display: flex; align-items: baseline; gap: .5rem;
+  padding: .9rem 0;
+  border-bottom: 1px dashed var(--borda);
+}
+.faixa-preco:last-of-type { border-bottom: 0; }
+.faixa-preco__nome { font-size: var(--fs-apoio); }
+.faixa-preco__linha { flex: 1; border-bottom: 1px dotted var(--borda-forte); transform: translateY(-.2rem); min-width: 1.5rem; }
+.faixa-preco__valor { font-family: var(--mono); font-size: var(--fs-subtitulo); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.faixa-preco__valor small { font-weight: 400; font-size: var(--fs-nota); color: var(--tinta-fraca); }
+
+.exemplo {
+  margin-top: 1.25rem; padding: 1.1rem;
+  border-radius: var(--raio);
+  background: var(--bloco);
+  font-size: var(--fs-apoio);
+}
+.exemplo__conta {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  margin-top: .6rem; padding-top: .6rem; border-top: 1px solid var(--borda);
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+.exemplo__conta b { font-size: var(--fs-numero-sm); font-weight: 700; }
+
+.inclui { display: flex; flex-direction: column; gap: 1rem; }
+.inclui__caixa {
+  padding: 1.5rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  background: var(--card);
+}
+
+/* O recado das administradoras, destacado em âmbar. */
+.inclui__caixa--sinal {
+  background: var(--sinal-fundo);
+  border-color: color-mix(in srgb, var(--sinal) 45%, var(--borda));
+}

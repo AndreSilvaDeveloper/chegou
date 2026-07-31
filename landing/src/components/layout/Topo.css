@@ -1,0 +1,44 @@
+/* ---------------------------------------------------------------- topo */
+.topo {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--papel) 86%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color .2s ease, background-color .2s ease;
+}
+.topo[data-rolou="sim"] { border-bottom-color: var(--borda); }
+
+.topo__linha {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.5rem;
+}
+
+.marca { display: flex; align-items: center; gap: .625rem; margin-right: auto; }
+/* Sem fundo próprio: o âmbar vem dentro do PNG da marca. Desenhar um selo
+   colorido atrás faria duas camadas de amarelo com quinas diferentes. */
+.marca__selo {
+  display: block;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: .7rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.marca__logo { display: block; width: 100%; height: 100%; }
+
+/* A caixa dá uma volta ao passar o mouse na marca. */
+.marca__selo img { transition: transform .6s cubic-bezier(.4,0,.2,1); }
+.marca:hover .marca__selo img { transform: rotate(360deg); }
+.marca__nome { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.04em; }
+.marca__sufixo {
+  font-family: var(--mono);
+  font-size: .8125rem;
+  /* Sem caixa alta: aqui não é rótulo, é a segunda palavra do nome. */
+  letter-spacing: .01em;
+  color: var(--tinta-fraca);
+  margin-left: .35rem;
+}

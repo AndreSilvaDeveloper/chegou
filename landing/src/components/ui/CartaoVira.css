@@ -1,0 +1,128 @@
+/* ------------------------------------------------------- o cartão que vira
+   -------------------------------------------------------------------------
+   Frente com a chamada, verso com o argumento. Todo o comportamento é CSS:
+   `:hover` e `:focus-within` giram o eixo, e o mesmo gatilho escalona os
+   itens do verso. Sem estado no React.
+
+   TRÊS COISAS QUE PRECISAM ANDAR JUNTAS PARA O 3D FUNCIONAR:
+     1. a perspectiva no contêiner (`.vira`)
+     2. `transform-style: preserve-3d` no eixo, senão os filhos achatam
+     3. `backface-visibility: hidden` nas faces, senão a de trás vaza espelhada
+
+   Faltando qualquer uma, o giro vira um borrão em vez de um cartão. */
+
+.vira {
+  position: relative;
+  /* Altura fixa: as faces são absolutas e não empurram o contêiner, então
+     alguém precisa dizer o tamanho. É o preço do efeito. */
+  min-height: 22rem;
+  perspective: 2000px;
+  border-radius: var(--raio-g);
+}
+.vira:focus-visible { outline: 2px solid var(--sinal); outline-offset: 3px; }
+
+.vira__eixo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  transform-style: preserve-3d;
+  transition: transform .6s cubic-bezier(.77, 0, .175, 1);
+}
+.vira:hover .vira__eixo,
+.vira:focus-within .vira__eixo { transform: rotateY(180deg); }
+
+.vira__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  background:
+    radial-gradient(130% 90% at 50% -25%, var(--bloco) 0%, transparent 62%),
+    var(--superficie, var(--papel));
+  backface-visibility: hidden;
+  transition: border-color .4s ease, box-shadow .4s ease;
+}
+.vira:hover .vira__face,
+.vira:focus-within .vira__face {
+  border-color: color-mix(in srgb, var(--sinal) 45%, var(--borda));
+  box-shadow: 0 0 30px -10px var(--brilho-forte), var(--sombra-alta);
+}
+
+/* ---- a frente ---- */
+.vira__frente { transform: rotateY(0deg); justify-content: space-between; padding: 1.75rem; }
+
+.vira__icone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  background: var(--bloco);
+  border: 1px solid var(--borda);
+  color: var(--sinal-leg);
+}
+
+.vira__rodape { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
+.vira__rodape > div { display: flex; flex-direction: column; gap: .35rem; }
+/* O texto sobe um pouco quando o cartão responde — o mesmo aceno da referência. */
+.vira__rodape h3, .vira__rodape p { transition: transform .5s cubic-bezier(.16, 1, .3, 1); }
+.vira__rodape p { transition-delay: 50ms; }
+.vira:hover .vira__rodape h3, .vira:hover .vira__rodape p { transform: translateY(-4px); }
+
+.vira__girar {
+  display: grid;
+  place-items: center;
+  width: 2rem; height: 2rem;
+  flex-shrink: 0;
+  border-radius: .6rem;
+  background: var(--sinal-fundo);
+  color: var(--sinal-leg);
+  transition: transform .3s ease;
+}
+.vira:hover .vira__girar { transform: rotate(-12deg) scale(1.1); }
+
+/* ---- o verso ---- */
+.vira__verso {
+  transform: rotateY(180deg);
+  gap: .85rem;
+  padding: 1.75rem;
+}
+
+.vira__itens { display: flex; flex-direction: column; gap: .55rem; margin-top: auto; }
+.vira__itens li {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  font-size: var(--fs-apoio);
+  color: var(--tinta-fraca);
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity .3s ease, transform .3s cubic-bezier(.23, 1, .32, 1);
+  /* Entram um a um DEPOIS do giro terminar — daí os 150ms de base. */
+  transition-delay: calc(var(--i) * 50ms + 150ms);
+}
+.vira__itens svg { color: var(--sinal-leg); flex-shrink: 0; margin-top: .2rem; }
+.vira:hover .vira__itens li,
+.vira:focus-within .vira__itens li { opacity: 1; transform: none; }
+
+/* ---- no toque não existe hover ----
+   Sem ponteiro não há como virar o cartão, então o verso deixa de ser verso:
+   ele vira o cartão inteiro. Esconder o argumento atrás de um gesto que o
+   aparelho não tem seria perdê-lo. */
+@media (hover: none) {
+  .vira { min-height: 0; perspective: none; }
+  .vira__eixo { transform: none !important; transition: none; }
+  .vira__frente { display: none; }
+  .vira__verso {
+    position: relative;
+    inset: auto;
+    transform: none;
+    backface-visibility: visible;
+  }
+  .vira__itens li { opacity: 1; transform: none; transition: none; }
+}

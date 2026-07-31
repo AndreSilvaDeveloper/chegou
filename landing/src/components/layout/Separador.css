@@ -1,0 +1,101 @@
+/* ------------------------------------------------- o separador de seções
+   -------------------------------------------------------------------------
+   Uma rota que corre para o meio e um destino que pulsa: a mesma frase que o
+   hero conta, agora como pontuação entre as seções.
+
+   Ele monta EM CIMA da costura das duas faixas (`top:0` + `translateY(-50%)`),
+   e é por isso que a marca não tem fundo próprio: metade dela cai numa seção
+   e metade na outra, então qualquer preenchimento apareceria cortado ao meio
+   na linha da divisa. O que abre espaço para a marca é o `gap` do flex — a
+   linha simplesmente não passa por trás dela. */
+.separador {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  width: min(var(--largura), calc(100% - 2.5rem));
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  pointer-events: none;
+}
+
+.separador__linha {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  overflow: hidden;
+  background: linear-gradient(90deg, transparent, var(--borda) 22%, var(--borda) 78%, transparent);
+}
+
+/* O pulso de luz que corre pela linha. Sempre EM DIREÇÃO ao centro: da
+   esquerda ele vai para a direita, da direita ele vem para a esquerda — as
+   duas entregas convergindo no mesmo endereço. */
+.separador__linha::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 38%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--sinal), transparent);
+  animation: separador-flui 3.6s cubic-bezier(.45,0,.55,1) infinite;
+}
+
+.separador__linha--esq::after { --de: -120%; --ate: 275%;  }
+
+.separador__linha--dir::after { --de: 275%;  --ate: -120%; }
+
+/* A janela acesa vai até 86% de propósito: com a curva ease-in-out, é por
+   volta dos 84% que o pulso encosta na marca — que é exatamente quando o
+   halo abre. Apagando antes, a marca acenderia sozinha e a relação de causa
+   entre chegar e acender se perderia. */
+@keyframes separador-flui {
+  0%        { transform: translateX(var(--de));  opacity: 0; }
+  14%       { opacity: .9; }
+  86%       { opacity: .9; }
+  100%      { transform: translateX(var(--ate)); opacity: 0; }
+}
+
+.separador__marca {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  animation: separador-pulsa 3.6s ease-in-out infinite;
+}
+
+.separador__logo { display: block; width: 2.75rem; height: 2.75rem; border-radius: .6rem; }
+
+/* O halo acende quando o pulso chega — por isso o pico fica no fim do ciclo,
+   e não no começo. */
+.separador__marca::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 6rem; height: 6rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--brilho) 0%, transparent 68%);
+  opacity: 0;
+  animation: separador-halo 3.6s ease-in-out infinite;
+}
+
+@keyframes separador-pulsa {
+  0%, 66%, 100% { transform: scale(1);    opacity: .72; }
+  84%           { transform: scale(1.14); opacity: 1; }
+}
+
+@keyframes separador-halo {
+  0%, 62%, 100% { opacity: 0;   transform: scale(.75); }
+  84%           { opacity: .85; transform: scale(1); }
+}
+
+/* Fora da tela ninguém corre: só o separador que está sendo visto anima.
+   Sem isso seriam oito rotas e oito halos rodando o tempo todo. */
+.separador__linha::after,
+.separador__marca,
+.separador__marca::before { animation-play-state: paused; }
+
+.separador[data-vivo="sim"] .separador__linha::after,
+.separador[data-vivo="sim"] .separador__marca,
+.separador[data-vivo="sim"] .separador__marca::before { animation-play-state: running; }

@@ -1,0 +1,49 @@
+/* ------------------------------------------------- título que sobe (float)
+   -------------------------------------------------------------------------
+   Cada letra emerge de baixo da linha, esticada, e assenta conforme a seção
+   sobe na tela. É o único título da página que faz isso: a seção da dor é o
+   pivô emocional, e o efeito marca esse ponto em vez de virar maneirismo.
+
+   Roda em `animation-timeline: view()` — a ScrollTimeline nativa. O progresso
+   é o próprio scroll, resolvido fora da main thread: nenhum listener, nenhum
+   cálculo de posição por frame. Onde o navegador não suportar, o JS troca
+   para o modo `gatilho`, que é o mesmo desenho disparado uma vez.
+
+   O recorte vem do `overflow: hidden` do título: é ele que dá o "de trás da
+   cortina". Sem isso as letras apenas deslizariam. */
+.flutua { overflow: hidden; padding-bottom: .1em; }
+
+/* Palavra inteira em bloco: sem isso o navegador quebra a linha NO MEIO da
+   palavra, porque cada letra virou um inline-block quebrável. */
+.flutua .palavra { display: inline-block; white-space: nowrap; }
+
+.flutua .char {
+  display: inline-block;
+  transform-origin: 50% 0%;
+  opacity: 0;
+  /* Menos borracha que a referência (2.3/0.7): o estica ainda lê, mas o
+     movimento fica suave em vez de elástico. */
+  transform: translateY(100%) scaleX(.82) scaleY(1.8);
+}
+
+.flutua[data-modo="scroll"] .char {
+  /* Um respiro de ultrapassagem no fim (y > 1 na curva) — é o que dá o
+     "flutuar". A referência usa back.inOut(2), bem mais elástico. */
+  animation: sobe-letra cubic-bezier(.3,1.2,.5,1) both;
+  animation-timeline: view();
+  animation-range: cover var(--ini) cover var(--fim);
+}
+
+@keyframes sobe-letra {
+  to { opacity: 1; transform: translateY(0) scaleX(1) scaleY(1); }
+}
+
+/* Sem ScrollTimeline: mesmo desenho, disparado uma vez ao entrar na tela. */
+.flutua[data-modo="gatilho"] .char {
+  transition: opacity .5s ease, transform .62s cubic-bezier(.3,1.2,.5,1);
+  transition-delay: var(--atraso);
+}
+.flutua[data-modo="gatilho"].visivel .char {
+  opacity: 1;
+  transform: translateY(0) scaleX(1) scaleY(1);
+}

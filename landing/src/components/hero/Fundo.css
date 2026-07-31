@@ -1,0 +1,89 @@
+/* ------------------------------------------------- as camadas de fundo
+   Tudo o que fica ATRÁS do conteúdo do hero, do mais distante ao mais
+   próximo: manchas âmbar, formas à deriva, véu e a tela das rotas.
+   As caixas caindo têm arquivo próprio (CaixasCaindo.css). */
+
+/* Cinco manchas grandes em vez de um foco só no centro: o âmbar passa a
+   ocupar a cena inteira em intensidade baixa, em vez de concentrar tudo
+   atrás do título. A deriva lenta é um transform só, que move as cinco
+   camadas juntas — bem mais barato que animar background-position. */
+.hero__malha {
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  background:
+    radial-gradient(42rem 30rem at 20% 14%,  var(--malha-2), transparent 62%),
+    radial-gradient(36rem 26rem at 78% 26%,  var(--malha-1), transparent 60%),
+    radial-gradient(50rem 32rem at 52% 74%,  var(--malha-2), transparent 64%),
+    radial-gradient(30rem 24rem at 6%  64%,  var(--malha-3), transparent 62%),
+    radial-gradient(34rem 26rem at 96% 84%,  var(--malha-3), transparent 60%),
+    radial-gradient(28rem 22rem at 38% 40%,  var(--malha-3), transparent 62%);
+  /* Duas animações no mesmo elemento: a deriva lenta e a entrada. */
+  animation:
+    malha-deriva 46s ease-in-out infinite,
+    hero-fundo 1.5s ease-out both;
+}
+
+@keyframes malha-deriva {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(2.5%, -2%, 0) scale(1.06); }
+}
+
+/* O contêiner recorta as formas na área do hero. */
+.formas { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+
+.forma {
+  position: absolute;
+  left: var(--l); top: var(--t);
+  width: var(--w); height: var(--h);
+  /* `both` em vez de `opacity: 0` na regra + `forwards`: mesma razão do
+     hero — assim a forma não some quando a animação é desligada. */
+  animation: forma-entra 2.4s cubic-bezier(.23,.86,.39,.96) var(--atraso) both;
+}
+
+.forma__corpo {
+  width: 100%; height: 100%;
+  border-radius: var(--r);
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--tom) 13%, transparent), transparent 72%),
+    linear-gradient(105deg, color-mix(in srgb, var(--tom) 18%, transparent), transparent 65%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 7%, transparent);
+  animation: forma-boia 13s ease-in-out infinite var(--atraso);
+}
+
+@keyframes forma-entra {
+  from { opacity: 0; transform: translateY(-150px) rotate(calc(var(--giro) - 15deg)); }
+  to   { opacity: 1; transform: translateY(0)      rotate(var(--giro)); }
+}
+
+@keyframes forma-boia {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(15px); }
+}
+
+/* O véu: apaga as formas contra o topo e a base para elas nunca disputarem a
+   leitura do texto nem cortarem seco no fim da seção. */
+.hero__veu {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top,
+    var(--papel) 0%,
+    transparent 27%,
+    transparent 74%,
+    color-mix(in srgb, var(--papel) 70%, transparent) 100%);
+}
+
+/* As rotas de entrega, em canvas. Ficam atrás de todo o conteúdo. */
+/* A tela das rotas.
+   NÃO tem máscara em CSS: ela existia para afastar as linhas do texto, e era
+   uma forma fixa tentando adivinhar onde o texto está — errava a cada mudança
+   de largura ou de quebra de linha. Quem faz isso agora é o próprio canvas,
+   que apaga o desenho sobre a área real do elemento (`apagarSobreTexto`). */
+.rotas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  animation: hero-fundo 1.5s ease-out both;
+}
+

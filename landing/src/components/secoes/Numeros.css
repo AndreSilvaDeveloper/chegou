@@ -1,0 +1,64 @@
+/* ------------------------------------------------------- painel de leituras
+   -------------------------------------------------------------------------
+   Quatro instrumentos numa linha. O que diferencia esta seção das outras é
+   que aqui o NÚMERO é o gráfico: ele é grande o bastante para ser a imagem,
+   e o resto (rótulo, descrição) o acompanha.
+
+   O trilho âmbar à esquerda é o `signal-rail` do design system — a mesma
+   marca que assinala item ativo no painel do produto.
+
+   Valor e mostrador dividem uma linha: é o par que faz o conjunto ler como
+   instrumento — leitura de um lado, face do outro. */
+
+.painel {
+  display: grid;
+  gap: 1px;
+  background: var(--borda);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  overflow: hidden;
+}
+@media (min-width: 640px)  { .painel { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .painel { grid-template-columns: repeat(4, 1fr); } }
+
+.leitura {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  padding: 1.75rem 1.5rem;
+  background: var(--papel);
+  /* O trilho: 3px inset à esquerda, como no item ativo do painel. */
+  box-shadow: inset 3px 0 0 0 var(--sinal);
+  transition: background-color .3s ease;
+}
+.leitura:hover { background: var(--card); }
+
+.leitura__rotulo { color: var(--tinta-fraca); }
+
+
+/* O valor é a imagem da seção: bem maior que a escala do painel do produto,
+   que tem um KPI de 36px. Aqui ele precisa funcionar como elemento visual. */
+.leitura__valor {
+  font-family: var(--mono);
+  /* Um degrau menor que antes: agora divide a linha com a face. */
+  font-size: clamp(2.5rem, 1.6rem + 3vw, 3.75rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.04em;
+  color: var(--sinal-leg);
+  margin-block: .1rem .25rem;
+}
+
+/* Valor à esquerda, mostrador à direita, alinhados pelo CENTRO.
+   Pela base não funcionava: cada cena ocupa uma faixa própria dentro do
+   viewBox, então alinhar as caixas deixava os desenhos em alturas diferentes.
+   Com a arte centrada em todas elas (ver CenaLeitura.tsx), o centro é o eixo
+   que vale para as quatro. */
+.leitura__linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+
