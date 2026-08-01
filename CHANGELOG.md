@@ -11,6 +11,34 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.6 — 2026-08-01
+
+### Alterado
+- **Menu do avatar (topo) reescrito.** Ele abre com um bloco de identidade
+  chapado — avatar, nome, papel e, embaixo, e-mail e condomínio. O condomínio
+  ali resolve a faixa entre `md` e `lg`, onde ele não aparece nem no cabeçalho
+  do celular nem no do desktop.
+- **Tema: o item mostra a escolha atual** ("Claro/Escuro/Sistema") à direita, com
+  o ícone do tema escolhido e uma marca de seleção no submenu. O par sol/lua
+  girando por CSS não conseguia representar "Sistema" e dependia de um `absolute`
+  sem `relative` em volta.
+- **`DropdownMenu` alinhado ao design system.** O conteúdo virou superfície
+  flutuante de verdade (`rounded-surface`, `border-surface`, `shadow-panel-lg`) e
+  cresce a partir do canto do gatilho; os itens perderam o canto vivo
+  (`rounded-xs` → raio de controle) e ganharam base única com `gap-2` +
+  `[&>svg]:size-4` — ícone em item novo não precisa mais de `mr-2`. Separador
+  agora sangra até a borda, e o rótulo de grupo virou `eyebrow`.
+- **Nada de âmbar no menu.** O anel de foco do avatar era o `--ring` âmbar e
+  puxava a atenção para o canto da tela; virou neutro (`ring-border`), e o
+  destaque do menu aberto é o próprio contorno do avatar. O sinal âmbar fica
+  reservado para ação.
+
+### Corrigido
+- Itens do menu não forçam mais `min-h-[44px]` (regra 17) — a altura vem do
+  padding, como em todo controle do shadcn.
+
+---
+
 ## 0.24.5 — 2026-08-01
 
 ### Corrigido

@@ -6,7 +6,7 @@ import {
   Package, PackagePlus, Building2, Users, HardHat, Building,
   Menu, LogOut, Sun, Moon, Laptop, BarChart3, Car, Megaphone, ListChecks,
   PanelLeftClose, PanelLeftOpen, Download, MessageCircle, LayoutDashboard,
-  Briefcase, ArrowLeftRight, Receipt, ScanText, ArrowLeft,
+  Briefcase, ArrowLeftRight, Receipt, ScanText, ArrowLeft, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuSub,
@@ -48,6 +47,13 @@ const ROLE_LABEL: Record<string, string> = {
   admin: 'Administradora',
   porteiro: 'Porteiro',
 };
+
+/** Opções do submenu de tema, na ordem em que aparecem. */
+const TEMAS = [
+  { value: 'light', label: 'Claro', icon: Sun },
+  { value: 'dark', label: 'Escuro', icon: Moon },
+  { value: 'system', label: 'Sistema', icon: Laptop },
+] as const;
 
 type NavItem = {
   path: string;
@@ -267,7 +273,10 @@ function LayoutInterno() {
   // Rota de volta declarada pela página (`PageShell voltar="…"`): troca o menu
   // pela seta na barra do topo.
   const rotaVoltar = useVoltar();
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  // O tema escolhido (não o resolvido): "Sistema" tem de aparecer como Sistema.
+  const temaAtual = TEMAS.find((t) => t.value === theme) ?? TEMAS[2];
+  const TemaIcon = temaAtual.icon;
   const { canInstall, isIOS, promptInstall } = useInstallPrompt();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1');
@@ -405,7 +414,7 @@ function LayoutInterno() {
                   variant="ghost"
                   size="icon"
                   aria-label="Abrir menu"
-                  className="shrink-0 rounded-full bg-banner-surface text-primary shadow-panel hover:bg-banner-surface/90"
+                  className="shrink-0 rounded-full bg-banner-surface text-foreground shadow-panel hover:bg-banner-surface/90"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -436,58 +445,92 @@ function LayoutInterno() {
               </span>
             )}
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 shrink-0 rounded-full p-0" aria-label="Conta">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-banner-surface font-mono txt-corpo font-semibold text-foreground">{initials}</AvatarFallback>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Conta"
+                  // O foco aqui é neutro, não âmbar: o anel de sinal em volta do
+                  // avatar puxava a atenção para o canto da tela o tempo todo.
+                  className="group shrink-0 rounded-full p-0 hover:bg-transparent focus-visible:ring-border"
+                >
+                  {/* O aberto se anuncia pelo próprio contorno do avatar, sem
+                      anel de cor: o âmbar é reservado para ação. */}
+                  <Avatar className="h-9 w-9 ring-1 ring-border-surface transition-colors group-data-[state=open]:ring-border">
+                    <AvatarFallback className="bg-banner-surface font-mono txt-corpo font-semibold text-foreground">{initials}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent className="w-64" align="end" sideOffset={8} forceMount>
+                {/* Quem está logado, em bloco chapado (nunca card dentro de
+                    card): avatar + nome + papel, e embaixo o que identifica a
+                    conta — e-mail e condomínio, que somem do topo entre md e lg. */}
+                <div className="rounded-lg bg-muted p-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar className="h-9 w-9 shrink-0">
+                      {/* Volta ao tom do popover: dentro do bloco chapado é o
+                          contraste com o `muted` que faz o avatar existir. */}
+                      <AvatarFallback className="bg-popover font-mono txt-corpo font-semibold text-foreground">{initials}</AvatarFallback>
                     </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-60" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col gap-1">
-                      <p className="txt-corpo font-semibold leading-none">{user?.nome}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate txt-subtitulo font-semibold leading-tight">{user?.nome}</p>
                       <p className="eyebrow">{ROLE_LABEL[userRole] ?? userRole}</p>
                     </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  {(canInstall || isIOS) && (
-                    <>
-                      <DropdownMenuItem onClick={handleInstall}>
-                        <Download className="mr-2 h-4 w-4" /><span>Instalar app</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
+                  </div>
+                  {user?.email && (
+                    <p className="mt-2 truncate txt-nota text-muted-foreground" title={user.email}>
+                      {user.email}
+                    </p>
                   )}
+                  {showTenant && (
+                    <p className="mt-1 flex items-center gap-1.5 txt-nota text-muted-foreground">
+                      <Building2 className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{nomeCondominio}</span>
+                    </p>
+                  )}
+                </div>
 
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Sun className="mr-2 h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                      <Moon className="absolute mr-2 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                      <span>Tema</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setTheme("light")}>
-                          <Sun className="mr-2 h-4 w-4" /><span>Claro</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("dark")}>
-                          <Moon className="mr-2 h-4 w-4" /><span>Escuro</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("system")}>
-                          <Laptop className="mr-2 h-4 w-4" /><span>Sistema</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenuSub>
+                <DropdownMenuSeparator />
 
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" /><span>Sair</span>
+                {(canInstall || isIOS) && (
+                  <DropdownMenuItem onClick={handleInstall}>
+                    <Download className="text-muted-foreground" />
+                    <span>Instalar app</span>
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                )}
+
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    {/* O ícone mostra o tema ESCOLHIDO — inclusive "Sistema",
+                        que o par sol/lua girando não conseguia representar. */}
+                    <TemaIcon className="text-muted-foreground" />
+                    <span>Tema</span>
+                    <span className="ml-auto txt-nota text-muted-foreground">{temaAtual.label}</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent className="w-40">
+                      {TEMAS.map(({ value, label, icon: Icon }) => (
+                        <DropdownMenuItem key={value} onClick={() => setTheme(value)}>
+                          <Icon className="text-muted-foreground" />
+                          <span>{label}</span>
+                          {theme === value && <Check className="ml-auto" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                >
+                  <LogOut />
+                  <span>Sair</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 

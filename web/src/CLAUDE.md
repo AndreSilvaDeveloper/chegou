@@ -227,6 +227,37 @@ faz o seu `max-h` vencer o da base, e `vh` no celular inclui a barra do
 navegador — é exatamente o que fazia o diálogo ser cortado em cima e embaixo.
 Altura de diálogo se mede em `dvh`.
 
+O **X de fechar mora no `DialogHeader`**, em linha com o título — não flutuando
+`absolute` no canto do `DialogContent`, onde cobria títulos longos. Consequência
+prática: um diálogo **sem** `DialogHeader` não tem como ser fechado no X. Se a
+tela não precisa de título, ela ainda precisa do header (com um `DialogTitle`
+em `sr-only`, que o Radix exige de todo jeito por acessibilidade).
+
+### Menu suspenso: o ícone do item não leva `mr-2`
+
+`DropdownMenuItem`, `DropdownMenuSubTrigger`, checkbox e radio compartilham uma
+base única (`ITEM_BASE`, em `components/ui/dropdown-menu.tsx`) com `gap-2` e
+`[&>svg]:size-4`. O ícone entra solto — `<Download />`, sem classe de tamanho e
+sem margem:
+
+```tsx
+<DropdownMenuItem onClick={…}>
+  <Download className="text-muted-foreground" />
+  <span>Instalar app</span>
+  {ativo && <Check className="ml-auto" />}   {/* marca à direita */}
+</DropdownMenuItem>
+```
+
+A base **não** define cor de ícone de propósito: uma regra `[&>svg]:text-…`
+venceria a classe posta no próprio `svg` (seletor de descendente ganha do
+seletor de classe simples) e engoliria o `text-primary`/`opacity-0` de quem
+precisa colorir ou esconder o ícone — foi o que quase quebrou o `SimpleSelect`.
+Cor de ícone se põe no ícone.
+
+O conteúdo é uma **superfície flutuante** como o diálogo: `rounded-surface`,
+`border-surface` e `shadow-panel-lg` já vêm da base — a tela passa só a largura
+(`className="w-64"`).
+
 ### Nunca declare um componente dentro de outro
 
 ```tsx
