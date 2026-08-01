@@ -11,6 +11,25 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.5 — 2026-08-01
+
+### Corrigido
+- **O botão de fechar do diálogo cobria o título.** Ele era `absolute` no canto
+  do `DialogContent` e flutuava por cima do texto sempre que o título ocupava a
+  largura toda. Agora ele vive dentro do `DialogHeader`, em linha: o
+  título/descrição ficam com todo o espaço que sobra (`flex-1` + `min-w-0`, para
+  o título quebrar em vez de empurrar o botão para fora) e o X ocupa só o
+  próprio ícone, encostado no canto por margem negativa — sem aumentar a altura
+  do cabeçalho.
+- **O `DialogHeader` tinha parado de renderizar o conteúdo.** O `children` vinha
+  pelo spread de props e era descartado pelo filho explícito (o botão de
+  fechar), então título e descrição não apareciam. O componente passou a receber
+  `children` como prop e renderizá-lo.
+- Alvo de toque do fechar deixou de forçar `min-h-[44px]/min-w-[44px]` à mão
+  (regra 17) — agora é o ícone com padding.
+
+---
+
 ## 0.24.4 — 2026-07-31
 
 ### Alterado

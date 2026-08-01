@@ -405,7 +405,7 @@ function LayoutInterno() {
                   variant="ghost"
                   size="icon"
                   aria-label="Abrir menu"
-                  className="shrink-0 rounded-full bg-banner-surface text-foreground shadow-panel hover:bg-banner-surface/90"
+                  className="shrink-0 rounded-full bg-banner-surface text-primary shadow-panel hover:bg-banner-surface/90"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>

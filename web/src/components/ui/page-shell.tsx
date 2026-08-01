@@ -114,7 +114,7 @@ export function PageShell({
         placeholder={busca.placeholder ?? 'Buscar…'}
         aria-label={busca.placeholder ?? 'Buscar'}
         className={cn(
-          'h-9 w-full rounded-full border px-3 pl-9 txt-corpo text-foreground shadow-xs transition-colors',
+          'h-[40px] w-full rounded-full border px-3 pl-9 txt-corpo text-foreground shadow-xs transition-colors',
           'placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
           // Dentro da faixa o campo usa a superfície DELA (branco no claro), que
           // é o que o destaca do âmbar. No desktop, onde não há faixa, volta a
@@ -132,7 +132,7 @@ export function PageShell({
       size="icon"
       aria-label={filtrosAtivos > 0 ? `Filtros (${filtrosAtivos} ativos)` : 'Filtros'}
       onClick={() => setFiltrosAbertos(true)}
-      className="relative shrink-0 rounded-full border-banner-border bg-banner-surface text-foreground md:border-input md:bg-background"
+      className="relative shrink-0 w-[40px] h-[40px] rounded-full border-banner-border bg-banner-surface text-foreground md:border-input md:bg-background"
     >
       <SlidersHorizontal className="h-4 w-4" />
       {filtrosAtivos > 0 && (
@@ -204,7 +204,7 @@ export function PageShell({
           // exatamente o raio do `rounded-t-3xl`, então o arco do canto cai
           // inteiro sobre o âmbar. Com sobreposição menor que o raio, o pé do
           // arco revelava o fundo da página e o entalhe sumia.
-          'bg-banner px-4 pb-8 text-banner-foreground',
+          'bg-banner px-4 pb-12 text-banner-foreground',
           // No desktop a faixa se dissolve: sem cor, sem padding próprio.
           'md:bg-transparent md:px-0 md:pb-0 md:text-foreground',
         )}
@@ -228,7 +228,7 @@ export function PageShell({
         </div>
 
         {(campoBusca || botaoFiltro) && (
-          <div className="mt-4 flex items-center gap-2 md:max-w-lg">
+          <div className="mt-3 flex items-center gap-2 md:max-w-lg">
             {campoBusca}
             {botaoFiltro}
           </div>
@@ -236,7 +236,7 @@ export function PageShell({
 
         {/* No desktop as ações ficam na mesma linha do cabeçalho. No celular
             elas descem para a folha branca, onde há largura para os rótulos. */}
-        {acoes && <div className="mt-4 hidden flex-wrap gap-2 md:flex">{acoes}</div>}
+        {acoes && <div className="mt-3 hidden flex-wrap gap-2 md:flex">{acoes}</div>}
       </div>
 
       {/* ---- A folha: sobe por cima da faixa com o canto arredondado ---- */}
@@ -252,7 +252,7 @@ export function PageShell({
           //
           // Uma extensão do editor também já injetou `h-dvh` aqui; se voltar,
           // trunca qualquer lista maior que a tela.
-          '-mt-6 rounded-t-3xl bg-background px-4 pb-10 pt-5',
+          '-mt-8 rounded-t-4xl bg-background px-4 pb-10 pt-5',
           'md:mt-6 md:rounded-none md:bg-transparent md:px-0 md:pb-0 md:pt-0',
         )}
       >
