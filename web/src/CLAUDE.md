@@ -378,9 +378,12 @@ const FILTROS: OpcaoSegmento<Filtro>[] = [
 
 Três coisas que **não** se refazem na tela:
 
-1. **Nada de `grid-cols-N` no `TabsList`.** Coluna de largura fixa espremia
-   "Pendentes" e "Cancelados" em 375px. O trilho quebra linha (`flex-wrap`) e a
-   largura sai do rótulo. Também nada de rolagem horizontal.
+1. **O trilho é uma linha só, que rola quando não cabe.** Nada de `grid-cols-N`
+   (coluna fixa espremia "Pendentes" e "Cancelados" em 375px) e nada de
+   `flex-wrap` — quebrar linha deixava "Todos" sozinho numa segunda fita num S24
+   Ultra, e o controle parecia quebrado. Com `flex-nowrap` + `overflow-x-auto`
+   ele só rola quando precisa, sem barra à vista, e o `SegmentedFilter` traz o
+   selecionado para a vista sozinho.
 2. **Nada de altura forçada** (`min-h-[44px]`) — a altura vem do padding, como
    em todo controle do shadcn (regra 17).
 3. **O selecionado não é âmbar.** O sinal é da ação, e nessas telas o botão

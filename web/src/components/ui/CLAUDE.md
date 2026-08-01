@@ -108,8 +108,10 @@ passo a passo, bloco de ícone, resumo — tudo.
 ### 6. Mobile-first, e 375px é a medida
 
 Estilo base é o do celular; `sm:`/`md:` só amplia. Grade começa em
-`grid-cols-1`. **Nada rola na horizontal** — nem página, nem tabela, nem trilho
-de abas. Botão de ícone precisa de `aria-label`.
+`grid-cols-1`. **A página nunca rola na horizontal** — e tabela vira card no
+celular em vez de rolar. A exceção é o **trilho segmentado**, que rola sozinho
+quando não cabe (ver abaixo): ali quebrar linha ficava pior. Botão de ícone
+precisa de `aria-label`.
 
 ---
 
@@ -165,8 +167,13 @@ As classes moram em `tabs.tsx` (`TRILHO_SEGMENTADO`, `SEGMENTO`,
 - **Filtro** mantém o conteúdo e muda o recorte → botões com `aria-pressed`.
 
 Na dúvida: se ao clicar troca o que a tela mostra, é aba; se filtra a mesma
-lista, é filtro. Nunca `grid-cols-N` no trilho — ele quebra linha e a largura sai
-do rótulo.
+lista, é filtro.
+
+**O trilho é uma linha só e rola quando não cabe.** Nunca `grid-cols-N` (coluna
+fixa espreme o rótulo) e nunca `flex-wrap` (num S24 Ultra sobrava "Todos"
+sozinho numa segunda fita, e o controle parecia quebrado). Cabendo, ele fica
+parado; o `SegmentedFilter` ainda traz o selecionado para a vista sozinho quando
+a seleção vem de fora ou a tela abre já filtrada.
 
 Precisa de um par ligado/desligado com a mesma cara (tipo de pacote, por
 exemplo)? Importe `SEGMENTO`/`SEGMENTO_ATIVO` e monte os botões — é o mesmo
@@ -251,7 +258,8 @@ Cada uma custou uma sessão. Não as recompre.
 |---|---|
 | X do diálogo `absolute` no canto | Cobria o título longo. Ele vive no `DialogHeader`, em linha |
 | Ação de card como botão largo no rodapé | A mesma lista parecia outro tipo de registro conforme a tela |
-| `grid-cols-4` no trilho de filtros | Espremia "Pendentes" e "Cancelados" em 375px. Trilho quebra linha |
+| `grid-cols-4` no trilho de filtros | Espremia "Pendentes" e "Cancelados" em 375px |
+| Trocar a grade por `flex-wrap` no trilho | Resolveu o aperto e criou outro: "Todos" descia sozinho para uma segunda fita. Trilho é uma linha só, que rola |
 | Pílula selecionada em `bg-card` sobre `bg-muted` | Dentro do card lia como "mais escuro"; na folha ficava mais clara que o fundo e sumia. Daí os tokens `--segmented*` |
 | Empilhar 3 séries no gráfico de volume | Uma era subconjunto da outra e a terceira contava por outra data: a pilha desenhava um total inexistente |
 | Hexadecimal na cor da série | Não acompanha o tema — o azul de fundo claro continuava igual no escuro |

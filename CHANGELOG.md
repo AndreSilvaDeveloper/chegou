@@ -11,6 +11,23 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.17 — 2026-08-01
+
+### Corrigido
+- **O trilho de abas e filtros quebrava linha no celular.** Em Encomendas, num
+  S24 Ultra, "Todos" descia sozinho para uma segunda fita e o controle parecia
+  quebrado — em aparelho menor, pior. Ele passou a ser **uma linha só que rola na
+  horizontal quando não cabe** (`flex-nowrap` + `overflow-x-auto`, sem barra à
+  vista): cabendo, fica parado; não cabendo, o segmento cortado na borda mostra
+  que há mais. Vale para os filtros (Encomendas, Filas, Locações) e para as abas
+  — inclusive as sete de "Meu condomínio", que empilhavam em quatro fitas.
+- **O `SegmentedFilter` traz o selecionado para a vista.** Com o trilho rolando,
+  o filtro ativo podia ficar fora do trecho visível — ao abrir a tela já
+  filtrada, ou quando outro controle muda a seleção (nas Filas, os cartões de
+  status fazem isso). A tela mostrava a lista filtrada sem nada marcado à vista.
+
+---
+
 ## 0.24.16 — 2026-08-01
 
 ### Documentação

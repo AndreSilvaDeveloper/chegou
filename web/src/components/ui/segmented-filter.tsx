@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SEGMENTO, SEGMENTO_ATIVO, TRILHO_SEGMENTADO } from '@/components/ui/tabs';
@@ -57,6 +58,24 @@ export function SegmentedFilter<T extends string>({
   aria,
   className,
 }: SegmentedFilterProps<T>) {
+  const selecionadoRef = useRef<HTMLButtonElement>(null);
+
+  /**
+   * Traz o selecionado para a vista quando o trilho está rolado.
+   *
+   * O trilho rola em vez de quebrar linha, então o filtro ativo pode estar fora
+   * do trecho visível — ao abrir a tela com um filtro já escolhido, ou quando
+   * outro controle muda a seleção (nas Filas, os cartões de status fazem isso).
+   * Sem isto, a tela mostraria uma lista filtrada sem nada marcado à vista.
+   *
+   * `inline: 'nearest'` só rola o necessário, e `block: 'nearest'` impede que o
+   * navegador role a PÁGINA junto — que é o efeito colateral clássico deste
+   * método.
+   */
+  useEffect(() => {
+    selecionadoRef.current?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }, [valor]);
+
   return (
     <div role="group" aria-label={aria} className={cn(TRILHO_SEGMENTADO, className)}>
       {opcoes.map((opcao) => {
@@ -65,6 +84,7 @@ export function SegmentedFilter<T extends string>({
         return (
           <button
             key={opcao.valor}
+            ref={ativo ? selecionadoRef : undefined}
             type="button"
             aria-pressed={ativo}
             onClick={() => aoMudar(opcao.valor)}
