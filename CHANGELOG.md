@@ -11,6 +11,30 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.16 — 2026-08-01
+
+### Documentação
+- **Catálogo da identidade visual** em `web/src/components/ui/CLAUDE.md` — ele é
+  carregado sozinho por quem trabalha em `components/ui/`. Traz "quero X → use
+  Y", as **seis leis** (cor de token com o âmbar reservado à ação, escala
+  tipográfica, tamanho de controle do componente, quatro superfícies sem card
+  dentro de card, raio por papel, mobile-first em 375px), o contrato de cada
+  peça (`PageShell`, `ListCard`, `Tabs`/`SegmentedFilter`, diálogos, `Button`,
+  `StatCard`, gráficos, `DropdownMenu`), o checklist de PR e uma tabela de
+  **armadilhas já pagas** — cada linha é um conserto que já custou uma sessão.
+- **Skill `tela-frontend` atualizada**: o esqueleto de página usava `PageHeader`,
+  que não existe mais (é `PageShell`), e dizia que o `FormDialog` empilha botões
+  no celular, o que deixou de valer. Ganhou as regras de âmbar, cor por token,
+  diálogo para toda sobreposição, controle segmentado e gráfico.
+- **Skill `tela-listagem` atualizada**: o exemplo do `ListCard` ainda repetia no
+  campo o que o título já dizia e não mostrava `subtitulo`, `campo.icone` nem
+  `campo.enfase`. Agora explica os três níveis de leitura e a diferença entre
+  `acoes` e `rodape`.
+- `CLAUDE.md` raiz: seção "Identidade visual" nas regras obrigatórias, a skill
+  `dataviz` na tabela de skills e o catálogo na tabela de docs.
+
+---
+
 ## 0.24.15 — 2026-08-01
 
 ### Corrigido

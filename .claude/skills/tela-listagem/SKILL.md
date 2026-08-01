@@ -139,7 +139,7 @@ Use `ListCard`. A anatomia é fixa — é ela que faz as telas parecerem irmãs:
 <ListCard
   icone={Building2}
   titulo={<span className="font-mono">{a.identificador}</span>}
-  selo={a.bloco ? <Badge variant="outline">{a.bloco}</Badge> : undefined}
+  subtitulo={a.bloco ? `Bloco ${a.bloco} · Unidade ${a.numero}` : `Unidade ${a.numero}`}
   acoes={
     <>
       <Button variant="ghost" size="icon-sm" aria-label={`Editar ${a.identificador}`}>
@@ -151,19 +151,31 @@ Use `ListCard`. A anatomia é fixa — é ela que faz as telas parecerem irmãs:
     </>
   }
   campos={[
-    { rotulo: 'Bloco', valor: a.bloco || '—' },
-    { rotulo: 'Número', valor: <span className="font-mono">{a.numero}</span> },
-    { rotulo: 'Observações', valor: a.observacoes, largura: 'inteira' },
+    { rotulo: 'Observações', icone: StickyNote, valor: a.observacoes, largura: 'inteira' },
   ]}
 />
 ```
 
-- **Rótulo pequeno apagado em cima, valor legível embaixo.** Substitui o cabeçalho
-  da tabela; sem ele o card vira valores sem nome.
-- **Duas colunas.** `largura: 'inteira'` só para texto longo (e-mail, observação).
+**Três níveis de leitura, nesta ordem** — é isso que dá hierarquia em vez de uma
+pilha de campos iguais:
+
+1. `titulo` — o que identifica (nome, `A-101`, `Vaga 12`).
+2. `subtitulo` — o que confirma **qual** registro é (a unidade do morador, o
+   e-mail do acesso, o tipo da vaga). Apagado, não briga com o título.
+3. `campos` — o resto, com o rótulo em `eyebrow` fazendo o papel do cabeçalho da
+   tabela. Sem ele o card vira valores sem nome.
+
+- **Não repita no campo o que o título já diz.** Se o título é `A-101`, "Bloco" e
+  "Número" não acrescentam nada — vão para o subtítulo, por extenso.
+- **Duas colunas.** `largura: 'inteira'` só para texto longo (e-mail, observação);
+  a meia largura corta com reticências, a inteira quebra linha.
+- `campo.icone` ajuda a achar o campo sem ler; `campo.enfase` sobe o valor —
+  **um por card**, o dado que a tela existe para mostrar.
 - **No máximo 3 ou 4 campos.** O card é uma *escolha* do que importa no celular,
   não a tabela empilhada. Coluna que só existe para ordenar não entra.
-- **Botão só de ícone exige `aria-label`** com o nome do registro.
+- **Ação de registro é botão de ícone em `acoes`**, com `aria-label` que nomeia o
+  registro. Botão largo no pé (`rodape`) é para **aviso**, não para ação: ele faz
+  a mesma lista parecer outro tipo de registro conforme a tela.
 
 ## Checklist antes de dar por pronta
 
@@ -175,7 +187,10 @@ Use `ListCard`. A anatomia é fixa — é ela que faz as telas parecerem irmãs:
       vem cortada pelo backend, vai ao servidor com `useDebounce`.
 - [ ] Botão de filtro só existe se a gaveta existe.
 - [ ] Se a tela também vive numa aba, `embutido` está sendo passado.
-- [ ] Página magra: sem `PageHeader`, sem `<div className="space-y-6 pb-10">`.
+- [ ] Página magra: sem cabeçalho próprio, sem `<div className="space-y-6 pb-10">`.
+- [ ] Ações do card são botões de ícone (não botão largo no rodapé).
+- [ ] Filtro de situação usa `SegmentedFilter`, não um trilho desenhado à mão.
+- [ ] Checklist do catálogo (`web/src/components/ui/CLAUDE.md`) passou.
 - [ ] `npx tsc --noEmit -p tsconfig.json` e `npm run build` na pasta `web/`.
 - [ ] Doc do frontend (`web/src/CLAUDE.md`) e versão + CHANGELOG.
 

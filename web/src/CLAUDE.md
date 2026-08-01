@@ -5,6 +5,12 @@ celular, em pé na portaria — é por isso que tudo aqui é mobile-first. Os
 tamanhos (texto e controle) são os **padrões do shadcn/ui**: o projeto já teve
 uma escala aumentada para público mais velho, e essa premissa saiu.
 
+> **Vai desenhar tela ou componente?** O catálogo da identidade visual é
+> [components/ui/CLAUDE.md](components/ui/CLAUDE.md): "quero X → use Y", as seis
+> leis (cor, escala, tamanho de controle, superfícies, raio, mobile), o checklist
+> de PR e a lista de armadilhas já pagas. Este arquivo aqui cobre as **telas** —
+> acesso, dados, rotas e as decisões de cada área.
+
 ## Estrutura
 
 ```

@@ -333,6 +333,7 @@ naquela pasta.
 | Storage | [src/modules/storage](src/modules/storage/CLAUDE.md) | Upload de fotos e contratos (S3/MinIO/R2) |
 | Common | [src/common](src/common/CLAUDE.md) | Guards, decorators, escopo de tenant e auditoria |
 | Frontend | [web/src](web/src/CLAUDE.md) | Páginas, componentes, hooks e client da API |
+| Componentes de UI | [web/src/components/ui](web/src/components/ui/CLAUDE.md) | **Catálogo da identidade visual**: quero X → use Y, as seis leis, checklist de PR |
 
 ---
 
@@ -380,6 +381,12 @@ mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a do
 | `tela-frontend` | Criar página ou diálogo no painel, com os padrões de UI e de acesso |
 | `tela-listagem` | Montar ou converter uma tela de listagem/cadastro no layout padrão (faixa âmbar no celular, tabela no desktop) |
 | `auditar-multitenant` | Revisar isolamento entre condomínios depois de mexer em query, guard ou DTO |
+| `dataviz` (embutida) | **Antes** de escrever qualquer gráfico ou escolher cor de série — traz o validador de paleta |
+
+> **A identidade visual não é skill, é doc**: ela vive em
+> [web/src/components/ui/CLAUDE.md](web/src/components/ui/CLAUDE.md) e é
+> carregada sozinha ao trabalhar em `components/ui/`. As skills de tela apontam
+> para lá em vez de repetir as regras — regra repetida é regra que diverge.
 
 ---
 
@@ -765,6 +772,24 @@ passaria a acontecer no meio do que o porteiro estiver digitando.
     (`rounded-lg bg-muted`, sem borda e sem sombra). Ver "Hierarquia de superfícies"
 24. **SEMPRE** dar `mobileCard` ao `DataTable` — lista de registros é card no
     celular e tabela no desktop; tabela nunca rola na horizontal
+
+### Identidade visual
+> Detalhe, exemplos e checklist: [web/src/components/ui](web/src/components/ui/CLAUDE.md)
+
+24.1. **NUNCA** usar âmbar (`primary`) como decoração — ele é da **ação e do
+    foco**. Aba selecionada, passo atual, ícone de card e borda de destaque se
+    marcam por degrau de tom, não por cor de sinal
+24.2. **NUNCA** escrever cor à mão (`#hex`, `bg-sky-500`) — inclusive em
+    gráfico, onde as cores saem de `web/src/lib/graficos.ts`
+24.3. **SEMPRE** usar o `Dialog` para qualquer sobreposição (formulário, câmera,
+    espera) — overlay próprio sempre diverge em raio, rolagem e botão de fechar
+24.4. **SEMPRE** usar `Tabs` (troca conteúdo) ou `SegmentedFilter` (filtra a
+    mesma lista) — nunca desenhar um trilho de abas/filtros à mão
+24.5. **SEMPRE** pôr ação de registro em botão de ícone (`acoes` do `ListCard`);
+    botão largo no rodapé é para aviso, não para ação
+24.6. **NUNCA** empilhar num gráfico o que não soma um todo real (subconjunto
+    com o conjunto, contagens de datas diferentes), e não misturar fluxo com
+    estoque no mesmo eixo
 
 ### Acesso e multitenant
 25. **SEMPRE** perguntar quais perfis acessam uma funcionalidade nova, antes de

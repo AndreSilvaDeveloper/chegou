@@ -15,6 +15,11 @@ Antes: rode o fluxo da skill `funcionalidade-nova` (perfis de acesso).
 > ela tem a casca própria dessas telas (faixa âmbar no celular com título, busca
 > e filtro; tabela no desktop). Esta skill aqui vale para o resto.
 
+> **O catálogo de componentes é `web/src/components/ui/CLAUDE.md`** — ele
+> responde "quero X, uso Y", traz as seis leis da identidade e a lista de
+> armadilhas já pagas. Leia antes de desenhar qualquer controle: quase tudo já
+> existe, e o que não existe deve nascer lá, não na página.
+
 ## Anatomia de uma página
 
 ```tsx
@@ -22,24 +27,37 @@ export function MinhaTela() {
   const query = useQuery({ queryKey: ['coisas'], queryFn: () => api.get<Coisa[]>('/coisas') });
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader icon={Algo} eyebrow="Área" title="Título" description="O que é">
-        <Button className="w-full sm:w-auto">
+    <PageShell
+      icon={Algo}
+      eyebrow="Área"
+      title="Título da tela"           // caixa de sentença, não Title Case
+      description="O que é"
+      acoes={
+        <Button className="flex-1 rounded-full sm:flex-none">
           <Plus className="mr-2 h-4 w-4" /> Ação principal
         </Button>
-      </PageHeader>
-
-      {query.isLoading ? (
-        <Skeleton className="h-40 w-full rounded-xl" />       // nunca "Carregando..."
-      ) : (query.data ?? []).length === 0 ? (
-        <EmptyState icon={Algo} title="Nada por aqui" description="..." actionLabel="Criar" onAction={...} />
-      ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">...</div>
-      )}
-    </div>
+      }
+    >
+      <div className="space-y-6">
+        {query.isLoading ? (
+          <Skeleton className="h-40 w-full rounded-surface" />   // nunca "Carregando..."
+        ) : (query.data ?? []).length === 0 ? (
+          <EmptyState icon={Algo} title="Nada por aqui" description="..." actionLabel="Criar" onAction={...} />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">...</div>
+        )}
+      </div>
+    </PageShell>
   );
 }
 ```
+
+A página é **magra**: quem desenha cabeçalho, busca, faixa âmbar e padding é o
+`PageShell`. Em tela de detalhe ou formulário, passe `voltar="/rota"` — o botão
+da esquerda vira a seta em vez do menu.
+
+**Não embrulhe `acoes` num `<div>`**: o embrulho vira um item só da fita de
+botões e o `flex-1` de cada um para de funcionar.
 
 ## Tamanho de texto: escolha o papel, não o número
 
@@ -90,12 +108,22 @@ classe — mas escreva um comentário dizendo o porquê, senão é só divergên
 - **Card dentro de card é proibido.** Bloco interno é chapado:
   `rounded-lg bg-muted`, sem borda e sem sombra.
 - **Busca e ações ficam fora do card da lista** — elas comandam a lista.
-- Testar em **375px** de largura.
+- **Âmbar é da ação e do foco.** Nunca em aba selecionada, passo atual, ícone
+  decorativo ou borda de card: o botão âmbar costuma estar na mesma dobra, e
+  dois âmbares fazem ele deixar de saltar. Seleção se marca por degrau de tom.
+- **Cor sai de token** (`bg-card`, `bg-muted`, `text-muted-foreground`) — nunca
+  `#hex`, nunca `bg-sky-500` solto fora de estado semântico.
+- **Toda sobreposição é `Dialog`** — inclusive câmera, visor e bloqueio de
+  espera. Overlay próprio (`fixed inset-0`) sempre diverge em raio, rolagem e X.
+- **Controle segmentado**: `Tabs` quando troca o conteúdo, `SegmentedFilter`
+  quando filtra a mesma lista. Nunca desenhe o trilho à mão.
+- Testar em **375px** de largura, **nos dois temas**.
 
 ## Formulário
 
-Use `FormDialog` (`@/components/ui/form-dialog`): ele já cuida de rolagem em tela
-pequena, botões empilhados no celular e estado "salvando".
+Use `FormDialog` (`@/components/ui/form-dialog`): ele já cuida da rolagem em tela
+pequena, do rodapé (uma linha, botões nas pontas, em qualquer viewport) e do
+estado "salvando".
 
 ```tsx
 <FormDialog
@@ -129,7 +157,19 @@ Referência pronta: `web/src/components/vagas/VagaFormDialog.tsx`.
   mandada para `/meus-condominios` automaticamente — só marque `semCondominio`
   em tela que funciona sem condomínio.
 
+## Gráfico na tela
+
+Cor, eixo, grade e ponta de barra saem de `lib/graficos.ts` — nenhum hexadecimal
+na tela. Antes da cor, confira a **forma**: só empilhe o que soma um todo real
+(subconjunto com o conjunto, ou contagens de datas diferentes, não somam), e
+fluxo não divide eixo com estoque. Para mudar paleta, rode o validador da skill
+`dataviz`.
+
 ## Fechar
 
-`cd web && npx tsc --noEmit -p tsconfig.json && npx vite build` e atualize
-`web/src/CLAUDE.md` (tela nova, componente novo, hook novo).
+1. `cd web && npx tsc --noEmit -p tsconfig.json && npx vite build`.
+2. Rode o checklist do catálogo (`web/src/components/ui/CLAUDE.md`, seção
+   "Antes de abrir o PR").
+3. Atualize `web/src/CLAUDE.md` (tela nova, hook novo) e, se criou peça
+   reutilizável, o catálogo + a tabela de peças do `CLAUDE.md` raiz.
+4. `npm run versao correcao` e a linha no `CHANGELOG.md`, no mesmo commit.
