@@ -56,6 +56,25 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, loading, children, disabled, rounded, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+
+    // Com `asChild`, o Slot recebe o próprio filho (um `<a>`, por exemplo) e
+    // clona as props nele — e ele aceita UM filho só. O spinner ao lado fazia
+    // dois, e o Radix derrubava a tela com "React.Children.only expected to
+    // receive a single React element child". Era o que quebrava "Ver contrato"
+    // na locação de vaga. Botão com `asChild` não tem estado de carregando:
+    // link não carrega, navega.
+    if (asChild) {
+      return (
+        <Comp
+          className={cn(buttonVariants({ variant, size, className, rounded }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Comp>
+      );
+    }
+
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className, rounded }))}

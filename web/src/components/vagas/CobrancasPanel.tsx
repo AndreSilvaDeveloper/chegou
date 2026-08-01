@@ -464,16 +464,15 @@ function PagamentoDialog({
             />
           </div>
 
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <DialogFooter className="pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={salvando} className="w-full sm:w-auto">
+            <Button type="submit" disabled={salvando}>
               {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirmar pagamento
             </Button>

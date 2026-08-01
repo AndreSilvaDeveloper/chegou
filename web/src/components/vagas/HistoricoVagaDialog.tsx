@@ -190,12 +190,8 @@ export function HistoricoVagaDialog({
           </div>
         )}
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
-          >
+        <DialogFooter className="pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
         </DialogFooter>

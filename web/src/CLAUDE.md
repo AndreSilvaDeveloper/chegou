@@ -261,6 +261,69 @@ O conteúdo é uma **superfície flutuante** como o diálogo: `rounded-surface`,
 `border-surface` e `shadow-panel-lg` já vêm da base — a tela passa só a largura
 (`className="w-64"`).
 
+### Rodapé de diálogo: uma linha, botões nas pontas
+
+`DialogFooter` já é `flex flex-row justify-between` — passe só `pt-4` e deixe os
+dois botões (cancelar à esquerda, confirmar à direita) no tamanho natural. Vale
+em qualquer viewport: empilhar no celular fazia o mesmo formulário ter dois
+desenhos conforme a tela onde foi escrito. `FormDialog` já entrega isso pronto.
+
+### `Button asChild` não tem estado de carregando
+
+`asChild` entrega o próprio filho ao `Slot` do Radix, e ele aceita **um** filho.
+O `Button` injeta o spinner ao lado de `children`, o que dava dois — e o Radix
+derruba a tela inteira com um erro de Slot. O componente trata isso: com
+`asChild` ele renderiza só o filho, sem spinner (link não carrega, navega). Foi
+o que quebrava "Ver contrato" na locação de vaga.
+
+### Gráfico: a cor vem de `lib/graficos.ts`, e a forma tem que ser honesta
+
+Nenhum hexadecimal em tela de gráfico. As séries apontam para os tokens
+`--chart-*`, que já têm passo próprio no claro e no escuro — hex fixo não
+acompanha o tema, e era o que fazia o azul de fundo claro continuar igual no
+escuro.
+
+| Papel | Constante | Quando |
+|---|---|---|
+| Série de entrada | `SERIE_ENTRADA` | volume que chega (azul) |
+| Série de saída | `SERIE_SAIDA` | volume que sai (verde) |
+| Estado | `ESTADO_BOM` / `ESTADO_ATENCAO` / `ESTADO_ALERTA` / `ESTADO_FALHA` | significado fixo, sempre com rótulo |
+| Faixa ordenada | `corDeEspera(i, total)` | escalas melhor→pior (idade do estoque, tempo até a retirada) |
+
+**Estado nunca vira "a quarta série".** Se o vermelho de falha for reaproveitado
+como categoria, o leitor perde a única cor que era certa.
+
+Eixos, grade e ponta de barra também saem de lá (`EIXO_X`, `EIXO_Y`, `GRADE`,
+`PONTA_BARRA`) — era isso que fazia um gráfico ter grade vertical e o outro não.
+
+**Antes de mudar cor de gráfico, rode o validador** da skill `dataviz`
+(`node scripts/validate_palette.js "<hex,hex>" --mode light|dark`): ele mede
+faixa de luminosidade, saturação mínima, separação sob daltonismo e contraste
+com a superfície. Foi ele que reprovou os passos escuros de `--chart-4/5`
+(estavam em L 0,77 e 0,72, fora da faixa 0,48–0,67) e apontou os valores que
+passam.
+
+**A forma é a outra metade.** Empilhar só vale quando as partes somam um todo
+real. O gráfico do Dashboard empilhava `recebidas + retiradas + pendentes`, e
+essa soma não existe: `pendentes` é subconjunto de `recebidas`, e `retiradas`
+conta por outra data (a da retirada). Hoje o gráfico mostra os dois fluxos lado
+a lado e o estoque aparece em texto — fluxo e estoque não dividem eixo.
+
+### Diálogo é sempre o `Dialog` — inclusive câmera e espera
+
+`ScannerModal` e o bloqueio "Lendo a etiqueta" tinham overlay próprio (`fixed
+inset-0` + `bg-black/70` na mão), cada um com o seu raio, a sua rolagem e o seu
+X. Hoje os dois usam `Dialog`: mesma superfície, mesmo `rounded-4xl`, rolagem em
+`dvh`, Escape e clique fora de graça.
+
+Dois cuidados que ficaram:
+
+- **Fechar precisa ter significado.** No diálogo de espera, `onOpenChange`
+  aborta a leitura — fechar sem abortar deixaria o OCR terminando sozinho e
+  preenchendo campos depois que o porteiro já desistiu.
+- **Trocar de modo não remonta o diálogo.** O nó do `<video>` só some quando o
+  próprio modo deixa de mostrá-lo. Era o medo que mantinha o overlay manual.
+
 ### Encomenda: o estado tem um mapa só
 
 `components/encomendas/encomenda-status.ts` guarda `label` (texto curto do
@@ -505,9 +568,12 @@ Sem o rótulo, o card vira uma lista de valores sem nome. Outros recursos:
   enfatizam nada.
 - `campo.largura: 'inteira'` — texto longo (e-mail, observação). Meia coluna
   corta com reticências; a inteira **quebra linha**, senão a observação sumia.
-- `rodape` — ações com texto (Editar, Histórico), ou um aviso do registro. Fica
+- `rodape` — um aviso do registro (a falha de WhatsApp na encomenda). Fica
   colado no pé do card: numa grade, os cards de uma linha esticam para a mesma
-  altura e os rodapés se alinham.
+  altura e os rodapés se alinham. **Ação de registro não vai aqui**: editar,
+  remover, ver histórico são botões de ícone em `acoes`, como em Moradores,
+  Equipe e Vagas. Botão largo no pé fazia a mesma lista parecer outro tipo de
+  registro conforme a tela.
 - `acoes` (canto superior) é **só para botão de ícone** — as margens negativas
   de lá alinham o ícone com a borda do card. Conteúdo que não é botão vai em
   `destaque` (é onde fica o `CodigoStrip` da encomenda).

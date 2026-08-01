@@ -391,19 +391,17 @@ export function LocacaoFormDialog({
               />
             </div>
 
-            <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <DialogFooter className="pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={salvar.isPending}
-                className="w-full sm:w-auto"
               >
                 {salvar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editando ? 'Salvar alterações' : 'Criar locação'}

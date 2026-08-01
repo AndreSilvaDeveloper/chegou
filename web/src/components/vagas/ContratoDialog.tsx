@@ -96,7 +96,7 @@ export function ContratoDialog({
 
         <div className="space-y-4">
           {temContrato && (
-            <div className="space-y-3 rounded-lg bg-muted/30 p-4">
+            <div className="space-y-3 rounded-lg bg-muted p-4">
               <div className="flex items-start gap-3">
                 <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                 <div className="min-w-0">
@@ -108,8 +108,8 @@ export function ContratoDialog({
                   </p>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button asChild variant="outline" className="w-full sm:w-auto">
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline">
                   <a href={locacao.contratoUrl!} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Abrir contrato
@@ -120,7 +120,7 @@ export function ContratoDialog({
                     type="button"
                     variant="outline"
                     onClick={() => setConfirmandoRemocao(true)}
-                    className="w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
+                    className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Remover contrato
@@ -129,17 +129,16 @@ export function ContratoDialog({
               </div>
 
               {confirmandoRemocao && (
-                <div className="space-y-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                <div className="space-y-3 rounded-lg bg-destructive/10 p-3">
                   <p className="txt-corpo text-foreground">
                     Remover o contrato desta locação? O arquivo é apagado e não dá para desfazer.
                   </p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setConfirmandoRemocao(false)}
                       disabled={remover.isPending}
-                      className="w-full sm:w-auto"
                     >
                       Manter contrato
                     </Button>
@@ -148,7 +147,6 @@ export function ContratoDialog({
                       variant="destructive"
                       onClick={() => remover.mutate()}
                       disabled={remover.isPending}
-                      className="w-full sm:w-auto"
                     >
                       {remover.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Sim, remover
@@ -179,12 +177,11 @@ export function ContratoDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
+        <DialogFooter className="pt-4">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
           >
             Fechar
           </Button>
@@ -192,7 +189,6 @@ export function ContratoDialog({
             type="button"
             onClick={() => arquivo && enviar.mutate(arquivo)}
             disabled={!arquivo || enviar.isPending}
-            className="w-full sm:w-auto"
           >
             {enviar.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

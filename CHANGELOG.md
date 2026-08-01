@@ -11,6 +11,113 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.15 — 2026-08-01
+
+### Corrigido
+- **"Ver contrato" derrubava a tela.** O botão que abre o arquivo usa `asChild`
+  para virar um `<a>`, e o `asChild` entrega o próprio filho ao `Slot` do Radix —
+  que aceita **um** filho. O `Button` injetava o spinner de carregando ao lado,
+  o que dava dois, e o Radix lançava erro de Slot. Como o bloco do arquivo só é
+  renderizado quando existe contrato, o erro aparecia exatamente quando o botão
+  dizia "Ver contrato". Agora `Button` com `asChild` renderiza só o filho — link
+  não carrega, navega.
+
+### Alterado
+- **Cards de vaga e de locação com as mesmas ações das outras listas.** Saíram
+  os botões largos no pé do card; entraram botões de ícone no canto, como em
+  Moradores e Equipe:
+  - **Vaga**: editar, histórico e **remover** (novo — desativa a vaga, com
+    confirmação; o backend recusa quando há locação vigente e a mensagem dele
+    vai para o aviso).
+  - **Locação**: contrato, editar e encerrar. O ícone de contrato fica âmbar
+    quando já existe arquivo, e um campo "Contrato" no card diz se está anexado.
+- **Rodapé de diálogo unificado.** Os diálogos de vaga, locação, contrato,
+  histórico e cobrança empilhavam os botões no celular e espalhavam no desktop;
+  agora seguem o do morador — uma linha, botões nas pontas, em qualquer
+  viewport. A mudança está no `FormDialog`, então vale também para preços,
+  faturas e pagamento.
+- Diálogo do contrato: bloco do arquivo e a confirmação de remoção viraram
+  blocos chapados (sem borda), e os botões de ação deixaram de ocupar a largura
+  toda.
+
+---
+
+## 0.24.14 — 2026-08-01
+
+### Corrigido
+- **O gráfico do Dashboard mostrava um total que não existe.** Ele empilhava
+  `recebidas + retiradas + pendentes`, mas `pendentes` é um **subconjunto** de
+  `recebidas` (o que chegou naquele dia e ainda está na portaria) e `retiradas`
+  conta por outra data — a da retirada. Num dia com 10 recebidas (3 paradas) e 8
+  retiradas, a pilha desenhava 21. Agora são duas barras lado a lado — o que
+  entrou e o que saiu — e o que está parado aparece em texto abaixo, porque
+  estoque não divide eixo com fluxo. A legenda explica que uma encomenda conta na
+  chegada e de novo no dia em que é buscada.
+- **Cores de gráfico não acompanhavam o tema.** Eram hexadecimais escritos à mão
+  em cinco lugares (`#0ea5e9`, `#10b981`, `#f59e0b`…), então o azul escolhido
+  para fundo claro continuava idêntico no escuro. Agora saem de
+  `lib/graficos.ts`, sobre os tokens `--chart-*`.
+- **Passos escuros de `--chart-4` e `--chart-5` reprovavam na faixa de
+  luminosidade** (OKLCH L 0,77 e 0,72, contra a faixa 0,48–0,67 de marca em fundo
+  escuro — cor clara demais vira brilho e a série perde forma). Desceram para 36%
+  e 44%; o par passa contraste ≥ 3:1 e separação ΔE 16 sob protanopia e
+  deuteranopia.
+- **A escala de "tempo até a retirada" tinha azul no meio de uma progressão
+  verde→vermelho** — cor que não diz nem melhor nem pior, plantada onde a leitura
+  depende da ordem. As duas escalas (essa e a de idade do estoque) passaram a
+  sair de `corDeEspera()`, que distribui os tons de estado em ordem para
+  qualquer quantidade de faixas.
+
+### Alterado
+- **Indicadores e gráfico falam a mesma língua.** "Recebidas" ganhou a variante
+  `info` no `StatCard` — o mesmo azul da barra "Recebidas" logo abaixo. Antes
+  ela era âmbar, igual ao indicador de "aguardando", e os dois cartões se
+  confundiam de relance.
+- **Eixos, grade e ponta de barra viraram constantes** (`EIXO_X`, `EIXO_Y`,
+  `GRADE`, `PONTA_BARRA`). Era isso que deixava um gráfico com grade vertical e
+  outro sem, um com decimal no eixo de contagem e outro sem.
+- O seletor Semana/Mensal do Dashboard virou `SegmentedFilter` — era o último
+  controle segmentado feito à mão.
+- Dashboard ganhou estado vazio quando não houve movimentação no período, em vez
+  de desenhar um gráfico de zeros.
+- Relatórios: blocos de indicador soltos passaram a usar o rótulo `eyebrow` e o
+  número em mono/tabular, como o `StatCard`.
+
+---
+
+## 0.24.13 — 2026-08-01
+
+### Alterado
+- **Registrar encomenda: os três passos ganharam a identidade das outras telas.**
+  - **Stepper refeito.** O rótulo do passo sumia no celular (`hidden sm:block`)
+    e sobravam três bolinhas sem nome, justo onde a tela é mais usada. Agora ele
+    aparece sempre (trunca se faltar espaço), o passo cumprido vira ✓ e quem
+    marca o passo atual é o contraste, não o âmbar.
+  - **A escolha "etiqueta ou manual" deixou de ser card dentro de card.** Os
+    dois caminhos **são** os cards agora, com a anatomia do card clicável da
+    listagem (ícone chapado, título, apoio, seta) e um selo "Mais rápido" na
+    etiqueta.
+  - **Grades de bloco e de apartamento** viraram blocos chapados (`bg-muted`,
+    sem borda), com o número em mono — a mesma leitura do resto do painel.
+  - **Tipo do pacote** passou a usar a pílula do controle segmentado. Os botões
+    tinham `border-1`, uma classe que o Tailwind nem gera — na prática estavam
+    sem borda nenhuma.
+  - **A revisão do passo 3 virou o `ListCard`**: o porteiro confere a encomenda
+    no mesmo formato em que vai reencontrá-la na lista.
+  - Rodapés dos cards perderam a faixa `bg-muted/50`, que pintava cantos retos
+    por cima do card arredondado.
+- **O modal de fotografar etiqueta agora é o `Dialog` do projeto.** Ele tinha
+  overlay próprio, com raio, rolagem e X diferentes de todo o resto. O X, o
+  Escape e o clique fora vêm do componente; a instrução de enquadramento virou
+  `DialogDescription`.
+- **O bloqueio "Lendo a etiqueta" também virou `Dialog`** — e fechá-lo (X,
+  Escape ou clique fora) **aborta a leitura**, em vez de deixar o OCR terminando
+  sozinho.
+- Títulos e rótulos da tela passaram para caixa de sentença ("Registrar
+  encomenda", "Dados do pacote", "Código de rastreio", "(opcional)").
+
+---
+
 ## 0.24.12 — 2026-08-01
 
 ### Alterado

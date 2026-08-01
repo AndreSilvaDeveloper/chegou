@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { X, ScanLine, AlertTriangle, Camera, Loader2, ImageUp, RefreshCw } from 'lucide-react';
+import { ScanLine, AlertTriangle, Camera, Loader2, ImageUp, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SimpleSelect } from '@/components/ui/simple-select';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { capturarQuadro, pareceTremida, prepararFoto, type FotoPreparada } from '@/lib/imagem';
@@ -122,21 +129,6 @@ export function ScannerModal({
   const fechar = useCallback(() => {
     onClose();
   }, [onClose]);
-
-  // Escape fecha e a página de trás não rola junto — o overlay é manual (o
-  // DialogContent do Radix remontaria o nó do vídeo a cada troca de modo).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') fechar();
-    };
-    document.addEventListener('keydown', onKey);
-    const overflowAnterior = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = overflowAnterior;
-    };
-  }, [fechar]);
 
   // ---- Leitor de código de barras / QR (modo secundário) ----
   useEffect(() => {
@@ -296,45 +288,30 @@ export function ScannerModal({
   };
 
   const streamFraca = larguraStream !== null && larguraStream < LARGURA_MINIMA_UTIL;
+  const ehFoto = modo === 'foto';
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-xs sm:items-center"
-      onClick={fechar}
-      role="presentation"
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={modo === 'foto' ? 'Fotografar a etiqueta' : 'Ler código de barras'}
-        // Altura em `dvh`: `vh` inclui a barra do navegador no celular e era o
-        // que cortava o modal em cima e embaixo.
-        className="my-auto w-full max-w-sm space-y-3 overflow-y-auto rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-panel-lg max-h-[calc(100dvh-1.5rem)] sm:max-w-md"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 txt-secao font-semibold text-foreground">
-            {modo === 'foto' ? (
-              <>
-                <Camera className="h-5 w-5 shrink-0 text-primary" /> Fotografar a etiqueta
-              </>
+    // O `Dialog` do projeto, e não um overlay próprio: mesma superfície, mesmo
+    // raio, mesma rolagem em `dvh` e o mesmo X no cabeçalho de todo diálogo.
+    // Trocar de modo NÃO remonta o diálogo — o nó do vídeo só some quando o
+    // próprio modo deixa de mostrá-lo, que é o comportamento desejado.
+    <Dialog open onOpenChange={(aberto) => { if (!aberto) fechar(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {ehFoto ? (
+              <Camera className="h-5 w-5 shrink-0 text-muted-foreground" />
             ) : (
-              <>
-                <ScanLine className="h-5 w-5 shrink-0 text-primary" /> Ler código de barras
-              </>
+              <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
             )}
-          </h3>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 shrink-0"
-            onClick={fechar}
-            aria-label="Fechar"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
+            {ehFoto ? 'Fotografar a etiqueta' : 'Ler código de barras'}
+          </DialogTitle>
+          <DialogDescription>
+            {ehFoto
+              ? 'Enquadre a etiqueta inteira, sem cortar as bordas. Preenche apartamento, destinatário e transportadora de uma vez.'
+              : 'Aponte para o QR code ou o código de barras. Ele é capturado sozinho e preenche só o rastreio.'}
+          </DialogDescription>
+        </DialogHeader>
 
         {/* ---- Revisão: só aparece quando a foto saiu tremida ---- */}
         {revisao ? (
@@ -342,15 +319,15 @@ export function ScannerModal({
             <img
               src={revisao.url}
               alt="Foto capturada da etiqueta"
-              className="w-full rounded-lg border border-border object-contain"
+              className="w-full rounded-lg bg-muted object-contain"
             />
-            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 txt-corpo text-amber-700 dark:text-amber-400">
+            <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 txt-corpo text-amber-700 dark:text-amber-400">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 A foto parece tremida. Uma foto nítida acerta muito mais campos — vale tirar outra.
               </span>
             </div>
-            <Button type="button" className="min-h-[56px] w-full" onClick={descartarRevisao}>
+            <Button type="button" size="lg" className="w-full" onClick={descartarRevisao}>
               <RefreshCw className="mr-2 h-5 w-5" /> Tirar outra foto
             </Button>
             <Button
@@ -386,13 +363,13 @@ export function ScannerModal({
                 )}
 
                 {erroCamera && (
-                  <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 txt-corpo text-destructive">
+                  <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 txt-corpo text-destructive">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {erroCamera}
                   </div>
                 )}
 
                 {streamFraca && !erroCamera && (
-                  <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 txt-apoio text-amber-700 dark:text-amber-400">
+                  <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 txt-apoio text-amber-700 dark:text-amber-400">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>
                       Esta câmera entrega imagem de baixa resolução ({larguraStream}px). A leitura
@@ -443,7 +420,8 @@ export function ScannerModal({
                 {usaWebcam && !erroCamera ? (
                   <Button
                     type="button"
-                    className="min-h-[56px] w-full"
+                    size="lg"
+                    className="w-full"
                     disabled={preparando}
                     onClick={tirarFotoWebcam}
                   >
@@ -457,7 +435,8 @@ export function ScannerModal({
                 ) : (
                   <Button
                     type="button"
-                    className="min-h-[56px] w-full"
+                    size="lg"
+                    className="w-full"
                     disabled={preparando}
                     onClick={() => arquivoRef.current?.click()}
                   >
@@ -470,10 +449,7 @@ export function ScannerModal({
                   </Button>
                 )}
 
-                <p className="txt-apoio text-muted-foreground">
-                  Enquadre a etiqueta inteira, sem cortar as bordas. Preenche apartamento,
-                  destinatário e transportadora de uma vez.
-                </p>
+                {/* A instrução de enquadramento vive no `DialogDescription`. */}
 
                 {usaWebcam && !erroCamera && (
                   <Button
@@ -496,15 +472,10 @@ export function ScannerModal({
                   id={CONTAINER_ID}
                   className="min-h-[200px] w-full overflow-hidden rounded-lg bg-black sm:min-h-[280px]"
                 />
-                {error ? (
-                  <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 txt-corpo text-destructive">
+                {error && (
+                  <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 txt-corpo text-destructive">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
                   </div>
-                ) : (
-                  <p className="txt-apoio text-muted-foreground">
-                    Aponte para o QR code ou o código de barras da etiqueta. O código é capturado
-                    automaticamente — ele preenche só o rastreio.
-                  </p>
                 )}
               </div>
             )}
@@ -546,11 +517,11 @@ export function ScannerModal({
               onClick={fechar}
               className={cn('w-full', !onEtiqueta && 'mt-1')}
             >
-              Fechar / digitar manualmente
+              Fechar e digitar manualmente
             </Button>
           </>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -13,12 +13,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { SimpleSelect } from '@/components/ui/simple-select';
 import { Combobox } from '@/components/ui/combobox';
+import { ListCard } from '@/components/ui/list-card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { SEGMENTO, SEGMENTO_ATIVO, TRILHO_SEGMENTADO } from '@/components/ui/tabs';
 import { OPCOES_TRANSPORTADORA, type TransportadoraNome } from '@/lib/transportadoras';
 import { prepararFoto } from '@/lib/imagem';
 import {
   Camera, Package, PackagePlus, Building2, User, Truck, FileText, ArrowRight, ArrowLeft, CheckCircle2,
   Loader2, Image as ImageIcon, X, AlertTriangle, ScanLine, Keyboard, Layers, DoorClosed,
-  Plus, Mail, Box,
+  Plus, Mail, Box, ChevronRight, type LucideIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -95,9 +104,114 @@ type CampoLido = 'apartamento' | 'destinatario' | 'rastreio' | 'transportadora';
 function MarcaLida({ ativo }: { ativo: boolean }) {
   if (!ativo) return null;
   return (
-    <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/5 text-primary">
+    <Badge variant="secondary" className="gap-1">
       <ScanLine className="h-3 w-3" /> lido
     </Badge>
+  );
+}
+
+/**
+ * Um dos caminhos para começar o cadastro (etiqueta ou manual).
+ *
+ * Repete a anatomia do card clicável da listagem: bloco de ícone chapado,
+ * título, texto de apoio e a seta que diz "isto leva a algum lugar".
+ */
+function EscolhaCard({
+  icone: Icone,
+  titulo,
+  apoio,
+  selo,
+  onClick,
+}: {
+  icone: LucideIcon;
+  titulo: string;
+  apoio: string;
+  selo?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex h-full items-start gap-3 rounded-surface border border-border-surface bg-card p-4 text-left shadow-panel transition-shadow hover:shadow-panel-lg"
+    >
+      <span
+        aria-hidden
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+      >
+        <Icone className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className="truncate txt-subtitulo font-semibold text-foreground">{titulo}</span>
+          {selo && <Badge variant="secondary" className="shrink-0">{selo}</Badge>}
+        </span>
+        <span className="mt-0.5 block txt-apoio text-muted-foreground">{apoio}</span>
+      </span>
+      <ChevronRight
+        aria-hidden
+        className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+      />
+    </button>
+  );
+}
+
+const PASSOS = [
+  { num: 1, label: 'Destino', icon: Building2 },
+  { num: 2, label: 'Pacote', icon: Package },
+  { num: 3, label: 'Confirmar', icon: CheckCircle2 },
+];
+
+/**
+ * Onde o porteiro está no cadastro.
+ *
+ * O rótulo aparece SEMPRE, inclusive em 375px — antes ele sumia no celular
+ * (`hidden sm:block`) e sobravam três bolinhas sem nome, justo onde a tela é
+ * mais usada. O que cabe menos é o rótulo, não o passo: ele trunca.
+ *
+ * Sem âmbar: quem marca o passo atual é o contraste (círculo sólido), como no
+ * controle segmentado. O âmbar da tela é do botão que conclui o cadastro.
+ */
+function Stepper({ atual }: { atual: number }) {
+  return (
+    <ol className="flex items-center gap-2" aria-label={`Passo ${atual} de ${PASSOS.length}`}>
+      {PASSOS.map((p, i) => {
+        const concluido = atual > p.num;
+        const ativo = atual === p.num;
+        const Icone = concluido ? CheckCircle2 : p.icon;
+        return (
+          <li key={p.num} className="flex min-w-0 flex-1 items-center gap-2">
+            <span
+              aria-hidden
+              className={cn(
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+                ativo ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground',
+              )}
+            >
+              <Icone className="h-4 w-4" />
+            </span>
+            <span
+              aria-current={ativo ? 'step' : undefined}
+              className={cn(
+                'truncate txt-nota font-medium',
+                ativo ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {p.label}
+            </span>
+            {i < PASSOS.length - 1 && (
+              <span
+                aria-hidden
+                className={cn(
+                  'h-0.5 min-w-2 flex-1 rounded-full',
+                  concluido ? 'bg-foreground/30' : 'bg-border',
+                )}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -444,86 +558,54 @@ export function NovaEncomenda() {
     <PageShell
       icon={PackagePlus}
       eyebrow="Portaria"
-      title="Registrar Encomenda"
+      title="Registrar encomenda"
       description="Escaneie o pacote ou digite os dados manualmente."
       // Formulário: o botão da esquerda volta para a lista em vez de abrir o
       // menu — sair daqui no meio do cadastro é a ação mais provável.
       voltar="/encomendas"
     >
       <div className="space-y-6">
-      {/* Stepper visual */}
-      <div className="flex items-center justify-between relative px-2">
-        <div className="absolute left-0 top-1/2 -z-10 h-0.5 w-full -translate-y-1/2 bg-border" />
-        <div className="absolute left-0 top-1/2 -z-10 h-0.5 -translate-y-1/2 bg-primary transition-all duration-500"
-             style={{ width: step === 1 ? '0%' : step === 2 ? '50%' : '100%' }} />
-        {[
-          { num: 1, label: 'Destino', icon: Building2 },
-          { num: 2, label: 'Pacote', icon: Package },
-          { num: 3, label: 'Confirmar', icon: CheckCircle2 },
-        ].map((s) => (
-          <div key={s.num} className="flex flex-col items-center gap-2 bg-background px-2">
-            <div className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors',
-              step >= s.num ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-background text-muted-foreground',
-            )}>
-              <s.icon className="h-5 w-5" />
-            </div>
-            <span className={cn(
-              'txt-apoio font-medium hidden sm:block',
-              step >= s.num ? 'text-primary' : 'text-muted-foreground',
-            )}>
-              {s.label}
-            </span>
-          </div>
-        ))}
-      </div>
+      <Stepper atual={step} />
 
       <AnimatePresence mode="wait">
         {step === 1 && entrada === 'escolha' && (
-          <motion.div key="step1-escolha" variants={slideVariants} initial="initial" animate="animate" exit="exit">
-            <Card>
-              <CardHeader>
-                <CardTitle>Como deseja registrar?</CardTitle>
-                <CardDescription>Escaneie o código do pacote ou faça o cadastro manual.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2 pt-0 md:pt-0">
-                <button
-                  type="button"
-                  onClick={() => setScanTarget('destino')}
-                  className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-primary/20 bg-primary/5 p-8 text-center transition-all hover:border-primary hover:bg-primary/10"
-                >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                    {podeLerEtiqueta ? <Camera className="h-8 w-8" /> : <ScanLine className="h-8 w-8" />}
-                  </div>
-                  <div>
-                    <p className="txt-subtitulo font-semibold text-foreground">
-                      {podeLerEtiqueta ? 'Fotografar a etiqueta' : 'Escanear código'}
-                    </p>
-                    <p className="mt-1 txt-apoio text-muted-foreground">
-                      {podeLerEtiqueta
-                        ? 'Preenche apartamento, destinatário e transportadora'
-                        : 'QR code ou código de barras'}
-                    </p>
-                  </div>
-                </button>
+          <motion.div
+            key="step1-escolha"
+            variants={slideVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="space-y-4"
+          >
+            <div>
+              <h2 className="txt-secao font-semibold">Como deseja registrar?</h2>
+              <p className="txt-apoio text-muted-foreground">
+                O caminho mais rápido é a etiqueta — o manual está sempre aqui embaixo.
+              </p>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={irParaManual}
-                  className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-border bg-card p-8 text-center transition-all hover:border-primary/40 hover:bg-muted/40"
-                >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-foreground">
-                    <Keyboard className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <p className="txt-subtitulo font-semibold text-foreground">Cadastro manual</p>
-                    <p className="mt-1 txt-apoio text-muted-foreground">
-                      {precisaBloco ? 'Escolher bloco e apartamento' : 'Digitar o apartamento'}
-                    </p>
-                  </div>
-                </button>
-              </CardContent>
-            </Card>
+            {/* Os dois caminhos SÃO os cards: nada de card dentro de card. É a
+                mesma anatomia do card clicável da listagem (ícone chapado,
+                título, apoio, seta) — quem usa a lista já sabe ler isto. */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <EscolhaCard
+                icone={podeLerEtiqueta ? Camera : ScanLine}
+                titulo={podeLerEtiqueta ? 'Fotografar a etiqueta' : 'Escanear código'}
+                apoio={
+                  podeLerEtiqueta
+                    ? 'Preenche apartamento, destinatário e transportadora'
+                    : 'QR code ou código de barras'
+                }
+                selo={podeLerEtiqueta ? 'Mais rápido' : undefined}
+                onClick={() => setScanTarget('destino')}
+              />
+              <EscolhaCard
+                icone={Keyboard}
+                titulo="Cadastro manual"
+                apoio={precisaBloco ? 'Escolher bloco e apartamento' : 'Digitar o apartamento'}
+                onClick={irParaManual}
+              />
+            </div>
           </motion.div>
         )}
 
@@ -548,16 +630,18 @@ export function NovaEncomenda() {
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando blocos...
                     </div>
                   ) : (
+                    // Bloco chapado, sem borda: dentro do card quem delimita é o
+                    // preenchimento (ver "Blocos dentro do card").
                     <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                       {blocos.map((b) => (
                         <button
                           key={b}
                           type="button"
                           onClick={() => setBlocoSel(b)}
-                          className="flex flex-col items-center justify-center gap-1.5 rounded-xl border p-4 transition-all hover:border-primary hover:bg-primary/5"
+                          className="flex flex-col items-center justify-center gap-1.5 rounded-lg bg-muted p-4 transition-colors hover:bg-accent"
                         >
-                          <Layers className="h-6 w-6 text-muted-foreground" />
-                          <span className="txt-secao font-bold text-foreground">{b}</span>
+                          <Layers aria-hidden className="h-5 w-5 text-muted-foreground" />
+                          <span className="font-mono txt-numero-sm font-semibold text-foreground">{b}</span>
                         </button>
                       ))}
                     </div>
@@ -568,13 +652,18 @@ export function NovaEncomenda() {
                 {numeroLiberado && (
                   <div className="space-y-4">
                     {blocoSel && (
-                      <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-                        <div className="flex items-center gap-2 txt-corpo">
-                          <Layers className="h-4 w-4 text-primary" />
-                          <span className="text-muted-foreground">Bloco</span>
-                          <Badge variant="outline" className="font-mono">{blocoSel}</Badge>
-                        </div>
-                        <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setBlocoSel(null); setNovoApto(null); }}>
+                      <div className="flex items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Layers aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="eyebrow">Bloco</span>
+                          <span className="truncate font-mono txt-corpo font-semibold">{blocoSel}</span>
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setBlocoSel(null); setNovoApto(null); }}
+                        >
                           Trocar
                         </Button>
                       </div>
@@ -582,12 +671,15 @@ export function NovaEncomenda() {
 
                     <div className="space-y-2">
                       <Label htmlFor="numero" className="flex items-center gap-2">
-                        <DoorClosed className="h-4 w-4 text-muted-foreground" /> Número do apartamento
+                        <DoorClosed aria-hidden className="h-4 w-4 text-muted-foreground" /> Número do apartamento
                       </Label>
                       <div className="relative">
                         <Input
                           id="numero"
-                          className="h-16 text-center txt-numero font-bold tracking-widest md:h-20"
+                          // Campo herói: é O campo do passo, digitado em pé na
+                          // portaria. Mesma exceção do código de 4 dígitos na
+                          // tela de retirada — e a única altura à mão daqui.
+                          className="h-16 text-center font-mono txt-numero font-semibold tracking-widest md:h-20"
                           inputMode="numeric"
                           placeholder="Ex: 101"
                           value={numeroInput}
@@ -603,28 +695,37 @@ export function NovaEncomenda() {
 
                     {/* Resultados filtrados (toque para selecionar) */}
                     {aptosFiltrados.length > 0 && (
-                      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                        {aptosFiltrados.map((a) => (
-                          <button
-                            key={a.id}
-                            type="button"
-                            onClick={() => { setSelectedApto(a); setStep(2); }}
-                            className="group flex flex-col items-center justify-center gap-1 rounded-xl border p-4 transition-all hover:border-primary hover:bg-primary/5"
-                          >
-                            <Building2 className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary" />
-                            <span className="font-mono txt-numero-sm font-bold text-foreground">{a.identificador}</span>
-                          </button>
-                        ))}
+                      <div className="space-y-2">
+                        <p className="eyebrow">
+                          {aptosFiltrados.length === 1 ? 'Encontrado' : 'Encontrados'}
+                        </p>
+                        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                          {aptosFiltrados.map((a) => (
+                            <button
+                              key={a.id}
+                              type="button"
+                              onClick={() => { setSelectedApto(a); setStep(2); }}
+                              className="flex flex-col items-center justify-center gap-1 rounded-lg bg-muted p-4 transition-colors hover:bg-accent"
+                            >
+                              <Building2 aria-hidden className="h-5 w-5 text-muted-foreground" />
+                              <span className="font-mono txt-numero-sm font-semibold text-foreground">{a.identificador}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
                     {/* Nenhum encontrado → oferecer cadastro */}
                     {novoApto && (
-                      <div className="space-y-3 rounded-xl border border-dashed bg-muted/40 p-4">
-                        <div className="flex items-start gap-2.5 txt-apoio text-muted-foreground">
-                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                      <div className="space-y-3 rounded-lg bg-amber-500/10 p-4">
+                        <div className="flex items-start gap-2.5 txt-corpo text-amber-700 dark:text-amber-400">
+                          <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                           <span>
-                            Apartamento <span className="font-semibold text-foreground">{[novoApto.bloco, novoApto.numero].filter(Boolean).join('-')}</span> ainda não existe. Deseja cadastrá-lo agora?
+                            O apartamento{' '}
+                            <span className="font-mono font-semibold">
+                              {[novoApto.bloco, novoApto.numero].filter(Boolean).join('-')}
+                            </span>{' '}
+                            ainda não existe. Cadastrar agora?
                           </span>
                         </div>
                         <div className="flex gap-2">
@@ -632,7 +733,12 @@ export function NovaEncomenda() {
                             {criandoApto ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                             Cadastrar e continuar
                           </Button>
-                          <Button onClick={() => setNovoApto(null)} variant="ghost" size="icon">
+                          <Button
+                            onClick={() => setNovoApto(null)}
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Descartar"
+                          >
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
@@ -641,7 +747,7 @@ export function NovaEncomenda() {
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="bg-muted/50 py-4 flex justify-between">
+              <CardFooter className="justify-between gap-3">
                 <Button variant="ghost" onClick={voltarParaEscolha}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
                 </Button>
@@ -660,11 +766,11 @@ export function NovaEncomenda() {
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <CardTitle>Dados do Pacote</CardTitle>
+                    <CardTitle>Dados do pacote</CardTitle>
                     <CardDescription>Escaneie ou digite os dados da encomenda.</CardDescription>
                   </div>
-                  <Badge variant="outline" className="shrink-0 gap-1.5 whitespace-nowrap border-primary/20 bg-primary/5 px-2.5 py-1 font-mono txt-apoio text-primary">
-                    <DoorClosed className="h-3.5 w-3.5" />
+                  <Badge variant="secondary" className="shrink-0 gap-1.5 whitespace-nowrap font-mono">
+                    <DoorClosed aria-hidden className="h-3.5 w-3.5" />
                     {selectedApto?.identificador}
                   </Badge>
                 </div>
@@ -672,7 +778,7 @@ export function NovaEncomenda() {
               <CardContent className="space-y-5 pt-0 md:pt-0">
                 {moradores.length > 0 ? (
                   <div className="space-y-2">
-                    <Label htmlFor="destinatario" className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> Destinatário (Opcional)</Label>
+                    <Label htmlFor="destinatario" className="flex items-center gap-2"><User aria-hidden className="h-4 w-4 text-muted-foreground" /> Destinatário (opcional)</Label>
                     <SimpleSelect
                       id="destinatario"
                       value={moradorId}
@@ -688,16 +794,20 @@ export function NovaEncomenda() {
                     />
                   </div>
                 ) : (
-                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 txt-corpo text-amber-700 dark:text-amber-400">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span><span className="font-semibold">Sem moradores:</span> a encomenda será salva, mas a notificação no WhatsApp só será enviada quando um morador for cadastrado no apartamento.</span>
+                  <div className="flex items-start gap-2.5 rounded-lg bg-amber-500/10 p-3 txt-corpo text-amber-700 dark:text-amber-400">
+                    <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                      <span className="font-semibold">Sem moradores:</span> a encomenda será salva,
+                      mas a notificação no WhatsApp só sai quando alguém for cadastrado no
+                      apartamento.
+                    </span>
                   </div>
                 )}
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2"><Package className="h-4 w-4 text-muted-foreground" /> Código de Rastreio</Label>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setScanTarget('pacote')} className="h-8 text-primary">
+                    <Label className="flex items-center gap-2"><Package aria-hidden className="h-4 w-4 text-muted-foreground" /> Código de rastreio</Label>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setScanTarget("pacote")}>
                       <Camera className="mr-2 h-4 w-4" /> Escanear
                     </Button>
                   </div>
@@ -710,8 +820,12 @@ export function NovaEncomenda() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><Box className="h-4 w-4 text-muted-foreground" /> Tipo do pacote (Opcional)</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <Label className="flex items-center gap-2"><Box aria-hidden className="h-4 w-4 text-muted-foreground" /> Tipo do pacote (opcional)</Label>
+                  {/* A pele do controle segmentado (`tabs.tsx`), não um estilo
+                      próprio — é a mesma pílula das abas e dos filtros. Aqui os
+                      botões continuam sendo `aria-pressed` porque tocar de novo
+                      DESMARCA: o tipo é opcional. */}
+                  <div className={TRILHO_SEGMENTADO}>
                     {([
                       { valor: 'caixa' as const, label: 'Caixa', icon: Package },
                       { valor: 'envelope' as const, label: 'Envelope', icon: Mail },
@@ -723,14 +837,9 @@ export function NovaEncomenda() {
                           type="button"
                           aria-pressed={ativo}
                           onClick={() => setTipo(ativo ? null : opt.valor)}
-                          className={cn(
-                            'flex h-10 items-center justify-center gap-2.5 rounded-xl border-1 txt-corpo font-medium transition-all',
-                            ativo
-                              ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary/20'
-                              : 'border-border bg-background text-foreground hover:border-primary/40',
-                          )}
+                          className={cn(SEGMENTO, 'flex-1', ativo && SEGMENTO_ATIVO)}
                         >
-                          <opt.icon className={cn('h-5 w-5', ativo ? 'text-primary' : 'text-muted-foreground')} />
+                          <opt.icon aria-hidden />
                           {opt.label}
                         </button>
                       );
@@ -740,7 +849,7 @@ export function NovaEncomenda() {
 
                 <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
                   <div className="space-y-2">
-                    <Label htmlFor="transportadora" className="flex items-center gap-2"><Truck className="h-4 w-4 text-muted-foreground" /> Transportadora</Label>
+                    <Label htmlFor="transportadora" className="flex items-center gap-2"><Truck aria-hidden className="h-4 w-4 text-muted-foreground" /> Transportadora</Label>
                     <Combobox
                       id="transportadora"
                       value={transportadora}
@@ -751,7 +860,7 @@ export function NovaEncomenda() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="descricao" className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" /> Descrição</Label>
+                    <Label htmlFor="descricao" className="flex items-center gap-2"><FileText aria-hidden className="h-4 w-4 text-muted-foreground" /> Descrição</Label>
                     <Textarea
                       id="descricao"
                       rows={3}
@@ -763,15 +872,16 @@ export function NovaEncomenda() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4 text-muted-foreground" /> Foto do pacote (Opcional)</Label>
+                  <Label className="flex items-center gap-2"><ImageIcon aria-hidden className="h-4 w-4 text-muted-foreground" /> Foto do pacote (opcional)</Label>
                   {fotoPreview ? (
                     <div className="relative inline-block">
-                      <img src={fotoPreview} alt="Preview" className="rounded-xl border shadow-xs max-h-48 object-cover" />
+                      <img src={fotoPreview} alt="Foto do pacote" className="max-h-48 rounded-lg bg-muted object-cover" />
                       <Button
                         type="button"
                         variant="destructive"
                         size="icon"
-                        className="absolute -right-2 -top-2 h-8 w-8 rounded-full shadow-md"
+                        aria-label="Remover foto"
+                        className="absolute -right-2 -top-2 h-8 w-8 rounded-full shadow-panel"
                         onClick={() => {
                           setFoto(null);
                           setFotoPreview((anterior) => {
@@ -785,8 +895,13 @@ export function NovaEncomenda() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-4">
-                      <Button type="button" variant="outline" className="w-full border-dashed" onClick={() => document.getElementById('foto-upload')?.click()}>
-                        <Camera className="mr-2 h-4 w-4" /> Tirar foto
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full border-dashed"
+                        onClick={() => document.getElementById('foto-upload')?.click()}
+                      >
+                        <Camera className="mr-2 h-4 w-4" /> Tirar foto do pacote
                       </Button>
                       <input
                         id="foto-upload"
@@ -813,7 +928,7 @@ export function NovaEncomenda() {
                 </div>
 
               </CardContent>
-              <CardFooter className="bg-muted/50 py-4 flex justify-between">
+              <CardFooter className="justify-between gap-3">
                 <Button variant="ghost" onClick={() => { setStep(1); }}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
                 <Button onClick={() => setStep(3)}>Revisar <ArrowRight className="ml-2 h-4 w-4" /></Button>
               </CardFooter>
@@ -825,59 +940,82 @@ export function NovaEncomenda() {
           <motion.div key="step3" variants={slideVariants} initial="initial" animate="animate" exit="exit">
             <Card>
               <CardHeader>
-                <CardTitle>Confirmar Registro</CardTitle>
-                <CardDescription>Revise os dados antes de notificar o morador.</CardDescription>
+                <CardTitle>Confirmar registro</CardTitle>
+                <CardDescription>
+                  É assim que a encomenda vai aparecer na lista. Confira antes de notificar o
+                  morador.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="pt-0 md:pt-0">
-                <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
-                    <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
-                      Destino <MarcaLida ativo={!!lidos.apartamento} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{moradores.find(m => m.id === moradorId)?.nome || 'Qualquer morador'}</span>
-                      <Badge variant="default" className="font-mono txt-apoio">{selectedApto?.identificador}</Badge>
-                    </div>
-                  </div>
+              <CardContent className="space-y-4 pt-0 md:pt-0">
+                {/* A revisão É o card da listagem (`ListCard`), não um resumo
+                    com outro desenho: o porteiro confere no mesmo formato em
+                    que vai reencontrar a encomenda daqui a pouco. */}
+                <ListCard
+                  icone={Package}
+                  titulo={<span className="font-mono">{selectedApto?.identificador}</span>}
+                  subtitulo={
+                    <span className="flex items-center gap-1.5">
+                      <User aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">
+                        {moradores.find((m) => m.id === moradorId)?.nome ?? 'Qualquer morador'}
+                      </span>
+                      <MarcaLida ativo={!!lidos.destinatario} />
+                    </span>
+                  }
+                  selo={<MarcaLida ativo={!!lidos.apartamento} />}
+                  campos={[
+                    {
+                      rotulo: 'Rastreio',
+                      icone: Package,
+                      valor: (
+                        <span className="flex items-center gap-2">
+                          <span className="truncate font-mono">{codigoRastreio || '—'}</span>
+                          <MarcaLida ativo={!!lidos.rastreio} />
+                        </span>
+                      ),
+                    },
+                    {
+                      rotulo: 'Transportadora',
+                      icone: Truck,
+                      valor: (
+                        <span className="flex items-center gap-2">
+                          <span className="truncate">{transportadora || '—'}</span>
+                          <MarcaLida ativo={!!lidos.transportadora} />
+                        </span>
+                      ),
+                    },
+                    {
+                      rotulo: 'Tipo',
+                      icone: tipo === 'envelope' ? Mail : Box,
+                      valor: tipo === 'caixa' ? 'Caixa' : tipo === 'envelope' ? 'Envelope' : '—',
+                    },
+                    {
+                      rotulo: 'Conteúdo',
+                      icone: FileText,
+                      largura: 'inteira',
+                      valor: descricao || <span className="text-muted-foreground">Sem descrição</span>,
+                    },
+                  ]}
+                />
 
-                  <div className="grid grid-cols-2 gap-4 txt-corpo">
-                    <div>
-                      <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                        Rastreio <MarcaLida ativo={!!lidos.rastreio} />
-                      </div>
-                      <div className="font-mono font-medium">{codigoRastreio || '—'}</div>
-                    </div>
-                    <div>
-                      <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                        Transportadora <MarcaLida ativo={!!lidos.transportadora} />
-                      </div>
-                      <div className="font-medium">{transportadora || '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground mb-1">Tipo</div>
-                      <div className="font-medium">{tipo === 'caixa' ? 'Caixa' : tipo === 'envelope' ? 'Envelope' : '—'}</div>
-                    </div>
-                    <div className="col-span-2">
-                      <div className="text-muted-foreground mb-1">Descrição</div>
-                      <div className="font-medium">{descricao || '—'}</div>
-                    </div>
+                {fotoPreview && (
+                  <div className="space-y-2">
+                    <p className="eyebrow">Foto anexada</p>
+                    <img
+                      src={fotoPreview}
+                      alt="Foto do pacote"
+                      className="h-24 rounded-lg bg-muted object-cover"
+                    />
                   </div>
-
-                  {fotoPreview && (
-                    <div className="pt-2 border-t">
-                      <div className="txt-apoio text-muted-foreground mb-2">Foto anexada</div>
-                      <img src={fotoPreview} alt="Preview" className="h-20 rounded-md border shadow-xs" />
-                    </div>
-                  )}
-                </div>
+                )}
               </CardContent>
-              <CardFooter className="bg-muted/50 py-4 flex justify-between">
+              <CardFooter className="justify-between gap-3">
                 <Button variant="ghost" disabled={saving} onClick={() => setStep(2)}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
                 <Button onClick={submit} disabled={saving} className="min-w-40" size="lg">
                   {saving ? (
-                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Registrando...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registrando…</>
                   ) : (
-                    <><Package className="mr-2 h-5 w-5" /> Registrar e Notificar</>
+                    <><Package className="mr-2 h-4 w-4" /> Registrar e notificar</>
                   )}
                 </Button>
               </CardFooter>
@@ -895,35 +1033,45 @@ export function NovaEncomenda() {
       )}
 
       {/* O OCR leva alguns segundos. Sem um bloqueio explícito o porteiro toca
-          de novo achando que não funcionou, e sobem duas leituras. */}
-      {lendoEtiqueta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 backdrop-blur-xs">
-          <div className="flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl border border-border bg-popover px-6 py-6 text-center shadow-panel-lg">
-            {/* A foto na tela ancora a espera em algo concreto: o porteiro já vê
-                se tremeu, em vez de encarar um giro sobre fundo preto. */}
-            {previaEtiqueta && (
-              <img
-                src={previaEtiqueta}
-                alt="Etiqueta sendo lida"
-                className="max-h-40 w-full rounded-lg border border-border object-contain"
-              />
-            )}
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="txt-subtitulo font-semibold text-foreground">Lendo a etiqueta...</p>
-            <p className="txt-apoio text-muted-foreground">Isso leva alguns segundos.</p>
-            {/* Sem saída, uma leitura travada prendia o porteiro por até 30s com
-                fila na frente. Cancelar devolve o controle na hora. */}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => leituraRef.current?.abort()}
-            >
-              <X className="mr-2 h-4 w-4" /> Cancelar e digitar
-            </Button>
+          de novo achando que não funcionou, e sobem duas leituras.
+          No `Dialog` do projeto: fechar pelo X, pelo Esc ou por fora ABORTA a
+          leitura — sem saída, uma leitura travada prendia o porteiro por até
+          30s com fila na frente. */}
+      <Dialog
+        open={lendoEtiqueta}
+        onOpenChange={(aberto) => { if (!aberto) leituraRef.current?.abort(); }}
+      >
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Lendo a etiqueta</DialogTitle>
+            <DialogDescription>Isso leva alguns segundos.</DialogDescription>
+          </DialogHeader>
+
+          {/* A foto na tela ancora a espera em algo concreto: o porteiro já vê
+              se tremeu, em vez de encarar um giro sobre fundo preto. */}
+          {previaEtiqueta && (
+            <img
+              src={previaEtiqueta}
+              alt="Etiqueta sendo lida"
+              className="max-h-40 w-full rounded-lg bg-muted object-contain"
+            />
+          )}
+
+          <div className="flex items-center justify-center gap-2 txt-corpo text-muted-foreground">
+            <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+            Procurando apartamento, destinatário e transportadora…
           </div>
-        </div>
-      )}
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => leituraRef.current?.abort()}
+          >
+            <X className="mr-2 h-4 w-4" /> Cancelar e digitar
+          </Button>
+        </DialogContent>
+      </Dialog>
       </div>
     </PageShell>
   );

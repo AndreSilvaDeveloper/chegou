@@ -11,13 +11,22 @@ interface StatCardProps {
     value: number;
     label: string;
   };
-  variant?: "default" | "primary" | "success" | "warning" | "danger";
+  variant?: "default" | "primary" | "info" | "success" | "warning" | "danger";
   className?: string;
 }
 
 const variantStyles = {
   default: { icon: "border-border bg-muted text-muted-foreground", rail: "bg-border", trend: "text-muted-foreground" },
   primary: { icon: "border-primary/30 bg-primary/10 text-primary", rail: "bg-primary", trend: "text-primary" },
+  // O azul das séries de ENTRADA nos gráficos (`--chart-5`). Existe para o
+  // indicador "recebidas" usar a mesma cor da barra "Recebidas" logo abaixo —
+  // e para ele não disputar o âmbar com o indicador de "aguardando", que é
+  // atenção de verdade. Mesma entidade, mesma cor, na tela inteira.
+  info: {
+    icon: "border-chart-5/30 bg-chart-5/10 text-chart-5",
+    rail: "bg-chart-5",
+    trend: "text-chart-5",
+  },
   success: { icon: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", rail: "bg-emerald-500", trend: "text-emerald-600 dark:text-emerald-400" },
   warning: { icon: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400", rail: "bg-amber-500", trend: "text-amber-600 dark:text-amber-400" },
   danger: { icon: "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400", rail: "bg-red-500", trend: "text-red-600 dark:text-red-400" },

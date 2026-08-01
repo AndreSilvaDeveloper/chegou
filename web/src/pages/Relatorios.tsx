@@ -17,6 +17,18 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
 import {
+  corDeEspera,
+  EIXO_X,
+  EIXO_Y,
+  ESTADO_ATENCAO,
+  ESTADO_BOM,
+  ESTADO_FALHA,
+  GRADE,
+  PONTA_BARRA,
+  SERIE_ENTRADA,
+  SERIE_SAIDA,
+} from '@/lib/graficos';
+import {
   type ChartConfig,
   ChartContainer,
   ChartLegend,
@@ -154,8 +166,6 @@ function corAging(horas: number): string {
   return 'text-red-600 dark:text-red-400';
 }
 
-const CORES_AGING = ['#10b981', '#f59e0b', '#f97316', '#ef4444'];
-const CORES_FAIXA = ['#10b981', '#22c55e', '#0ea5e9', '#f59e0b', '#ef4444'];
 
 // ---------------------------------------------------------------- componentes
 
@@ -212,7 +222,7 @@ function RankList({
         <li key={item.label} className="space-y-1.5">
           <div className="flex items-baseline justify-between gap-3">
             <span className="min-w-0 truncate txt-corpo font-medium text-foreground">{item.label}</span>
-            <span className="shrink-0 font-mono txt-corpo font-semibold tabular-nums text-foreground">
+            <span className="shrink-0 font-mono txt-corpo font-semibold tabular text-foreground">
               {formatValue(item.value)}
               {item.hint && <span className="ml-2 txt-apoio font-normal text-muted-foreground">{item.hint}</span>}
             </span>
@@ -243,7 +253,7 @@ function CardsSkeleton({ n = 4 }: { n?: number }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {Array.from({ length: n }, (_, i) => (
-        <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+        <Skeleton key={i} className="h-32 w-full rounded-surface" />
       ))}
     </div>
   );
@@ -252,10 +262,10 @@ function CardsSkeleton({ n = 4 }: { n?: number }) {
 function GraficosSkeleton() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-[320px] w-full rounded-2xl" />
+      <Skeleton className="h-[320px] w-full rounded-surface" />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Skeleton className="h-[280px] w-full rounded-2xl" />
-        <Skeleton className="h-[280px] w-full rounded-2xl" />
+        <Skeleton className="h-[280px] w-full rounded-surface" />
+        <Skeleton className="h-[280px] w-full rounded-surface" />
       </div>
     </div>
   );
@@ -524,8 +534,8 @@ export function Relatorios() {
 // ---------------------------------------------------------- aba: encomendas
 
 const configEncomendas: ChartConfig = {
-  recebidas: { label: 'Recebidas', color: '#0ea5e9' },
-  retiradas: { label: 'Retiradas', color: '#10b981' },
+  recebidas: { label: 'Recebidas', color: SERIE_ENTRADA },
+  retiradas: { label: 'Retiradas', color: SERIE_SAIDA },
   total: { label: 'Encomendas', color: 'hsl(var(--primary))' },
 };
 
@@ -541,7 +551,7 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
           title="Recebidas no período"
           value={fmtInt(resumo.recebidas)}
           icon={Package}
-          variant="primary"
+          variant="info"
           trend={
             resumo.variacao.recebidas != null
               ? { value: resumo.variacao.recebidas, label: labelPeriodoAnterior }
@@ -600,9 +610,9 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
                 </linearGradient>
               ))}
             </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} interval="preserveStartEnd" />
-            <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+            <CartesianGrid {...GRADE} />
+            <XAxis dataKey="label" {...EIXO_X} interval="preserveStartEnd" />
+            <YAxis {...EIXO_Y} />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />
             <Area
@@ -629,31 +639,31 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
         description="Da chegada na portaria até a retirada pelo morador."
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-lg bg-muted/30 p-4">
-            <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
-              <Send className="h-4 w-4 shrink-0" /> Moradores avisados
+          <div className="rounded-lg bg-muted p-4">
+            <div className="flex items-center gap-1.5 eyebrow">
+              <Send aria-hidden className="h-3 w-3 shrink-0" /> Moradores avisados
             </div>
-            <p className="mt-2 font-mono txt-numero font-bold tabular-nums text-foreground">
+            <p className="mt-2 font-mono txt-numero font-semibold tabular text-foreground">
               {resumo.taxaNotificacao}%
             </p>
             <p className="mt-1 txt-apoio text-muted-foreground">
               {fmtInt(resumo.notificadas)} de {fmtInt(resumo.recebidas)} encomendas
             </p>
           </div>
-          <div className="rounded-lg bg-muted/30 p-4">
-            <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
-              <Hourglass className="h-4 w-4 shrink-0" /> Tempo até avisar
+          <div className="rounded-lg bg-muted p-4">
+            <div className="flex items-center gap-1.5 eyebrow">
+              <Hourglass aria-hidden className="h-3 w-3 shrink-0" /> Tempo até avisar
             </div>
-            <p className="mt-2 font-mono txt-numero font-bold tabular-nums text-foreground">
+            <p className="mt-2 font-mono txt-numero font-semibold tabular text-foreground">
               {fmtMinutos(resumo.minutosAteNotificar)}
             </p>
             <p className="mt-1 txt-apoio text-muted-foreground">Do registro ao envio no WhatsApp</p>
           </div>
-          <div className="rounded-lg bg-muted/30 p-4">
-            <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
-              <XCircle className="h-4 w-4 shrink-0" /> Canceladas e devolvidas
+          <div className="rounded-lg bg-muted p-4">
+            <div className="flex items-center gap-1.5 eyebrow">
+              <XCircle aria-hidden className="h-3 w-3 shrink-0" /> Canceladas e devolvidas
             </div>
-            <p className="mt-2 font-mono txt-numero font-bold tabular-nums text-foreground">
+            <p className="mt-2 font-mono txt-numero font-semibold tabular text-foreground">
               {fmtInt(resumo.canceladas + resumo.devolvidas)}
             </p>
             <p className="mt-1 txt-apoio text-muted-foreground">
@@ -675,13 +685,13 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
         <SecaoCard title="Tempo até a retirada" description="Quanto o morador demora para buscar a encomenda.">
           <ChartContainer config={configEncomendas} className="aspect-auto h-[260px] w-full">
             <BarChart data={data.tempoRetirada} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={11} />
-              <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+              <CartesianGrid {...GRADE} />
+              <XAxis dataKey="label" {...EIXO_X} fontSize={11} />
+              <YAxis {...EIXO_Y} />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+              <Bar dataKey="total" radius={PONTA_BARRA}>
                 {data.tempoRetirada.map((f, i) => (
-                  <Cell key={f.key} fill={CORES_FAIXA[i % CORES_FAIXA.length]} />
+                  <Cell key={f.key} fill={corDeEspera(i, data.tempoRetirada.length)} />
                 ))}
               </Bar>
             </BarChart>
@@ -694,13 +704,13 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
         >
           <ChartContainer config={configEncomendas} className="aspect-auto h-[260px] w-full">
             <BarChart data={data.aging} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={11} />
-              <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+              <CartesianGrid {...GRADE} />
+              <XAxis dataKey="label" {...EIXO_X} fontSize={11} />
+              <YAxis {...EIXO_Y} />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+              <Bar dataKey="total" radius={PONTA_BARRA}>
                 {data.aging.map((f, i) => (
-                  <Cell key={f.key} fill={CORES_AGING[i % CORES_AGING.length]} />
+                  <Cell key={f.key} fill={corDeEspera(i, data.aging.length)} />
                 ))}
               </Bar>
             </BarChart>
@@ -717,11 +727,11 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
         >
           <ChartContainer config={configEncomendas} className="aspect-auto h-[260px] w-full">
             <BarChart data={data.porHora} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} interval={2} />
-              <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+              <CartesianGrid {...GRADE} />
+              <XAxis dataKey="label" {...EIXO_X} fontSize={10} interval={2} />
+              <YAxis {...EIXO_Y} />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="recebidas" fill="var(--color-recebidas)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="recebidas" fill="var(--color-recebidas)" radius={PONTA_BARRA} />
             </BarChart>
           </ChartContainer>
         </SecaoCard>
@@ -729,11 +739,11 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
         <SecaoCard title="Movimento por dia da semana" description="Volume recebido de segunda a domingo.">
           <ChartContainer config={configEncomendas} className="aspect-auto h-[260px] w-full">
             <BarChart data={data.porDiaSemana} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={11} />
-              <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+              <CartesianGrid {...GRADE} />
+              <XAxis dataKey="label" {...EIXO_X} fontSize={11} />
+              <YAxis {...EIXO_Y} />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="recebidas" fill="var(--color-recebidas)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="recebidas" fill="var(--color-recebidas)" radius={PONTA_BARRA} />
             </BarChart>
           </ChartContainer>
         </SecaoCard>
@@ -827,8 +837,8 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
                   {data.topApartamentos.map((a) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-mono font-medium">{a.identificador}</TableCell>
-                      <TableCell className="text-right font-mono tabular-nums">{fmtInt(a.total)}</TableCell>
-                      <TableCell className="text-right font-mono tabular-nums">
+                      <TableCell className="text-right font-mono tabular">{fmtInt(a.total)}</TableCell>
+                      <TableCell className="text-right font-mono tabular">
                         {a.pendentes > 0 ? (
                           <span className="text-amber-600 dark:text-amber-400">{fmtInt(a.pendentes)}</span>
                         ) : (
@@ -904,8 +914,8 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
                     <TableCell>
                       <Badge variant="secondary">{ROLE_LABEL[o.role] ?? o.role}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">{fmtInt(o.recebidas)}</TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">{fmtInt(o.retiradas)}</TableCell>
+                    <TableCell className="text-right font-mono tabular">{fmtInt(o.recebidas)}</TableCell>
+                    <TableCell className="text-right font-mono tabular">{fmtInt(o.retiradas)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -920,9 +930,9 @@ function AbaEncomendas({ data }: { data: RelatorioEncomendas }) {
 // ------------------------------------------------------------ aba: whatsapp
 
 const configWhatsapp: ChartConfig = {
-  enviadas: { label: 'Entregues', color: '#10b981' },
-  falhas: { label: 'Falhas', color: '#ef4444' },
-  naFila: { label: 'Na fila', color: '#f59e0b' },
+  enviadas: { label: 'Entregues', color: ESTADO_BOM },
+  falhas: { label: 'Falhas', color: ESTADO_FALHA },
+  naFila: { label: 'Na fila', color: ESTADO_ATENCAO },
 };
 
 function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
@@ -971,14 +981,14 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
       >
         <ChartContainer config={configWhatsapp} className="aspect-auto h-[300px] w-full">
           <BarChart data={data.serie} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} interval="preserveStartEnd" />
-            <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+            <CartesianGrid {...GRADE} />
+            <XAxis dataKey="label" {...EIXO_X} interval="preserveStartEnd" />
+            <YAxis {...EIXO_Y} />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />
             <Bar dataKey="enviadas" stackId="a" fill="var(--color-enviadas)" radius={[0, 0, 0, 0]} />
             <Bar dataKey="falhas" stackId="a" fill="var(--color-falhas)" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="naFila" stackId="a" fill="var(--color-naFila)" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="naFila" stackId="a" fill="var(--color-naFila)" radius={PONTA_BARRA} />
           </BarChart>
         </ChartContainer>
       </SecaoCard>
@@ -989,7 +999,7 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
             <div>
               <div className="flex items-baseline justify-between gap-3">
                 <span className="txt-corpo font-medium text-foreground">Moradores alcançáveis</span>
-                <span className="font-mono txt-numero-sm font-bold tabular-nums text-foreground">
+                <span className="font-mono txt-numero-sm font-semibold tabular text-foreground">
                   {fmtInt(alcance.alcancaveis)}
                   <span className="ml-1 txt-apoio font-normal text-muted-foreground">
                     / {fmtInt(alcance.moradores)}
@@ -1008,27 +1018,27 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg bg-muted/30 p-4">
-                <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
-                  <PhoneOff className="h-4 w-4 shrink-0" /> Sem telefone
+              <div className="rounded-lg bg-muted p-4">
+                <div className="flex items-center gap-1.5 eyebrow">
+                  <PhoneOff aria-hidden className="h-3 w-3 shrink-0" /> Sem telefone
                 </div>
-                <p className="mt-2 font-mono txt-numero-sm font-bold tabular-nums text-foreground">
+                <p className="mt-2 font-mono txt-numero-sm font-semibold tabular text-foreground">
                   {fmtInt(alcance.semTelefone)}
                 </p>
               </div>
-              <div className="rounded-lg bg-muted/30 p-4">
-                <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
-                  <XCircle className="h-4 w-4 shrink-0" /> Optaram por não receber
+              <div className="rounded-lg bg-muted p-4">
+                <div className="flex items-center gap-1.5 eyebrow">
+                  <XCircle aria-hidden className="h-3 w-3 shrink-0" /> Optaram por não receber
                 </div>
-                <p className="mt-2 font-mono txt-numero-sm font-bold tabular-nums text-foreground">
+                <p className="mt-2 font-mono txt-numero-sm font-semibold tabular text-foreground">
                   {fmtInt(alcance.optOut)}
                 </p>
               </div>
-              <div className="rounded-lg bg-muted/30 p-4">
-                <div className="flex items-center gap-2 txt-apoio text-muted-foreground">
-                  <Building2 className="h-4 w-4 shrink-0" /> Unidades sem titular
+              <div className="rounded-lg bg-muted p-4">
+                <div className="flex items-center gap-1.5 eyebrow">
+                  <Building2 aria-hidden className="h-3 w-3 shrink-0" /> Unidades sem titular
                 </div>
-                <p className="mt-2 font-mono txt-numero-sm font-bold tabular-nums text-foreground">
+                <p className="mt-2 font-mono txt-numero-sm font-semibold tabular text-foreground">
                   {fmtInt(alcance.apartamentosSemPrincipal)}
                 </p>
               </div>
@@ -1039,11 +1049,11 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
         <SecaoCard title="Envios por hora" description="Concentração dos disparos ao longo do dia.">
           <ChartContainer config={configWhatsapp} className="aspect-auto h-[260px] w-full">
             <BarChart data={data.porHora} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} interval={2} />
-              <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+              <CartesianGrid {...GRADE} />
+              <XAxis dataKey="label" {...EIXO_X} fontSize={10} interval={2} />
+              <YAxis {...EIXO_Y} />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="enviadas" fill="var(--color-enviadas)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="enviadas" fill="var(--color-enviadas)" radius={PONTA_BARRA} />
             </BarChart>
           </ChartContainer>
         </SecaoCard>
@@ -1066,11 +1076,11 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
                   {data.porTipo.map((t) => (
                     <TableRow key={t.tipo}>
                       <TableCell className="font-medium">{TIPO_NOTIFICACAO_LABEL[t.tipo] ?? t.tipo}</TableCell>
-                      <TableCell className="text-right font-mono tabular-nums">{fmtInt(t.total)}</TableCell>
-                      <TableCell className="text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                      <TableCell className="text-right font-mono tabular">{fmtInt(t.total)}</TableCell>
+                      <TableCell className="text-right font-mono tabular text-emerald-600 dark:text-emerald-400">
                         {fmtInt(t.enviadas)}
                       </TableCell>
-                      <TableCell className="text-right font-mono tabular-nums">
+                      <TableCell className="text-right font-mono tabular">
                         {t.falhas > 0 ? (
                           <span className="text-red-600 dark:text-red-400">{fmtInt(t.falhas)}</span>
                         ) : (
@@ -1103,7 +1113,7 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                     <span className="min-w-0 break-words txt-corpo text-foreground">{e.erro}</span>
                   </div>
-                  <span className="shrink-0 font-mono txt-corpo font-semibold tabular-nums text-red-600 dark:text-red-400">
+                  <span className="shrink-0 font-mono txt-corpo font-semibold tabular text-red-600 dark:text-red-400">
                     {fmtInt(e.total)}
                   </span>
                 </li>
@@ -1119,8 +1129,8 @@ function AbaWhatsapp({ data }: { data: RelatorioWhatsapp }) {
 // --------------------------------------------------------------- aba: vagas
 
 const configVagas: ChartConfig = {
-  ocupadas: { label: 'Ocupadas', color: '#0ea5e9' },
-  livres: { label: 'Livres', color: '#10b981' },
+  ocupadas: { label: 'Ocupadas', color: SERIE_ENTRADA },
+  livres: { label: 'Livres', color: SERIE_SAIDA },
   novas: { label: 'Novos contratos', color: 'hsl(var(--primary))' },
 };
 
@@ -1261,13 +1271,13 @@ function AbaVagas({ data }: { data: RelatorioVagas }) {
                 data={data.porTipo.map((t) => ({ ...t, label: TIPO_VAGA_LABEL[t.tipo] ?? t.tipo }))}
                 margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
               >
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={11} />
-                <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+                <CartesianGrid {...GRADE} />
+                <XAxis dataKey="label" {...EIXO_X} fontSize={11} />
+                <YAxis {...EIXO_Y} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Bar dataKey="ocupadas" stackId="a" fill="var(--color-ocupadas)" />
-                <Bar dataKey="livres" stackId="a" fill="var(--color-livres)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="livres" stackId="a" fill="var(--color-livres)" radius={PONTA_BARRA} />
               </BarChart>
             </ChartContainer>
           )}
@@ -1276,11 +1286,11 @@ function AbaVagas({ data }: { data: RelatorioVagas }) {
         <SecaoCard title="Novos contratos" description="Locações iniciadas nos últimos 6 meses.">
           <ChartContainer config={configVagas} className="aspect-auto h-[260px] w-full">
             <BarChart data={data.serie} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={11} />
-              <YAxis tickLine={false} axisLine={false} width={32} fontSize={12} allowDecimals={false} />
+              <CartesianGrid {...GRADE} />
+              <XAxis dataKey="label" {...EIXO_X} fontSize={11} />
+              <YAxis {...EIXO_Y} />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="novas" fill="var(--color-novas)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="novas" fill="var(--color-novas)" radius={PONTA_BARRA} />
             </BarChart>
           </ChartContainer>
         </SecaoCard>
@@ -1329,7 +1339,7 @@ function AbaVagas({ data }: { data: RelatorioVagas }) {
                       <TableCell>
                         <Badge variant={meta.variant}>{meta.label}</Badge>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-right font-mono tabular-nums">
+                      <TableCell className="whitespace-nowrap text-right font-mono tabular">
                         {fmtMoeda(c.valor)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-right font-mono text-muted-foreground">

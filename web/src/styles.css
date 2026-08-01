@@ -200,11 +200,17 @@
     --signal: 44.1 100% 58.6%;
     --grid-line: 0 0% 13%;
 
+    /* Passos de gráfico do ESCURO — escolhidos para a superfície escura, não
+       clareados a partir do claro. `--chart-4` e `--chart-5` desceram (45%→36%,
+       55%→44%) porque em OKLCH eles caíam em L 0,77 e 0,72, fora da faixa
+       0,48–0,67 de marca em fundo escuro: cor clara demais vira brilho e a
+       série perde forma. Nos passos atuais o par passa todas as checagens
+       (contraste ≥ 3:1, separação para daltonismo ΔE 16). */
     --chart-1: 44.1 100% 58.6%;
     --chart-2: 32 95% 55%;
     --chart-3: 0 0% 64%;
-    --chart-4: 160 84% 45%;
-    --chart-5: 199 89% 55%;
+    --chart-4: 160 84% 36%;
+    --chart-5: 199 89% 44%;
   }
 }
 

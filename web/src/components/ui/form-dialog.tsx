@@ -76,17 +76,20 @@ export function FormDialog({
           {children}
 
           {!hideFooter && (
-            <DialogFooter className="flex-col gap-2 sm:flex-row">
+            /* Uma linha só, com os dois botões nas pontas — o mesmo rodapé do
+               diálogo de morador, em qualquer viewport. Empilhado no celular,
+               como era aqui, fazia o mesmo formulário ter dois desenhos
+               conforme a tela em que foi escrito. */
+            <DialogFooter className="pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={saving}
-                className="w-full sm:w-auto"
               >
                 {cancelLabel}
               </Button>
-              <Button type="submit" disabled={saving} className="w-full sm:w-auto">
+              <Button type="submit" disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {submitLabel}
               </Button>
