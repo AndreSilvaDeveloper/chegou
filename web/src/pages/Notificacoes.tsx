@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import { PageShell } from '@/components/ui/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SegmentedFilter, type OpcaoSegmento } from '@/components/ui/segmented-filter';
 import { Notificacao, StatusNotificacao } from '@/api/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -30,12 +30,13 @@ interface FilaStats {
 
 type TabKey = 'todas' | 'na-fila' | 'agendada' | 'enviada' | 'falha';
 
-const TABS: { key: TabKey; label: string; status: string }[] = [
-  { key: 'todas', label: 'Todos', status: '' },
-  { key: 'na-fila', label: 'Na fila', status: 'pendente' },
-  { key: 'agendada', label: 'Agendado', status: 'agendada' },
-  { key: 'enviada', label: 'Enviados', status: 'enviada' },
-  { key: 'falha', label: 'Falhas', status: 'falha' },
+/** O `status` vai como parâmetro para a API; vazio = sem filtro. */
+const FILTROS: (OpcaoSegmento<TabKey> & { status: string })[] = [
+  { valor: 'todas', label: 'Todos', status: '' },
+  { valor: 'na-fila', label: 'Na fila', status: 'pendente' },
+  { valor: 'agendada', label: 'Agendado', status: 'agendada' },
+  { valor: 'enviada', label: 'Enviados', status: 'enviada' },
+  { valor: 'falha', label: 'Falhas', status: 'falha' },
 ];
 
 type BadgeVariant = 'success' | 'warning' | 'secondary' | 'destructive' | 'outline';
@@ -54,7 +55,7 @@ export function Notificacoes() {
   const [activeTab, setActiveTab] = useState<TabKey>('todas');
   const queryClient = useQueryClient();
 
-  const statusParam = TABS.find((t) => t.key === activeTab)?.status ?? '';
+  const statusParam = FILTROS.find((f) => f.valor === activeTab)?.status ?? '';
 
   const notificacoesQuery = useQuery({
     queryKey: ['notificacoes', activeTab],
@@ -231,32 +232,33 @@ export function Notificacoes() {
         ))}
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)} className="space-y-4">
-        <TabsList className="flex-wrap">
-          {TABS.map((t) => (
-            <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
-          ))}
-        </TabsList>
+      {/* Filtro, não aba: os cinco recortes mostram a MESMA lista — por isso
+          `SegmentedFilter` (botões com `aria-pressed`) e não `Tabs`. */}
+      <div className="space-y-4">
+        <SegmentedFilter
+          aria="Filtrar mensagens por situação"
+          valor={activeTab}
+          aoMudar={setActiveTab}
+          opcoes={FILTROS}
+        />
 
-        <TabsContent value={activeTab} className="space-y-4">
-          {notificacoesQuery.isLoading ? (
-            <Skeleton className="h-64 w-full rounded-2xl" />
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <DataTable
-                  columns={columns}
-                  data={notificacoesQuery.data || []}
-                  searchKey="destinatarioNome"
-                  searchPlaceholder="Buscar por destinatário..."
-                  emptyStateTitle="Nenhuma mensagem nesta fila"
-                  emptyStateDescription="Quando uma encomenda for registrada, a notificação aparece aqui."
-                />
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+        {notificacoesQuery.isLoading ? (
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <DataTable
+                columns={columns}
+                data={notificacoesQuery.data || []}
+                searchKey="destinatarioNome"
+                searchPlaceholder="Buscar por destinatário..."
+                emptyStateTitle="Nenhuma mensagem nesta fila"
+                emptyStateDescription="Quando uma encomenda for registrada, a notificação aparece aqui."
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
       </div>
     </PageShell>
   );

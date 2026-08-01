@@ -85,8 +85,9 @@ O que troca o endpoint é `podeEditar` (assinatura) e `basePath` (WhatsApp) —
 `''` fala com as rotas do condomínio da sessão, `/admin/tenants/:id` com as da
 plataforma. É o mesmo mecanismo de `ApartamentosManager` e `MoradoresManager`.
 
-No celular as sete abas ficam 2 por linha (`grid-cols-2 sm:grid-cols-4
-lg:grid-cols-7`): a aba não encolhe para caber tudo numa fita.
+As sete abas usam o `TabsList` padrão, sem grade: o trilho quebra em quantas
+linhas precisar e **quem manda na largura da aba é o rótulo dela** (ver
+"Controle segmentado" abaixo).
 
 ## Padrões de tela
 
@@ -99,6 +100,8 @@ lg:grid-cols-7`): a aba não encolhe para caber tudo numa fita.
 | Formulário | `FormDialog` (`components/ui/form-dialog.tsx`) |
 | Ação destrutiva | `ConfirmDialog` (nunca `confirm()`) |
 | Indicador numérico | `StatCard` |
+| Trocar o conteúdo da tela | `Tabs` + `TabsContent` (ver "Controle segmentado") |
+| Filtrar a mesma lista | `SegmentedFilter` (`components/ui/segmented-filter.tsx`) |
 | Escolha de sim/não numa linha | `CheckboxField` (caixa + texto clicável). `Switch` é para liga/desliga que vale na hora |
 | Select | `SimpleSelect` |
 | Select com lista grande | `SearchSelect` (busca por digitação; use `onSearchChange` para buscar no servidor) |
@@ -258,6 +261,75 @@ O conteúdo é uma **superfície flutuante** como o diálogo: `rounded-surface`,
 `border-surface` e `shadow-panel-lg` já vêm da base — a tela passa só a largura
 (`className="w-64"`).
 
+### Encomenda: o estado tem um mapa só
+
+`components/encomendas/encomenda-status.ts` guarda `label` (texto curto do
+ponto de status), `descricao` (a frase da tela de detalhe), `tone` (a cor, do
+mesmo mapa do `StatusDot`) e `icon`. Listagem e detalhe leem de lá.
+
+Antes cada tela tinha o seu: na lista o status era um ponto colorido
+"Aguardando"; no detalhe, um badge de outra cor escrito "Aguardando Retirada".
+Mesmo dado, duas identidades — e nada garantia que um status novo entrasse nos
+dois.
+
+O `TONE` exportado de `ui/status-dot.tsx` é o que amarra a cor: **o ponto ao
+lado de "Aguardando" na lista é o mesmo círculo do marco "Encomenda recebida"
+na linha do tempo do detalhe**. Estado que ainda não aconteceu fica chapado
+(`bg-muted`), sem cor nenhuma.
+
+A tela de detalhe repete a anatomia do `ListCard` de propósito: bloco de ícone
+de 40px em `bg-muted`, rótulo `eyebrow`, valor em `txt-corpo` e **um só** dado
+com ênfase (`txt-numero-sm`, o apartamento). Âmbar ali é exclusividade do botão
+que conclui a entrega.
+
+### Controle segmentado: `Tabs` e `SegmentedFilter` são a mesma pele
+
+Duas peças, uma aparência. As classes moram em **`components/ui/tabs.tsx`**
+(`TRILHO_SEGMENTADO`, `SEGMENTO`, `SEGMENTO_ATIVO`) e o `SegmentedFilter` as
+importa de lá — mudou o desenho do controle, mudou nas duas.
+
+| Peça | Quando | Semântica |
+|---|---|---|
+| `Tabs` + `TabsContent` | Cada opção mostra um **conteúdo diferente** (Vagas / Locações / Cobranças) | Radix: `role="tab"`, setas do teclado, vínculo com o painel |
+| `SegmentedFilter` | O conteúdo é o mesmo e muda o **recorte** (Pendentes / Retirados) | Botões com `aria-pressed` |
+
+Na dúvida: se ao clicar você troca o que a tela mostra, é aba; se filtra a mesma
+lista, é filtro. Anunciar um filtro como aba mente para o leitor de tela — não
+existe painel do outro lado.
+
+```tsx
+const FILTROS: OpcaoSegmento<Filtro>[] = [
+  { valor: 'pendentes', label: 'Pendentes' },
+  { valor: 'retirados', label: 'Retirados' },
+];
+
+<SegmentedFilter aria="Filtrar encomendas por situação"
+  valor={filtro} aoMudar={setFiltro} opcoes={FILTROS} />
+```
+
+Três coisas que **não** se refazem na tela:
+
+1. **Nada de `grid-cols-N` no `TabsList`.** Coluna de largura fixa espremia
+   "Pendentes" e "Cancelados" em 375px. O trilho quebra linha (`flex-wrap`) e a
+   largura sai do rótulo. Também nada de rolagem horizontal.
+2. **Nada de altura forçada** (`min-h-[44px]`) — a altura vem do padding, como
+   em todo controle do shadcn (regra 17).
+3. **O selecionado não é âmbar.** O sinal é da ação, e nessas telas o botão
+   âmbar fica logo acima do controle; dois âmbares na mesma dobra e o botão
+   deixa de saltar. Quem marca é o degrau entre `--segmented` (trilho) e
+   `--segmented-active` (pílula), mais a sombra.
+4. **Os dois tons são tokens próprios**, não `--muted`/`--card`. O controle
+   aparece sobre o card e sobre a folha: preso ao `--muted` ele lia como "mais
+   escuro" dentro do card, mas na folha ficava mais CLARO que o fundo e a
+   pílula selecionada sumia. No escuro o degrau **inverte** de propósito —
+   trilho `#262626`, pílula `#0A0A0A` — porque quem marca a seleção é o
+   contraste, não o "mais claro vence"; pílula clara ali seria uma lâmpada no
+   meio da tela.
+
+Contagem ao lado do rótulo: `contador` no `SegmentedFilter`; nas abas, um
+`<span className="tabular txt-nota text-muted-foreground">`. Ela fica apagada
+mesmo no segmento selecionado — senão dois pesos disputam a mesma pílula.
+
 ### Nunca declare um componente dentro de outro
 
 ```tsx
@@ -397,12 +469,12 @@ linha vira um `ListCard`; a tabela volta no desktop.
     <ListCard
       icone={User}
       titulo={m.nome}
+      subtitulo={<span className="font-mono">{m.apartamento?.identificador}</span>}
       selo={m.principal ? <Badge variant="secondary">Principal</Badge> : undefined}
       acoes={<Button variant="ghost" size="icon-sm" aria-label={`Editar ${m.nome}`}>…</Button>}
       campos={[
-        { rotulo: 'Unidade', valor: m.apartamento?.identificador ?? '—' },
-        { rotulo: 'Telefone', valor: formatarTelefone(m.telefoneE164) },
-        { rotulo: 'Notificação', valor: <Badge>…</Badge>, largura: 'inteira' },
+        { rotulo: 'Telefone', icone: Phone, valor: formatarTelefone(m.telefoneE164) },
+        { rotulo: 'Notificação', icone: MessageSquare, valor: <Badge>…</Badge> },
       ]}
     />
   )}
@@ -414,14 +486,39 @@ Derivar produziria "rótulo: valor" para toda coluna, inclusive as que só exist
 para ordenar. No celular não cabe tudo: o card é uma **escolha** do que importa,
 e quem escolhe é a tela.
 
-O par **rótulo pequeno apagado em cima, valor legível embaixo** (`txt-nota
-uppercase text-muted-foreground` sobre `txt-corpo`) é o que substitui o cabeçalho
-da tabela. Sem ele o card vira uma lista de valores sem nome. `largura: 'inteira'`
-para texto longo (e-mail, observação), que não cabe em meia coluna.
+#### Os três níveis do `ListCard`
 
-Quem já usa: `MoradoresManager`, `ApartamentosManager`, `EquipeManager`. Vagas
-monta os cards direto (a tela nunca teve tabela), mas segue o mesmo par
-rótulo/valor.
+Distribua a informação nesta ordem — é o que dá hierarquia em vez de uma pilha
+de campos iguais:
+
+| Nível | Prop | O que vai ali |
+|---|---|---|
+| 1 | `titulo` | O que identifica: nome do morador, `A-101`, `Vaga 12` |
+| 2 | `subtitulo` | O que confirma **qual** registro é: a unidade do morador, o e-mail do acesso, o tipo da vaga. Apagado, então não briga com o título |
+| 3 | `campos` | O resto, com o rótulo em `eyebrow` fazendo o papel do cabeçalho da tabela |
+
+Sem o rótulo, o card vira uma lista de valores sem nome. Outros recursos:
+
+- `campo.icone` — ícone do Lucide no rótulo; ajuda a achar o campo sem ler.
+- `campo.enfase` — sobe o valor para `txt-numero-sm` semibold. **Um por card**:
+  é o dado que a tela existe para mostrar (o valor do aluguel). Dois já não
+  enfatizam nada.
+- `campo.largura: 'inteira'` — texto longo (e-mail, observação). Meia coluna
+  corta com reticências; a inteira **quebra linha**, senão a observação sumia.
+- `rodape` — ações com texto (Editar, Histórico), ou um aviso do registro. Fica
+  colado no pé do card: numa grade, os cards de uma linha esticam para a mesma
+  altura e os rodapés se alinham.
+- `acoes` (canto superior) é **só para botão de ícone** — as margens negativas
+  de lá alinham o ícone com a borda do card. Conteúdo que não é botão vai em
+  `destaque` (é onde fica o `CodigoStrip` da encomenda).
+- `to` — o card inteiro vira link para o detalhe, com seta ao lado do título e
+  realce no hover. O alvo de toque passa a ser o card, não um "ver mais" de
+  14px. Não use junto com `acoes`: botão dentro de link é armadilha de clique.
+
+Quem usa: `MoradoresManager`, `ApartamentosManager`, `EquipeManager` (via
+`mobileCard`), `Vagas` nas duas listas e `Encomendas` — nessas últimas o card já
+nasce em grade no desktop, sem tabela. **Não monte a anatomia à mão**: era assim
+em Vagas e em Encomendas, e as três cópias já tinham divergido do original.
 
 ## Versão e atualização automática
 

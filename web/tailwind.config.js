@@ -44,6 +44,12 @@ export default {
           surface: "hsl(var(--banner-surface))",
           border: "hsl(var(--banner-border))",
         },
+        // Trilho e pílula do controle segmentado (abas e filtros). Tons fixos:
+        // o controle não pode mudar de leitura conforme a superfície embaixo.
+        segmented: {
+          DEFAULT: "hsl(var(--segmented))",
+          active: "hsl(var(--segmented-active))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar))",
           foreground: "hsl(var(--sidebar-foreground))",

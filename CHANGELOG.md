@@ -11,6 +11,172 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.24.12 — 2026-08-01
+
+### Alterado
+- **Controle segmentado ganhou tons próprios** (`--segmented` e
+  `--segmented-active`), no lugar de `--muted`/`--card`. O trilho estava preso à
+  hierarquia de superfícies e por isso mudava de leitura conforme o que havia
+  embaixo: dentro de um card ele parecia mais escuro (era o desenho certo, o do
+  par Código/Documento), mas na folha ficava **mais claro** que o fundo e a
+  pílula selecionada praticamente sumia.
+  - **Claro**: trilho no tom do shell (`#E8E4DE`) e pílula **branca**.
+  - **Escuro**: o degrau inverte — trilho `#262626` e pílula quase preta
+    (`#0A0A0A`). Quem marca a seleção é o contraste, não o "mais claro vence":
+    pílula clara no escuro seria uma lâmpada no meio da tela.
+- O anel de foco do segmento passou a usar o trilho como `ring-offset` — com a
+  cor do fundo, o respiro entre o anel e a pílula virava um halo de outro tom.
+- A pílula selecionada dispensou o `ring-border-surface`: com os tons novos, o
+  degrau de tom já a separa nos dois temas.
+
+---
+
+## 0.24.11 — 2026-08-01
+
+### Alterado
+- **Tela de detalhe da encomenda alinhada à listagem.** Ela repete agora a
+  anatomia do `ListCard`: bloco de ícone de 40px em `bg-muted`, rótulo
+  `eyebrow`, valor em `txt-corpo` e **um só** dado com ênfase (o apartamento,
+  em `txt-numero-sm`).
+- **O estado da encomenda passou a ter um mapa só**
+  (`components/encomendas/encomenda-status.ts`). Listagem e detalhe tinham cada
+  um o seu: na lista, um ponto colorido "Aguardando"; no detalhe, um badge de
+  outra cor escrito "Aguardando Retirada". Agora o cabeçalho do detalhe mostra o
+  **mesmo ponto de status** do card, com o texto longo.
+- **A linha do tempo usa a cor do estado.** O `TONE` do `StatusDot` virou a
+  fonte: o ponto ao lado de "Aguardando" na lista é o mesmo círculo do marco
+  "Encomenda recebida". Marco que ainda não aconteceu fica chapado, sem cor.
+- **Âmbar decorativo removido da tela.** Saíram a borda âmbar do card de
+  entrega, o ícone âmbar do cabeçalho dele, as bolinhas numeradas do passo a
+  passo e a caixa âmbar em volta do código. O único âmbar que sobrou é o botão
+  "Confirmar entrega" — que é a ação.
+- **O código de retirada perdeu a caixa em volta**: o `CodigoStrip` já é o
+  elemento de assinatura, e embrulhá-lo era caixa dentro de caixa. Ficou o
+  rótulo `eyebrow` em cima e a nota de visibilidade embaixo.
+- **Falha de WhatsApp** virou aviso chapado com bloco de ícone, no lugar da
+  caixa com borda vermelha.
+- Títulos da tela passaram para caixa de sentença ("Detalhes da encomenda",
+  "Linha do tempo", "Foto do pacote"), como no resto do painel.
+- **Esqueleto de carregamento agora fica dentro do `PageShell`** — o porteiro
+  continua vendo a seta de voltar, e a forma das duas colunas já aparece (elas
+  também estavam invertidas em relação ao layout real).
+
+### Corrigido
+- Alturas forçadas no botão "Confirmar entrega" e no campo de documento (regra
+  17). A única que sobrou é o campo do código de 4 dígitos, que é o gêmeo do
+  `CodigoStrip` — está comentado no código.
+
+---
+
+## 0.24.10 — 2026-08-01
+
+### Corrigido
+- **Botões de ação das Vagas ocupam a linha no celular**, como em Apartamentos:
+  "Tabela de preços" e "Nova vaga" dividem a largura (`flex-1`) e voltam ao
+  tamanho do rótulo no desktop (`sm:flex-none`), com `rounded-full`. Eles
+  estavam dentro de um `div` extra, e esse embrulho tirava os botões da fita de
+  ações do `PageShell` — era por isso que o `flex-1` não pegava.
+- Mesmo alinhamento em **Meus condomínios**, **Administradoras** e
+  **Assinaturas da plataforma**, que também destoavam (`w-full sm:w-auto` ou
+  sem classe, e sem `rounded-full`).
+
+---
+
+## 0.24.9 — 2026-08-01
+
+### Adicionado
+- **`SegmentedFilter`** (`components/ui/segmented-filter.tsx`): o controle que
+  recorta uma lista sem trocar de tela. Aceita ícone e contagem, e as classes
+  vêm de `tabs.tsx` — as duas peças não têm como divergir.
+
+### Alterado
+- **Abas e filtros passaram a ser o mesmo controle.** Havia três desenhos
+  diferentes para a mesma ideia: o filtro âmbar das Encomendas, as abas
+  quadradas de Vagas/Assinaturas e as abas âmbar de sete colunas das telas de
+  condomínio. Agora existe uma pele só (`TRILHO_SEGMENTADO`, `SEGMENTO`,
+  `SEGMENTO_ATIVO`, em `components/ui/tabs.tsx`), com `rounded-full` no trilho e
+  no segmento.
+- **O segmento selecionado deixou de ser âmbar.** O sinal é da ação, e nessas
+  telas o botão âmbar fica logo acima do controle — dois âmbares na mesma dobra
+  e o botão deixa de saltar. Agora quem marca é o degrau de tom (`bg-card` sobre
+  `bg-muted`) mais a sombra; no escuro, o fio de `ring-border-surface`.
+- **Nada de `grid-cols-N` nos trilhos.** Coluna de largura fixa espremia
+  "Pendentes" e "Cancelados" em 375px; o trilho quebra linha e a largura sai do
+  rótulo. Também saíram os `min-h-[44px]` forçados (regra 17).
+- **Filas de Disparo virou filtro, não abas.** Os cinco recortes mostram a mesma
+  lista — era `Tabs` com um `TabsContent` só, o que anunciava painel inexistente
+  para o leitor de tela.
+- **Locações (Vagas)**: o select "Mostrar" virou filtro segmentado, igual ao das
+  Encomendas.
+- **Detalhe da encomenda**: o par Código/Documento era um `TabButton` local com
+  a própria pele; agora é o `SegmentedFilter`.
+- **Telas atualizadas**: Encomendas, Vagas (abas + locações), Filas de Disparo,
+  Relatórios, Assinaturas da plataforma, Meu condomínio, Condomínio do
+  superadmin e Detalhe da encomenda.
+
+---
+
+## 0.24.8 — 2026-08-01
+
+### Alterado
+- **Card de encomenda agora é o `ListCard`.** Ele montava a anatomia à mão e já
+  tinha divergido: apartamento, destinatário e situação empilhados numa coluna
+  só, descrição e metadados num rodapé com borda própria. Agora segue os três
+  níveis das outras listas — ícone, apartamento (título), destinatário
+  (subtítulo) e os campos com rótulo `eyebrow`: Situação, Recebida,
+  Transportadora e Conteúdo.
+- **O código de retirada continua no canto**, no slot novo `destaque` — e só
+  aparece enquanto a encomenda está para ser retirada, como antes.
+- **A falha de WhatsApp virou rodapé do card**, colada no pé; numa grade, os
+  cards de uma linha esticam juntos e os avisos ficam alinhados.
+- **Data**: o card mostra o tempo relativo ("há 2 h"), que é o que se lê na
+  portaria, com a data exata no `title`. Antes mostrava os dois lado a lado.
+- **Rótulos da tela de detalhe** passaram a usar `eyebrow`, o mesmo do card —
+  quem abre o detalhe vindo da lista não vê a tipografia trocar de personagem.
+
+### Adicionado
+- **`ListCard` aceita `to`**: o card inteiro vira link para o detalhe, com seta
+  ao lado do título e realce no hover (elevação e borda, sem âmbar). O alvo de
+  toque passa a ser o card.
+- **`ListCard` aceita `destaque`**: conteúdo no canto superior direito que não é
+  botão. `acoes` continua para botão de ícone — as margens negativas de lá
+  desalinham um bloco.
+
+---
+
+## 0.24.7 — 2026-08-01
+
+### Alterado
+- **`ListCard` ganhou hierarquia de leitura.** Antes era título + uma grade de
+  campos todos com o mesmo peso. Agora são três níveis: título, **subtítulo**
+  (novo — o que confirma qual registro é) e campos. O ícone virou bloco chapado
+  (`bg-muted`), que dá o ponto de ancoragem para varrer a lista de relance.
+- **Campos com ícone e com ênfase.** `campo.icone` põe um ícone no rótulo;
+  `campo.enfase` sobe o valor para `txt-numero-sm` semibold — um por card, para
+  o dado que a tela existe para mostrar (o valor do aluguel). O rótulo passou a
+  usar `eyebrow`, o papel certo da escala, no lugar de `txt-nota uppercase`
+  escrito à mão.
+- **`rodape`** (novo): ações com texto no pé do card. O canto superior continua
+  só para botão de ícone.
+- **Listas ajustadas ao novo desenho**, cortando repetição:
+  - **Moradores**: a unidade subiu para o subtítulo; sobraram telefone e
+    notificação, lado a lado.
+  - **Apartamentos**: os campos "Bloco" e "Número" saíram — o título já É
+    bloco + número. O subtítulo escreve isso por extenso ("Bloco A · Unidade
+    101") e o card só mostra observações quando existem.
+  - **Equipe**: o e-mail (que é o login) virou subtítulo; papel e status ficaram
+    lado a lado, com ícone.
+  - **Vagas**: as duas listas (vagas e locações) montavam a anatomia do
+    `ListCard` à mão e já tinham divergido dele — agora usam o componente. Na
+    locação, o valor mensal é o campo com ênfase.
+
+### Corrigido
+- **Campo de largura inteira não trunca mais.** Ele existe justamente para texto
+  longo (observação, e-mail), e o `truncate` escondia tudo depois da primeira
+  linha; agora quebra linha.
+
+---
+
 ## 0.24.6 — 2026-08-01
 
 ### Alterado

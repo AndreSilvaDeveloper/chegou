@@ -69,7 +69,7 @@ export function SuperAdminAdministradoras() {
       description="Empresas que administram carteiras de condomínios."
       acoes={
         <>
-  <Button onClick={() => setNovaAberta(true)} className="w-full sm:w-auto">
+          <Button onClick={() => setNovaAberta(true)} className="flex-1 rounded-full sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
             Nova administradora
           </Button>

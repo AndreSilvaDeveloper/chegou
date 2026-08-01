@@ -126,7 +126,7 @@ export function MeusCondominios() {
       description={`${condominios.length} condomínio(s) na sua carteira`}
       acoes={
         <>
-  <Button onClick={() => setNovoAberto(true)} className="w-full sm:w-auto">
+          <Button onClick={() => setNovoAberto(true)} className="flex-1 rounded-full sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
             Novo condomínio
           </Button>

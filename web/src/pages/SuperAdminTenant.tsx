@@ -180,16 +180,12 @@ export function SuperAdminTenant() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="space-y-6">
-        {/* Sete abas: no celular ficam 2 por linha (a aba não pode
-            encolher), no desktop cabem todas numa fita só. */}
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-xs sm:grid-cols-4 lg:grid-cols-7">
+        {/* Sete abas: o trilho quebra em quantas linhas precisar, sem espremer
+            o rótulo — quem manda na largura da aba é o texto dela. */}
+        <TabsList>
           {tabs.map((t) => (
-            <TabsTrigger
-              key={t.key}
-              value={t.key}
-              className="flex items-center justify-center gap-2 rounded-lg py-2.5 txt-corpo data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
-            >
-              <t.icon className="h-4 w-4" />
+            <TabsTrigger key={t.key} value={t.key}>
+              <t.icon />
               <span>{t.label}</span>
             </TabsTrigger>
           ))}

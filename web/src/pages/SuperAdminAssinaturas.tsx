@@ -114,7 +114,7 @@ export function SuperAdminAssinaturas() {
       icon={Receipt}
       acoes={
         <>
-  <Button onClick={() => setGerarAberto(true)} >
+          <Button onClick={() => setGerarAberto(true)} className="flex-1 rounded-full sm:flex-none">
             <CirclePlus className="mr-2 h-4 w-4" />
             Gerar faturas
           </Button>
@@ -160,16 +160,10 @@ export function SuperAdminAssinaturas() {
       </div>
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-3">
-          <TabsTrigger value="faturas" className="min-h-[44px] txt-corpo">
-            Faturas
-          </TabsTrigger>
-          <TabsTrigger value="previas" className="min-h-[44px] txt-corpo">
-            Prévias
-          </TabsTrigger>
-          <TabsTrigger value="precos" className="min-h-[44px] txt-corpo">
-            Preços
-          </TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="faturas">Faturas</TabsTrigger>
+          <TabsTrigger value="previas">Prévias</TabsTrigger>
+          <TabsTrigger value="precos">Preços</TabsTrigger>
         </TabsList>
 
         <TabsContent value="faturas" className="space-y-4">

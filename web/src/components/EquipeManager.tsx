@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Plus, User, Users, Pencil, PowerOff, Power, Loader2, ArrowUpDown, KeyRound } from 'lucide-react';
+import { Plus, User, Users, Pencil, PowerOff, Power, Loader2, ArrowUpDown, KeyRound, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { ListCard } from '@/components/ui/list-card';
@@ -301,6 +301,14 @@ export function EquipeManager({
             <ListCard
               icone={User}
               titulo={u.nome}
+              // O e-mail é o login dele: identifica a pessoa melhor que o nome
+              // repetido e sai de baixo, onde era um campo de largura inteira.
+              subtitulo={
+                <span className="flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{u.email}</span>
+                </span>
+              }
               atenuado={!u.ativo}
               selo={
                 u.id === meuId ? (
@@ -331,6 +339,7 @@ export function EquipeManager({
               campos={[
                 {
                   rotulo: 'Papel',
+                  icone: KeyRound,
                   valor: (
                     <Badge
                       variant="outline"
@@ -342,13 +351,13 @@ export function EquipeManager({
                 },
                 {
                   rotulo: 'Status',
+                  icone: u.ativo ? Power : PowerOff,
                   valor: u.ativo ? (
                     <Badge variant="success">Ativo</Badge>
                   ) : (
                     <Badge variant="secondary">Inativo</Badge>
                   ),
                 },
-                { rotulo: 'E-mail', valor: u.email, largura: 'inteira' },
               ]}
             />
           )}

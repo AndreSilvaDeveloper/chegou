@@ -85,6 +85,15 @@
        de tom (folha 94% → card 99%). */
     --border-surface: 36 20% 91.5%;
 
+    /* CONTROLE SEGMENTADO (abas e filtros). Token próprio, e não `--muted`,
+       porque o trilho não pode depender da superfície embaixo dele: no card
+       (#FDFCFA) o `--muted` lia como "mais escuro", mas na folha (#F3F0EA) ele
+       ficava mais CLARO que o fundo e a pílula selecionada sumia. Fixando os
+       dois tons, o controle é o mesmo em qualquer lugar da tela.
+       Claro: trilho no tom do shell, pílula branca. */
+    --segmented: 35 18% 89%;            /* #E8E4DE */
+    --segmented-active: 0 0% 100%;      /* #FFFFFF */
+
     /* Shell (menu lateral + topo): o nível mais fundo do claro */
     --sidebar: 35 18% 89%;              /* #E8E4DE */
     --sidebar-foreground: 34 10% 27%;
@@ -149,6 +158,13 @@
        card se define pela diferença de superfície (10% contra 7%) mais esta
        borda de um passo acima dela. É o mesmo papel da sombra no claro. */
     --border-surface: 0 0% 15%;
+
+    /* No escuro o degrau INVERTE: o trilho é o cinza (#262626) e a pílula
+       selecionada é o quase-preto. Manter a pílula clara aqui seria acender uma
+       lâmpada no meio da tela — e o que marca a seleção é o contraste, não o
+       "mais claro vence". */
+    --segmented: 0 0% 15%;              /* #262626 */
+    --segmented-active: 0 0% 4%;        /* #0A0A0A */
 
     --sidebar: 0 0% 4%;
     --sidebar-foreground: 0 0% 82%;

@@ -247,14 +247,10 @@ export function MeuCondominio() {
       </Card>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-card p-1 shadow-xs sm:grid-cols-4 lg:grid-cols-7">
+        <TabsList>
           {TABS.map((t) => (
-            <TabsTrigger
-              key={t.key}
-              value={t.key}
-              className="flex items-center justify-center gap-2 rounded-lg py-2.5 txt-corpo data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
-            >
-              <t.icon className="h-4 w-4" />
+            <TabsTrigger key={t.key} value={t.key}>
+              <t.icon />
               <span>{t.label}</span>
             </TabsTrigger>
           ))}

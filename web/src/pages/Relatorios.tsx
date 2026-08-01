@@ -373,16 +373,16 @@ export function Relatorios() {
     >
       <div className="space-y-6">
       <Tabs value={tabAtiva} onValueChange={(v) => setTab(v as TabKey)} className="space-y-6">
-        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 sm:w-auto">
-          <TabsTrigger value="encomendas" className="flex-1 gap-2 px-4 sm:flex-none">
-            <Package className="h-4 w-4" /> Encomendas
+        <TabsList>
+          <TabsTrigger value="encomendas">
+            <Package /> Encomendas
           </TabsTrigger>
-          <TabsTrigger value="whatsapp" className="flex-1 gap-2 px-4 sm:flex-none">
-            <MessageSquare className="h-4 w-4" /> WhatsApp
+          <TabsTrigger value="whatsapp">
+            <MessageSquare /> WhatsApp
           </TabsTrigger>
           {vagasAtivo && (
-            <TabsTrigger value="vagas" className="flex-1 gap-2 px-4 sm:flex-none">
-              <Car className="h-4 w-4" /> Vagas
+            <TabsTrigger value="vagas">
+              <Car /> Vagas
             </TabsTrigger>
           )}
         </TabsList>

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Plus, Building2, Pencil, Trash2, Loader2, ArrowUpDown, Upload } from 'lucide-react';
+import { Plus, Building2, Pencil, Trash2, Loader2, ArrowUpDown, Upload, StickyNote } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { ListCard } from '@/components/ui/list-card';
@@ -327,7 +327,9 @@ export function ApartamentosManager({
               <ListCard
                 icone={Building2}
                 titulo={<span className="font-mono">{a.identificador}</span>}
-                selo={a.bloco ? <Badge variant="outline" className="shrink-0">{a.bloco}</Badge> : undefined}
+                // O identificador já É bloco + número; o subtítulo escreve isso
+                // por extenso em vez de repetir os dois como campos.
+                subtitulo={a.bloco ? `Bloco ${a.bloco} · Unidade ${a.numero}` : `Unidade ${a.numero}`}
                 acoes={
                   <>
                     <Button variant="ghost" size="icon-sm" aria-label={`Editar unidade ${a.identificador}`} onClick={() => openEdit(a)}>
@@ -338,13 +340,18 @@ export function ApartamentosManager({
                     </Button>
                   </>
                 }
-                campos={[
-                  { rotulo: 'Bloco', valor: a.bloco || '—' },
-                  { rotulo: 'Número', valor: <span className="font-mono">{a.numero}</span> },
-                  ...(a.observacoes
-                    ? [{ rotulo: 'Observações', valor: a.observacoes, largura: 'inteira' as const }]
-                    : []),
-                ]}
+                campos={
+                  a.observacoes
+                    ? [
+                        {
+                          rotulo: 'Observações',
+                          icone: StickyNote,
+                          valor: a.observacoes,
+                          largura: 'inteira' as const,
+                        },
+                      ]
+                    : []
+                }
               />
             )}
           />

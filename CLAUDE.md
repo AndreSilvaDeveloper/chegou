@@ -661,6 +661,9 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `rolagem-sem-barra` (utility CSS) | `web/src/styles.css` | Esconde a barra de rolagem sem tirar a rolagem — use com `max-md:` |
 | `PageShell` | `web/src/components/ui/page-shell.tsx` | **Casca de toda tela do painel**: faixa âmbar no celular (título, busca, filtro, voltar), cabeçalho comum no desktop |
 | `ListCard` / `ListCardStack` | `web/src/components/ui/list-card.tsx` | Registro de lista como card no celular (rótulo apagado sobre valor forte) |
+| `SegmentedFilter` | `web/src/components/ui/segmented-filter.tsx` | Filtro segmentado sobre uma lista (Pendentes/Retirados) — mesma pele das abas |
+| `ENCOMENDA_STATUS` / `TONE` | `web/src/components/encomendas/encomenda-status.ts` | Rótulo, cor e ícone de cada estado da encomenda — listagem e detalhe leem daqui |
+| `Tabs` (`TRILHO_SEGMENTADO`) | `web/src/components/ui/tabs.tsx` | Abas de conteúdo; é aqui que mora a pele do controle segmentado |
 | `DataTable` com `mobileCard` | `web/src/components/ui/data-table.tsx` | Lista que é card no celular e tabela no desktop |
 | `EmptyState` / `StatCard` / `ConfirmDialog` / `SimpleSelect` | `web/src/components/ui/` | Estado vazio, indicador, confirmação e select |
 | `OptionCard` / `ModuleToggle` / `ModuleReadonly` / `InfoPill` | `web/src/components/condominio/condominio-shared.tsx` | Telas de configurar condomínio (superadmin e administradora) |

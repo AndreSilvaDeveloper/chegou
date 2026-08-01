@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, getToken, getUser } from '../api/client';
-import { Encomenda, EncomendaStatus, ListarEncomendasResponse } from '../api/types';
+import { Encomenda, ListarEncomendasResponse } from '../api/types';
 import { NotifBadge } from '../components/NotifBadge';
 import { PageShell } from '@/components/ui/page-shell';
 import { Label } from '@/components/ui/label';
@@ -9,27 +9,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package, Clock, Plus, Download, ChevronRight, Truck, User } from 'lucide-react';
-import { timeAgo, formatDateTime, cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
+import { Package, Clock, Plus, Download, Truck, User, Box } from 'lucide-react';
+import { timeAgo, formatDateTime } from '@/lib/utils';
+import { ListCard } from '@/components/ui/list-card';
+import { SegmentedFilter, type OpcaoSegmento } from '@/components/ui/segmented-filter';
 import { CodigoStrip } from '@/components/ui/codigo-strip';
 import { StatusDot } from '@/components/ui/status-dot';
-
-type Tone = 'waiting' | 'notified' | 'done' | 'neutral' | 'danger';
-const STATUS_CONFIG: Record<EncomendaStatus, { label: string; tone: Tone; pulse?: boolean }> = {
-  aguardando: { label: 'Aguardando', tone: 'waiting', pulse: true },
-  notificado: { label: 'Notificado', tone: 'notified', pulse: true },
-  retirada: { label: 'Retirada', tone: 'done' },
-  cancelada: { label: 'Cancelada', tone: 'neutral' },
-  devolvida: { label: 'Devolvida', tone: 'neutral' },
-};
+import { ENCOMENDA_STATUS, encomendaPendente } from '@/components/encomendas/encomenda-status';
 
 type Filtro = 'pendentes' | 'retirados' | 'cancelados' | 'todos';
-const FILTROS: { key: Filtro; label: string }[] = [
-  { key: 'pendentes', label: 'Pendentes' },
-  { key: 'retirados', label: 'Retirados' },
-  { key: 'cancelados', label: 'Cancelados' },
-  { key: 'todos', label: 'Todos' },
+const FILTROS: OpcaoSegmento<Filtro>[] = [
+  { valor: 'pendentes', label: 'Pendentes' },
+  { valor: 'retirados', label: 'Retirados' },
+  { valor: 'cancelados', label: 'Cancelados' },
+  { valor: 'todos', label: 'Todos' },
 ];
 
 export function Encomendas() {
@@ -142,24 +135,12 @@ export function Encomendas() {
       }
     >
       <div className="space-y-6">
-        {/* Filtro de status — todos na mesma linha, com o selecionado bem destacado */}
-        <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted/40 p-1 sm:flex sm:w-fit">
-          {FILTROS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFiltro(f.key)}
-              className={cn(
-                'min-h-[40px] whitespace-nowrap rounded-lg px-0.5 py-2 text-center txt-apoio font-semibold transition-colors sm:px-5',
-                filtro === f.key
-                  ? 'bg-primary text-primary-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedFilter
+          aria="Filtrar encomendas por situação"
+          valor={filtro}
+          aoMudar={setFiltro}
+          opcoes={FILTROS}
+        />
 
         {/* Busca e período subiram para a faixa/gaveta do `PageShell`. */}
 
@@ -172,56 +153,65 @@ export function Encomendas() {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {items.map((e) => {
-            const conf = STATUS_CONFIG[e.status];
-            const pendente = e.status === 'aguardando' || e.status === 'notificado';
+            const conf = ENCOMENDA_STATUS[e.status];
+            const pendente = encomendaPendente(e.status);
             return (
-              <Link key={e.id} to={`/encomendas/${e.id}`} className="group block">
-                <Card className="h-full transition-colors hover:border-primary/50">
-                  <CardContent className="flex h-full flex-col gap-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono txt-numero-sm font-bold tracking-tight text-foreground">
-                            {e.apartamento?.identificador}
-                          </span>
-                          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-                        </div>
-                        {e.destinatarioNome && (
-                          <p className="mt-1 flex items-center gap-1 txt-corpo font-medium text-foreground">
-                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            <span className="truncate">{e.destinatarioNome}</span>
-                          </p>
-                        )}
-                        <div className="mt-2">
-                          <StatusDot tone={conf.tone} label={conf.label} pulse={conf.pulse} />
-                        </div>
-                      </div>
-                      {pendente && <CodigoStrip codigo={e.codigoRetirada} active={e.status === 'notificado'} />}
+              <ListCard
+                key={e.id}
+                to={`/encomendas/${e.id}`}
+                icone={Package}
+                titulo={<span className="font-mono">{e.apartamento?.identificador}</span>}
+                subtitulo={
+                  e.destinatarioNome ? (
+                    <span className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{e.destinatarioNome}</span>
+                    </span>
+                  ) : undefined
+                }
+                // O código é o elemento de assinatura do produto e continua no
+                // canto — mas só enquanto a encomenda está para ser retirada.
+                destaque={
+                  pendente ? (
+                    <CodigoStrip codigo={e.codigoRetirada} active={e.status === 'notificado'} />
+                  ) : undefined
+                }
+                campos={[
+                  {
+                    rotulo: 'Situação',
+                    valor: <StatusDot tone={conf.tone} label={conf.label} pulse={conf.pulse} />,
+                  },
+                  {
+                    rotulo: 'Recebida',
+                    icone: Clock,
+                    // O relativo é o que o porteiro lê ("há 2 h"); a data exata
+                    // fica no title e na tela de detalhe.
+                    valor: <span title={formatDateTime(e.createdAt)}>{timeAgo(e.createdAt)}</span>,
+                  },
+                  ...(e.transportadora
+                    ? [{ rotulo: 'Transportadora', icone: Truck, valor: e.transportadora }]
+                    : []),
+                  {
+                    rotulo: 'Conteúdo',
+                    icone: Box,
+                    largura: 'inteira' as const,
+                    // Duas linhas no máximo: descrição comprida numa grade
+                    // estica a linha inteira de cards.
+                    valor: e.descricao ? (
+                      <span className="line-clamp-2">{e.descricao}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Sem descrição</span>
+                    ),
+                  },
+                ]}
+                rodape={
+                  e.notificacao?.status === 'failed' ? (
+                    <div className="flex w-full items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2">
+                      <NotifBadge notif={e.notificacao} />
                     </div>
-
-                    <div className="mt-auto space-y-1.5 border-t border-border pt-3 txt-corpo">
-                      <p className="line-clamp-1 font-medium text-foreground">{e.descricao || 'Sem descrição'}</p>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 txt-apoio text-muted-foreground">
-                        {e.transportadora && (
-                          <span className="inline-flex items-center gap-1">
-                            <Truck className="h-3.5 w-3.5" />{e.transportadora}
-                          </span>
-                        )}
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />{timeAgo(e.createdAt)}
-                        </span>
-                        <span className="font-mono">{formatDateTime(e.createdAt)}</span>
-                      </div>
-                    </div>
-
-                    {e.notificacao?.status === 'failed' && (
-                      <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 txt-apoio font-medium text-destructive">
-                        <NotifBadge notif={e.notificacao} />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
+                  ) : undefined
+                }
+              />
             );
           })}
         </div>

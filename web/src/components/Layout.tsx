@@ -462,7 +462,7 @@ function LayoutInterno() {
                 </Button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent className="w-64" align="end" sideOffset={8} forceMount>
+              <DropdownMenuContent className="w-55" align="end" sideOffset={8} forceMount>
                 {/* Quem está logado, em bloco chapado (nunca card dentro de
                     card): avatar + nome + papel, e embaixo o que identifica a
                     conta — e-mail e condomínio, que somem do topo entre md e lg. */}
@@ -479,16 +479,16 @@ function LayoutInterno() {
                     </div>
                   </div>
                   {user?.email && (
-                    <p className="mt-2 truncate txt-nota text-muted-foreground" title={user.email}>
+                    <p className="mt-2 truncate text-[10px] text-muted-foreground" title={user.email}>
                       {user.email}
                     </p>
                   )}
-                  {showTenant && (
+                  {/* {showTenant && (
                     <p className="mt-1 flex items-center gap-1.5 txt-nota text-muted-foreground">
                       <Building2 className="h-3 w-3 shrink-0" />
                       <span className="truncate">{nomeCondominio}</span>
                     </p>
-                  )}
+                  )} */}
                 </div>
 
                 <DropdownMenuSeparator />

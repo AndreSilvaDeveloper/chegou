@@ -1,8 +1,13 @@
 import { cn } from "@/lib/utils";
 
-type Tone = "waiting" | "notified" | "done" | "neutral" | "danger";
+export type Tone = "waiting" | "notified" | "done" | "neutral" | "danger";
 
-const TONE: Record<Tone, string> = {
+/**
+ * A cor de cada estado. Exportada porque a linha do tempo do detalhe pinta os
+ * marcos com ela: o ponto que a listagem mostra ao lado de "Aguardando" é o
+ * mesmo círculo do marco "Encomenda recebida". Um mapa só, uma identidade só.
+ */
+export const TONE: Record<Tone, string> = {
   waiting: "bg-amber-500",
   notified: "bg-sky-500",
   done: "bg-emerald-500",
@@ -10,7 +15,7 @@ const TONE: Record<Tone, string> = {
   danger: "bg-red-500",
 };
 
-interface StatusDotProps {
+export interface StatusDotProps {
   tone: Tone;
   label: string;
   /** Pulse the dot to signal something still in motion (waiting/notified) */

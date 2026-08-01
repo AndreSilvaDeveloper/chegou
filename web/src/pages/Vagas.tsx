@@ -3,20 +3,25 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/api/client';
 import type { Vaga, VagaLocacao } from '@/api/types';
 import { PageShell } from '@/components/ui/page-shell';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListCard } from '@/components/ui/list-card';
+import { SegmentedFilter, type OpcaoSegmento } from '@/components/ui/segmented-filter';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { SimpleSelect } from '@/components/ui/simple-select';
-import { Label } from '@/components/ui/label';
 import {
+  Building2,
+  CalendarClock,
+  CalendarDays,
+  CalendarOff,
   Car,
   FileText,
   History,
   KeyRound,
+  MapPin,
+  Wallet,
   Pencil,
   Plus,
   Receipt,
@@ -44,10 +49,12 @@ import {
 
 type Aba = 'vagas' | 'locacoes' | 'cobrancas';
 
-const FILTRO_LOCACOES = [
-  { value: 'vigentes', label: 'Vigentes' },
-  { value: 'encerradas', label: 'Encerradas' },
-  { value: 'todas', label: 'Todas' },
+type FiltroLocacao = 'vigentes' | 'encerradas' | 'todas';
+
+const FILTRO_LOCACOES: OpcaoSegmento<FiltroLocacao>[] = [
+  { valor: 'vigentes', label: 'Vigentes' },
+  { valor: 'encerradas', label: 'Encerradas' },
+  { valor: 'todas', label: 'Todas' },
 ];
 
 export function Vagas() {
@@ -64,7 +71,7 @@ export function Vagas() {
   const [contrato, setContrato] = useState<VagaLocacao | null>(null);
   const [historicoVaga, setHistoricoVaga] = useState<Vaga | null>(null);
   const [encerrando, setEncerrando] = useState<VagaLocacao | null>(null);
-  const [filtroLocacoes, setFiltroLocacoes] = useState('vigentes');
+  const [filtroLocacoes, setFiltroLocacoes] = useState<FiltroLocacao>('vigentes');
   const queryClient = useQueryClient();
 
   const vagasQuery = useQuery({
@@ -110,13 +117,20 @@ export function Vagas() {
       description={`${vagas.length} vaga(s) cadastrada(s) · ${livres} livre(s) para locação`}
       acoes={
         <>
-  <Button
+          <Button
             variant="outline"
             onClick={() => setPrecosAberto(true)}
-            className="w-full sm:w-auto"
+            className="flex-1 rounded-full sm:flex-none"
           >
             <Tags className="mr-2 h-4 w-4" />
             Tabela de preços
+          </Button>
+          <Button
+            onClick={() => setVagaForm({ aberto: true, vaga: null })}
+            className="flex-1 rounded-full sm:flex-none"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nova vaga
           </Button>
         </>
       }
@@ -124,27 +138,19 @@ export function Vagas() {
       <div className="space-y-6">
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-3">
-          <TabsTrigger value="vagas" className="min-h-[44px] txt-corpo">
-            Vagas ({vagas.length})
+        <TabsList>
+          <TabsTrigger value="vagas">
+            Vagas <span className="tabular txt-nota text-muted-foreground">{vagas.length}</span>
           </TabsTrigger>
-          <TabsTrigger value="locacoes" className="min-h-[44px] txt-corpo">
-            Locações ({vigentes})
+          <TabsTrigger value="locacoes">
+            Locações <span className="tabular txt-nota text-muted-foreground">{vigentes}</span>
           </TabsTrigger>
-          <TabsTrigger value="cobrancas" className="min-h-[44px] txt-corpo">
-            Cobranças
-          </TabsTrigger>
+          <TabsTrigger value="cobrancas">Cobranças</TabsTrigger>
         </TabsList>
 
         {/* --------------------------------------------------------- vagas */}
         <TabsContent value="vagas" className="space-y-4">
-          <Button
-            onClick={() => setVagaForm({ aberto: true, vaga: null })}
-            className="w-full sm:w-auto"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova vaga
-          </Button>
+          
 
           {vagasQuery.isLoading ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -162,85 +168,64 @@ export function Vagas() {
             />
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {vagas.map((vaga) => {
-                const Icone = TIPO_VAGA_ICON[vaga.tipo] ?? Car;
-                return (
-                  <Card key={vaga.id}>
-                    <CardContent className="space-y-4 p-4 md:p-5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3">
-                          {/* Bloco chapado: sem borda e sem sombra. Card já tem as
-                              duas coisas — repetir aqui era a caixa dentro da caixa. */}
-                          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-primary">
-                            <Icone className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="txt-subtitulo font-semibold text-foreground">
-                              Vaga {vaga.numero}
-                            </p>
-                            <p className="txt-apoio text-muted-foreground">
-                              {TIPO_VAGA_LABEL[vaga.tipo]}
-                            </p>
-                          </div>
-                        </div>
-                        <SituacaoBadge situacao={vaga.situacao} />
-                      </div>
-
-                      {/* Rótulo pequeno em cima, valor legível embaixo — a mesma
-                          leitura do `ListCard` das outras listas. */}
-                      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        <div className="min-w-0">
-                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Local</dt>
-                          <dd className="mt-0.5 truncate txt-corpo">{vaga.localizacao || 'Não informado'}</dd>
-                        </div>
-                        <div className="min-w-0">
-                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Apartamento</dt>
-                          <dd className="mt-0.5 truncate txt-corpo">
-                            {vaga.apartamento?.identificador ?? 'Vaga do pool'}
-                          </dd>
-                        </div>
-                      </dl>
-
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button
-                          variant="outline"
-                          onClick={() => setVagaForm({ aberto: true, vaga })}
-                          className="w-full"
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar vaga
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setHistoricoVaga(vaga)}
-                          className="w-full"
-                        >
-                          <History className="mr-2 h-4 w-4" />
-                          Histórico
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {/* Mesmo card das outras listas (`ListCard`) — aqui ele já nasce
+                  em grade no desktop, e as ações com texto vão no rodapé. */}
+              {vagas.map((vaga) => (
+                <ListCard
+                  key={vaga.id}
+                  icone={TIPO_VAGA_ICON[vaga.tipo] ?? Car}
+                  titulo={`Vaga ${vaga.numero}`}
+                  subtitulo={TIPO_VAGA_LABEL[vaga.tipo]}
+                  selo={<SituacaoBadge situacao={vaga.situacao} />}
+                  campos={[
+                    {
+                      rotulo: 'Local',
+                      icone: MapPin,
+                      valor: vaga.localizacao || 'Não informado',
+                    },
+                    {
+                      rotulo: 'Apartamento',
+                      icone: Building2,
+                      valor: vaga.apartamento?.identificador ?? 'Vaga do pool',
+                    },
+                  ]}
+                  rodape={
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => setVagaForm({ aberto: true, vaga })}
+                        className="w-full"
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar vaga
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setHistoricoVaga(vaga)}
+                        className="w-full"
+                      >
+                        <History className="mr-2 h-4 w-4" />
+                        Histórico
+                      </Button>
+                    </>
+                  }
+                />
+              ))}
             </div>
           )}
         </TabsContent>
 
         {/* ------------------------------------------------------ locações */}
         <TabsContent value="locacoes" className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-2 sm:max-w-xs sm:flex-1">
-              <Label htmlFor="loc-filtro">
-                Mostrar
-              </Label>
-              <SimpleSelect
-                id="loc-filtro"
-                value={filtroLocacoes}
-                onValueChange={setFiltroLocacoes}
-                options={FILTRO_LOCACOES}
-              />
-            </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Filtro, não aba: a lista é a mesma, muda o recorte. Mesma pele
+                do trilho de abas acima — é o que amarra a identidade da tela. */}
+            <SegmentedFilter
+              aria="Filtrar locações por situação"
+              valor={filtroLocacoes}
+              aoMudar={setFiltroLocacoes}
+              opcoes={FILTRO_LOCACOES}
+            />
             <Button
               onClick={() => setLocacaoForm({ aberto: true, locacao: null })}
               className="w-full sm:w-auto"
@@ -269,52 +254,50 @@ export function Vagas() {
               {locacoes.map((locacao) => {
                 const meta = STATUS_LOCACAO_META[locacao.status];
                 const encerrada = locacao.status === 'encerrada';
+                const contato = contatoLocatario(locacao);
                 return (
-                  <Card key={locacao.id}>
-                    <CardContent className="space-y-4 p-4 md:p-5">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="txt-corpo font-semibold text-foreground">
-                            Vaga {locacao.vaga?.numero ?? '—'} · {nomeLocatario(locacao)}
-                          </p>
-                          <p className="txt-apoio text-muted-foreground">
-                            {locacao.locatarioTipo === 'externo' ? 'Pessoa externa' : 'Morador'}
-                            {contatoLocatario(locacao) ? ` · ${contatoLocatario(locacao)}` : ''}
-                          </p>
-                        </div>
-                        <Badge variant={meta.variant}>{meta.label}</Badge>
-                      </div>
-
-                      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        <div className="min-w-0">
-                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Valor mensal</dt>
-                          <dd className="mt-0.5 font-mono txt-corpo font-semibold text-foreground">
-                            {fmtMoeda(locacao.valorMensal)}
-                          </dd>
-                        </div>
-                        <div className="min-w-0">
-                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Vencimento</dt>
-                          <dd className="mt-0.5 font-mono txt-corpo text-foreground">
-                            Todo dia {locacao.diaVencimento}
-                          </dd>
-                        </div>
-                        <div className="min-w-0">
-                          <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Início</dt>
-                          <dd className="mt-0.5 font-mono txt-corpo text-foreground">
-                            {fmtData(locacao.dataInicio)}
-                          </dd>
-                        </div>
-                        {encerrada && (
-                          <div className="min-w-0">
-                            <dt className="txt-nota uppercase tracking-wide text-muted-foreground">Encerrada em</dt>
-                            <dd className="mt-0.5 font-mono txt-corpo text-foreground">
-                              {fmtData(locacao.dataFim)}
-                            </dd>
-                          </div>
-                        )}
-                      </dl>
-
-                      <div className="flex flex-col gap-2 sm:flex-row">
+                  <ListCard
+                    key={locacao.id}
+                    icone={KeyRound}
+                    titulo={nomeLocatario(locacao)}
+                    subtitulo={[
+                      `Vaga ${locacao.vaga?.numero ?? '—'}`,
+                      locacao.locatarioTipo === 'externo' ? 'Pessoa externa' : 'Morador',
+                      contato,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    selo={<Badge variant={meta.variant}>{meta.label}</Badge>}
+                    campos={[
+                      {
+                        rotulo: 'Valor mensal',
+                        icone: Wallet,
+                        // O dado que a tela existe para mostrar — único com ênfase.
+                        enfase: true,
+                        valor: <span className="font-mono">{fmtMoeda(locacao.valorMensal)}</span>,
+                      },
+                      {
+                        rotulo: 'Vencimento',
+                        icone: CalendarClock,
+                        valor: <span className="font-mono">Todo dia {locacao.diaVencimento}</span>,
+                      },
+                      {
+                        rotulo: 'Início',
+                        icone: CalendarDays,
+                        valor: <span className="font-mono">{fmtData(locacao.dataInicio)}</span>,
+                      },
+                      ...(encerrada
+                        ? [
+                            {
+                              rotulo: 'Encerrada em',
+                              icone: CalendarOff,
+                              valor: <span className="font-mono">{fmtData(locacao.dataFim)}</span>,
+                            },
+                          ]
+                        : []),
+                    ]}
+                    rodape={
+                      <>
                         <Button
                           variant="outline"
                           onClick={() => setContrato(locacao)}
@@ -343,9 +326,9 @@ export function Vagas() {
                             </Button>
                           </>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </>
+                    }
+                  />
                 );
               })}
             </div>

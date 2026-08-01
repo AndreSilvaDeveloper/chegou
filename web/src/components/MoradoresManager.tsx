@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Plus, User, Users, Pencil, Trash2, Loader2, ArrowUpDown, MessageSquare, Star, Upload, QrCode } from 'lucide-react';
+import { Plus, User, Users, Pencil, Trash2, Loader2, ArrowUpDown, MessageSquare, Star, Upload, QrCode, Building2, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { ListCard } from '@/components/ui/list-card';
@@ -385,6 +385,14 @@ export function MoradoresManager({
             <ListCard
               icone={User}
               titulo={m.nome}
+              // A unidade é o que confirma de qual morador se trata — sobe para
+              // o subtítulo em vez de disputar espaço com telefone e status.
+              subtitulo={
+                <span className="flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate font-mono">{m.apartamento?.identificador ?? '—'}</span>
+                </span>
+              }
               selo={
                 m.principal ? (
                   <Badge variant="secondary" className="shrink-0 txt-nota">
@@ -404,24 +412,19 @@ export function MoradoresManager({
               }
               campos={[
                 {
-                  rotulo: 'Unidade',
-                  valor: (
-                    <span className="font-mono">{m.apartamento?.identificador ?? '—'}</span>
-                  ),
-                },
-                {
                   rotulo: 'Telefone',
+                  icone: Phone,
                   valor: <span className="font-mono">{formatarTelefone(m.telefoneE164)}</span>,
                 },
                 {
                   rotulo: 'Notificação',
-                  largura: 'inteira',
+                  icone: MessageSquare,
                   valor: m.receberWhatsapp ? (
                     <Badge variant="success">
-                      <MessageSquare className="mr-1 h-3 w-3" /> Recebe no WhatsApp
+                      <MessageSquare className="mr-1 h-3 w-3" /> Recebe
                     </Badge>
                   ) : (
-                    <span className="text-muted-foreground">Não recebe</span>
+                    <Badge variant="secondary">Não recebe</Badge>
                   ),
                 },
               ]}
