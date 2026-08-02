@@ -32,11 +32,22 @@ export function Topo(): ReactElement {
   return (
     <header className="topo" id="topo" data-rolou={rolou ? 'sim' : 'nao'}>
       <div className="wrap topo__linha">
-        <Marca />
-        <MenuPilulas ativa={ativa} />
-        <Hamburguer aberto={menuAberto} aoAlternar={() => setMenuAberto((v) => !v)} />
-        <BotaoTema />
-        <Botao href={TOPO.acao.href}>{TOPO.acao.rotulo}</Botao>
+        <div className="topo__marca">
+          <Marca />
+        </div>
+        <div className="topo__menu-pilulas">
+          <MenuPilulas ativa={ativa} />
+        </div>
+        <div className="topo__acoes">
+          <BotaoTema />
+          <Botao href={TOPO.acao.href} className="topo__login">
+            {TOPO.acao.rotulo}
+          </Botao>
+          {/* Por último: no celular o hambúrguer é o item mais à direita, na
+              quina onde o polegar alcança. É também o único que abre algo
+              ancorado abaixo dele. */}
+          <Hamburguer aberto={menuAberto} aoAlternar={() => setMenuAberto((v) => !v)} />
+        </div>
       </div>
 
       <MenuMovel aberto={menuAberto} aoFechar={() => setMenuAberto(false)} ativa={ativa} />

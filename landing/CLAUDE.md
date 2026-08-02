@@ -219,8 +219,13 @@ dois lugares e confira [Assinaturas](../src/modules/assinaturas/CLAUDE.md).
 ## Antes de publicar
 
 - [ ] **Trocar `MARCA.email` em `lib/conteudo.ts`** — ainda é placeholder
-      (`contato@condoavisa.com.br`). Ele vai para o rodapé, para o JSON-LD
-      (`Organization.email`) e para o `/llms.txt`.
+      (`contato@condoavisa.com.br`). Ele vai para o rodapé (onde agora aparece
+      escrito, sob a descrição da marca), para o JSON-LD (`Organization.email`)
+      e para o `/llms.txt`.
+- [ ] **Preencher `RODAPE.social`** em `lib/conteudo.ts` — as URLs estão vazias.
+      O rodapé só desenha o ícone de quem tem `href`, então hoje a fileira não
+      aparece e o canto fica com `RODAPE.assinatura`. Rede nova precisa do
+      ícone correspondente em `ui/Icone.tsx`.
 - [x] ~~Revisar `PERFIS`: a copy do porteiro vendia "botão grande, letra
       grande", premissa que **saiu do produto**~~ — corrigido em `PERFIS` e em
       `DUVIDAS` ("quanto tempo o porteiro leva para aprender"), que repetia a

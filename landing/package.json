@@ -4,7 +4,7 @@
   "version": "0.31.3",
   "description": "Landing page do CONDO avisa — site público, separado do painel",
   "scripts": {
-    "dev": "next dev -p 5174",
+    "dev": "next dev -p 5175",
     "build": "next build",
     "start": "next start -p 3000",
     "check": "tsc --noEmit"

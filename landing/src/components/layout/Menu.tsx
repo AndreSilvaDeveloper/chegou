@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, type ReactElement } from 'react';
 import { cn } from '@/lib/css';
-import { NAVEGACAO } from '@/lib/conteudo';
+import { Botao } from '@/components/ui/Botao';
+import { NAVEGACAO, TOPO } from '@/lib/conteudo';
 import './Menu.css';
 
 /**
@@ -54,6 +55,9 @@ interface PropsMovel {
  *
  * Em toque não existe hover, então as pílulas daqui ficam só com a forma:
  * animar um estado que ninguém aciona é peso morto.
+ *
+ * A ação do topo ("Entrar") mora AQUI no celular, não na barra — ver o porquê
+ * em `Menu.css`, na regra `.menu-movel__acao`.
  */
 export function MenuMovel({ aberto, aoFechar, ativa }: PropsMovel): ReactElement {
   const ref = useRef<HTMLElement>(null);
@@ -97,11 +101,21 @@ export function MenuMovel({ aberto, aoFechar, ativa }: PropsMovel): ReactElement
           {rotulo}
         </a>
       ))}
+
+      <Botao href={TOPO.acao.href} className="menu-movel__acao" onClick={aoFechar}>
+        {TOPO.acao.rotulo}
+      </Botao>
     </nav>
   );
 }
 
-/** O botão que vira X. As duas barras giram ±45° e se encontram no meio. */
+/**
+ * O botão que vira X.
+ *
+ * São três traços porque dois liam como "igual", não como menu. O do meio some
+ * na abertura e os outros dois giram ±45° até se encontrarem na linha dele —
+ * a conta das distâncias está em `Menu.css`, na regra do `[aria-expanded]`.
+ */
 export function Hamburguer({
   aberto,
   aoAlternar,
@@ -118,6 +132,7 @@ export function Hamburguer({
       aria-controls="menu-movel"
       aria-label={aberto ? 'Fechar o menu de seções' : 'Abrir o menu de seções'}
     >
+      <span className="hamburguer__traco" />
       <span className="hamburguer__traco" />
       <span className="hamburguer__traco" />
     </button>

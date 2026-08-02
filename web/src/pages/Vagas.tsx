@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListCard } from '@/components/ui/list-card';
-import { SegmentedFilter, type OpcaoSegmento } from '@/components/ui/segmented-filter';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { SimpleSelect } from '@/components/ui/simple-select';
+import { Label } from '@/components/ui/label';
 import {
   Building2,
   CalendarClock,
@@ -23,7 +24,6 @@ import {
   MapPin,
   Wallet,
   Pencil,
-  Trash2,
   Plus,
   Receipt,
   SquareParking,
@@ -31,8 +31,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { mensagemErro } from '@/lib/erros';
 import { CobrancasPanel } from '@/components/vagas/CobrancasPanel';
 import { ContratoDialog } from '@/components/vagas/ContratoDialog';
 import { HistoricoVagaDialog } from '@/components/vagas/HistoricoVagaDialog';
@@ -52,12 +50,10 @@ import {
 
 type Aba = 'vagas' | 'locacoes' | 'cobrancas';
 
-type FiltroLocacao = 'vigentes' | 'encerradas' | 'todas';
-
-const FILTRO_LOCACOES: OpcaoSegmento<FiltroLocacao>[] = [
-  { valor: 'vigentes', label: 'Vigentes' },
-  { valor: 'encerradas', label: 'Encerradas' },
-  { valor: 'todas', label: 'Todas' },
+const FILTRO_LOCACOES = [
+  { value: 'vigentes', label: 'Vigentes' },
+  { value: 'encerradas', label: 'Encerradas' },
+  { value: 'todas', label: 'Todas' },
 ];
 
 export function Vagas() {
@@ -74,8 +70,7 @@ export function Vagas() {
   const [contrato, setContrato] = useState<VagaLocacao | null>(null);
   const [historicoVaga, setHistoricoVaga] = useState<Vaga | null>(null);
   const [encerrando, setEncerrando] = useState<VagaLocacao | null>(null);
-  const [removendo, setRemovendo] = useState<Vaga | null>(null);
-  const [filtroLocacoes, setFiltroLocacoes] = useState<FiltroLocacao>('vigentes');
+  const [filtroLocacoes, setFiltroLocacoes] = useState('vigentes');
   const queryClient = useQueryClient();
 
   const vagasQuery = useQuery({
@@ -102,24 +97,6 @@ export function Vagas() {
     },
   });
 
-  /**
-   * Remoção é desativação (o projeto não apaga registro). O backend recusa com
-   * 409 quando a vaga tem locação vigente — a mensagem dele já explica o que
-   * fazer, então ela vai para o toast em vez de um texto genérico.
-   */
-  const remover = useMutation({
-    mutationFn: (id: string) => api.delete(`/vagas/${id}`),
-    onSuccess: () => {
-      toast.success('Vaga removida.');
-      queryClient.invalidateQueries({ queryKey: ['vagas'] });
-      queryClient.invalidateQueries({ queryKey: ['vagas-disponiveis'] });
-      setRemovendo(null);
-    },
-    onError: (err: unknown) => {
-      toast.error(mensagemErro(err, 'Não foi possível remover a vaga'));
-    },
-  });
-
   const vagas = vagasQuery.data ?? [];
   const locacoes = useMemo(() => {
     const todas = locacoesQuery.data ?? [];
@@ -142,7 +119,7 @@ export function Vagas() {
           <Button
             variant="outline"
             onClick={() => setPrecosAberto(true)}
-            className="flex-1 rounded-full sm:flex-none"
+            className="flex-1 rounded-full sm:flex-none "
           >
             <Tags className="mr-2 h-4 w-4" />
             Tabela de preços
@@ -157,7 +134,7 @@ export function Vagas() {
         </>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="space-y-4">
         <TabsList>
@@ -190,9 +167,8 @@ export function Vagas() {
             />
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {/* Mesmo card e MESMAS AÇÕES das outras listas: botão de ícone no
-                  canto, como em Moradores e Equipe. O rodapé com botões largos
-                  fazia a vaga parecer outro tipo de registro. */}
+              {/* Mesmo card das outras listas (`ListCard`) — aqui ele já nasce
+                  em grade no desktop, e as ações com texto vão no rodapé. */}
               {vagas.map((vaga) => (
                 <ListCard
                   key={vaga.id}
@@ -200,34 +176,6 @@ export function Vagas() {
                   titulo={`Vaga ${vaga.numero}`}
                   subtitulo={TIPO_VAGA_LABEL[vaga.tipo]}
                   selo={<SituacaoBadge situacao={vaga.situacao} />}
-                  acoes={
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Editar vaga ${vaga.numero}`}
-                        onClick={() => setVagaForm({ aberto: true, vaga })}
-                      >
-                        <Pencil className="h-4 w-4 text-primary" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Histórico da vaga ${vaga.numero}`}
-                        onClick={() => setHistoricoVaga(vaga)}
-                      >
-                        <History className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Remover vaga ${vaga.numero}`}
-                        onClick={() => setRemovendo(vaga)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </>
-                  }
                   campos={[
                     {
                       rotulo: 'Local',
@@ -240,6 +188,26 @@ export function Vagas() {
                       valor: vaga.apartamento?.identificador ?? 'Vaga do pool',
                     },
                   ]}
+                  rodape={
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => setVagaForm({ aberto: true, vaga })}
+                        className="w-full"
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar vaga
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setHistoricoVaga(vaga)}
+                        className="w-full"
+                      >
+                        <History className="mr-2 h-4 w-4" />
+                        Histórico
+                      </Button>
+                    </>
+                  }
                 />
               ))}
             </div>
@@ -248,15 +216,18 @@ export function Vagas() {
 
         {/* ------------------------------------------------------ locações */}
         <TabsContent value="locacoes" className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {/* Filtro, não aba: a lista é a mesma, muda o recorte. Mesma pele
-                do trilho de abas acima — é o que amarra a identidade da tela. */}
-            <SegmentedFilter
-              aria="Filtrar locações por situação"
-              valor={filtroLocacoes}
-              aoMudar={setFiltroLocacoes}
-              opcoes={FILTRO_LOCACOES}
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2 sm:max-w-xs sm:flex-1">
+              <Label htmlFor="loc-filtro">
+                Mostrar
+              </Label>
+              <SimpleSelect
+                id="loc-filtro"
+                value={filtroLocacoes}
+                onValueChange={setFiltroLocacoes}
+                options={FILTRO_LOCACOES}
+              />
+            </div>
             <Button
               onClick={() => setLocacaoForm({ aberto: true, locacao: null })}
               className="w-full sm:w-auto"
@@ -299,44 +270,6 @@ export function Vagas() {
                       .filter(Boolean)
                       .join(' · ')}
                     selo={<Badge variant={meta.variant}>{meta.label}</Badge>}
-                    acoes={
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={
-                            locacao.contratoUrl
-                              ? `Ver contrato de ${nomeLocatario(locacao)}`
-                              : `Anexar contrato de ${nomeLocatario(locacao)}`
-                          }
-                          onClick={() => setContrato(locacao)}
-                        >
-                          <FileText
-                            className={cn('h-4 w-4', locacao.contratoUrl && 'text-primary')}
-                          />
-                        </Button>
-                        {!encerrada && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={`Editar locação de ${nomeLocatario(locacao)}`}
-                              onClick={() => setLocacaoForm({ aberto: true, locacao })}
-                            >
-                              <Pencil className="h-4 w-4 text-primary" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={`Encerrar locação de ${nomeLocatario(locacao)}`}
-                              onClick={() => setEncerrando(locacao)}
-                            >
-                              <XCircle className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </>
-                        )}
-                      </>
-                    }
                     campos={[
                       {
                         rotulo: 'Valor mensal',
@@ -364,16 +297,39 @@ export function Vagas() {
                             },
                           ]
                         : []),
-                      {
-                        rotulo: 'Contrato',
-                        icone: FileText,
-                        valor: locacao.contratoUrl ? (
-                          'Anexado'
-                        ) : (
-                          <span className="text-muted-foreground">Sem contrato</span>
-                        ),
-                      },
                     ]}
+                    rodape={
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => setContrato(locacao)}
+                          className="w-full sm:w-auto"
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          {locacao.contratoUrl ? 'Ver contrato' : 'Anexar contrato'}
+                        </Button>
+                        {!encerrada && (
+                          <>
+                            <Button
+                              variant="outline"
+                              onClick={() => setLocacaoForm({ aberto: true, locacao })}
+                              className="w-full sm:w-auto"
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setEncerrando(locacao)}
+                              className="w-full text-red-600 hover:text-red-600 dark:text-red-400 sm:w-auto"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Encerrar
+                            </Button>
+                          </>
+                        )}
+                      </>
+                    }
                   />
                 );
               })}
@@ -439,22 +395,6 @@ export function Vagas() {
         variant="destructive"
         loading={encerrar.isPending}
         onConfirm={() => encerrando && encerrar.mutate(encerrando.id)}
-      />
-
-      <ConfirmDialog
-        open={!!removendo}
-        onOpenChange={(aberto) => !aberto && setRemovendo(null)}
-        title="Remover esta vaga?"
-        description={
-          removendo
-            ? `Vaga ${removendo.numero} sai da lista e das telas de locação. O histórico dela é preservado, e vaga com locação vigente não pode ser removida — encerre a locação antes.`
-            : ''
-        }
-        confirmLabel="Remover vaga"
-        cancelLabel="Voltar"
-        variant="destructive"
-        loading={remover.isPending}
-        onConfirm={() => removendo && remover.mutate(removendo.id)}
       />
       </div>
     </PageShell>

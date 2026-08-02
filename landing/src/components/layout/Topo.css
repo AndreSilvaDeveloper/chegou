@@ -17,7 +17,48 @@
   min-height: 4.5rem;
 }
 
-.marca { display: flex; align-items: center; gap: .625rem; margin-right: auto; }
+/* No celular a linha é só marca à esquerda, controles à direita. */
+.topo__marca,
+.topo__acoes { display: flex; align-items: center; }
+.topo__marca { flex: 1 1 auto; min-width: 0; }
+.topo__acoes { flex: 0 0 auto; gap: 1rem; }
+
+/* Abaixo de 1024px o `.menu` já é `display: none` (Menu.css:19). Escondendo o
+   invólucro junto, a linha não carrega o `gap` de um item vazio no meio. */
+.topo__menu-pilulas { display: none; }
+
+/* A ação da barra é do desktop. No celular ela vive dentro do menu suspenso —
+   o porquê está em `Menu.css`, em `.menu-movel__acao`. */
+.topo__login { display: none; }
+
+/* ---- do desktop para cima: o menu vai para o centro da barra ----
+
+   `space-between` não serve aqui: ele reparte a sobra entre os três grupos, o
+   que só centra o do meio quando as duas pontas medem igual — e a marca
+   (~200px) e as ações (~150px) nunca vão bater.
+
+   Com `flex: 1 1 0` nas duas pontas elas partem de base zero e crescem na mesma
+   proporção, ficando com a MESMA largura seja qual for o conteúdo. Daí o meio
+   cai no centro real da linha, e continua lá se o rótulo do botão mudar.
+
+   Isto vale SÓ a partir de 1024px, e a razão é concreta: no celular as pontas
+   somam mais que a linha, então `flex-basis: 0` + `min-width: 0` mandava a
+   direita encolher abaixo do conteúdo. Quem cedia era o hambúrguer — o único
+   dos três sem `flex-shrink: 0` —, que virava uma pílula estreita de ~20px.
+   Sem menu no meio para centrar, o custo não comprava nada. */
+@media (min-width: 1024px) {
+  .topo__marca,
+  .topo__acoes { flex: 1 1 0; min-width: 0; }
+  .topo__acoes { justify-content: flex-end; }
+  .topo__menu-pilulas { display: flex; justify-content: center; }
+  /* Pílula, para conversar com o menu e o botão de tema, que são redondos. */
+  .topo__login { display: inline-flex; border-radius: 5rem; }
+}
+
+/* Sem `margin-right: auto`: quem separa os grupos da linha do topo é o
+   `flex: 1` do `.topo__marca`. A margem sobrava aqui e atrapalhava o rodapé,
+   onde a marca é centrada. */
+.marca { display: flex; align-items: center; gap: .625rem; }
 /* Sem fundo próprio: o âmbar vem dentro do PNG da marca. Desenhar um selo
    colorido atrás faria duas camadas de amarelo com quinas diferentes. */
 .marca__selo {
@@ -33,21 +74,20 @@
 /* A caixa dá uma volta ao passar o mouse na marca. */
 .marca__selo img { transition: transform .6s cubic-bezier(.4,0,.2,1); }
 .marca:hover .marca__selo img { transform: rotate(360deg); }
-/* NO CELULAR FICA SÓ O SÍMBOLO.
+/* NO TOPO, E SÓ NO TOPO, O CELULAR FICA SÓ COM O SÍMBOLO.
 
-   Com o botão "Entrar" visível em qualquer largura, a linha do topo passou a
-   ter quatro peças: marca, hambúrguer, tema e o botão. Em 375px o `.wrap`
-   deixa 335px úteis, e a soma dava 393 — a palavra da marca (164px) é a única
-   que sai sem custo real, porque o `<a class="marca">` já carrega
-   `aria-label="CONDO avisa — início"`: quem usa leitor de tela continua
-   ouvindo o nome inteiro.
+   A palavra da marca (164px) sai para a linha caber em 375px, e sai sem custo
+   real: o `<a class="marca">` já carrega `aria-label="CONDO avisa — início"`,
+   então quem usa leitor de tela continua ouvindo o nome inteiro.
 
-   Depois do corte: símbolo 36 + hambúrguer 44 + tema 44 + botão 93 + 3 gaps de
-   16 = 265px. Sobra folga até ~305px de tela. */
-.marca__nome, .marca__sufixo { display: none; }
+   O prefixo `.topo` é obrigatório. Sem ele a regra alcançava TODA `.marca` da
+   página — e a do rodapé, que tem largura de sobra, também aparecia sem nome no
+   celular. (A conta que justificava o corte mudou de novo quando o "Entrar" foi
+   para dentro do menu; hoje sobra folga, e a palavra pode voltar antes dos
+   640px se for essa a escolha de marca.) */
+.topo .marca__nome, .topo .marca__sufixo { display: none; }
 @media (min-width: 640px) {
-  .marca__nome { display: inline; }
-  .marca__sufixo { display: inline; }
+  .topo .marca__nome, .topo .marca__sufixo { display: inline; }
 }
 
 .marca__nome { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.04em; }

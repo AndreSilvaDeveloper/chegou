@@ -105,29 +105,69 @@
 .pilula:hover::after, .pilula:focus-visible::after { opacity: 0; }
 
 /* ---- menu do celular ---- */
+/* FLEX, NÃO GRID — e isto não é preferência.
+
+   Em grid, `align-content` nasce `normal`, que para trilhas automáticas se
+   comporta como `stretch`: as três linhas CRESCEM para preencher os 44px do
+   botão. Com o traço de 2px centrado dentro de uma trilha de ~13px, os traços
+   ficavam a ~15px um do outro e o `gap` virava quase decorativo — mexer nele de
+   4px para 2px mudava 2px numa distância de 15.
+
+   Em flex column os itens não esticam no eixo principal: as três alturas somam
+   6px, o `gap` responde por todo o resto e `justify-content: center` centra o
+   conjunto. Agora o número abaixo é a distância de verdade. */
 .hamburguer {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
-  grid-auto-flow: row;
   width: 44px; height: 44px;
-  border: 1px solid var(--borda);
+  border: 0px solid var(--borda);
   border-radius: 999px;
   background: transparent;
   color: var(--tinta);
   cursor: pointer;
   padding: 0;
+  /* Sem isto ele é o único da linha que encolhe (o `.icone-btn` e o `.btn` não),
+     então absorve sozinho todo o aperto e vira uma pílula estreita de ~20px. */
+  flex-shrink: 0;
 }
 @media (min-width: 1024px) { .hamburguer { display: none; } }
 .hamburguer:hover { background: var(--bloco); }
 .hamburguer__traco {
-  width: 16px; height: 2px;
+  width: 18px; height: 2px;
   border-radius: 1px;
   background: currentColor;
-  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .2s ease;
 }
-.hamburguer[aria-expanded="true"] .hamburguer__traco:first-child { transform: translateY(3px) rotate(45deg); }
-.hamburguer[aria-expanded="true"] .hamburguer__traco:last-child  { transform: translateY(-3px) rotate(-45deg); }
+
+/* O X.
+
+   ⚠️ O `6px` abaixo NÃO é um número solto: é `altura do traço + gap` = 2 + 4,
+   a distância entre o centro de um traço e o do seguinte. É exatamente o que o
+   de cima precisa descer (e o de baixo subir) para os dois se encontrarem na
+   linha do meio. Mudou o `gap` ou a altura do traço, refaça esta soma — senão
+   o X fecha desalinhado, com as duas pontas cruzando fora do centro.
+
+   O traço do meio sai por `scaleX(0)`, não por `display: none`: ele continua
+   ocupando o próprio lugar na coluna, e é o que mantém os outros dois parados
+   enquanto giram. Some pela largura (não pela opacidade sozinha) para o
+   encolher acompanhar o giro em vez de piscar no lugar.
+
+   `rotate` vem DEPOIS de `translateY` na lista: transform aplica da direita
+   para a esquerda, então o traço gira sobre o próprio centro e só então desce.
+   Invertendo a ordem, ele desceria num eixo já girado e o X sairia torto. */
+.hamburguer[aria-expanded="true"] .hamburguer__traco:first-child {
+  transform: translateY(6px) rotate(45deg);
+}
+.hamburguer[aria-expanded="true"] .hamburguer__traco:nth-child(2) {
+  transform: scaleX(0);
+  opacity: 0;
+}
+.hamburguer[aria-expanded="true"] .hamburguer__traco:last-child {
+  transform: translateY(-6px) rotate(-45deg);
+}
 
 /* Abrir/fechar sem JS de animação: `@starting-style` dá o quadro de entrada e
    `allow-discrete` deixa o `display` participar da transição — é o caminho
@@ -171,21 +211,35 @@
   place-items: center;
   width: 44px;
   height: 44px;
-  border: 1px solid var(--borda);
-  border-radius: .7rem;
+  border: 0px solid var(--borda);
+  border-radius: 7rem;
   background: transparent;
-  color: var(--tinta-fraca);
+  color: var(--tinta);
   cursor: pointer;
   transition: background-color .15s ease, color .15s ease;
   flex-shrink: 0;
 }
 .icone-btn:hover { background: var(--bloco); color: var(--tinta); }
 
-/* O botão do topo aparece em QUALQUER largura — inclusive 375px.
+/* ---- a ação ("Entrar") dentro do menu do celular ----
 
-   Ele ficava escondido abaixo de 640px, e a regra estava certa para o rótulo
-   antigo: "Quero ver funcionando" espremia a marca contra o hambúrguer num
-   celular estreito. Com "Entrar" o texto cabe, e esconder deixou de fazer
-   sentido — é a porta de quem JÁ é cliente, e o celular é justamente onde o
-   porteiro abre o sistema. (O `display: inline-flex` já vem de `Botao.css`;
-   aqui só não se desliga mais nada.) */
+   HISTÓRICO, porque esta decisão já virou duas vezes. O botão ficou escondido
+   abaixo de 640px; depois passou a aparecer em qualquer largura, com o
+   argumento de que "Entrar" é curto e cabe. Cabia, mas mal: com marca +
+   hambúrguer + tema + botão, a linha de 375px ficava sem respiro e o botão
+   âmbar — o elemento mais pesado da página — dominava a barra inteira.
+
+   Agora ele mora AQUI no celular e continua na barra a partir de 1024px
+   (`Topo.css`, `.topo__login`). O que muda de verdade é que a ação deixa de
+   disputar a linha com a navegação: em cima ficam a marca e dois controles de
+   44px, e a ação aparece quando a pessoa abre o menu — que é onde ela já está
+   decidindo para onde ir.
+
+   Ele NÃO é uma pílula: `.pilula--movel` é navegação para dentro da página,
+   isto sai dela. O âmbar é o que separa os dois, e por isso ele fecha o menu no
+   clique como as pílulas fazem (`onClick={aoFechar}`). */
+.menu-movel__acao {
+  width: 100%;
+  margin-top: 4px;
+}
+@media (min-width: 1024px) { .menu-movel__acao { display: none; } }

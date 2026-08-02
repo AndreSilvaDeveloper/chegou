@@ -1,12 +1,162 @@
-/* -------------------------------------------------------------- rodapé */
-.rodape { background: var(--shell); border-top: 1px solid var(--borda); padding-block: 3rem 2rem; }
-.rodape__grade { display: grid; gap: 2.5rem; }
-@media (min-width: 768px) { .rodape__grade { grid-template-columns: 1.5fr 1fr 1fr; gap: 3rem; } }
-.rodape__col { display: flex; flex-direction: column; gap: .75rem; }
-.rodape__col a { font-size: var(--fs-apoio); color: var(--tinta-fraca); transition: color .15s ease; }
-.rodape__col a:hover { color: var(--tinta); }
+/* -------------------------------------------------------------- rodapé
+   -------------------------------------------------------------------------
+   Um PAINEL apoiado sobre a página, não uma faixa colada na borda de baixo.
+
+   A TRANSIÇÃO ENTRE TAMANHOS DE TELA É O ASSUNTO AQUI.
+
+   Existe um único ponto de virada de LAYOUT (`--rodape-virada`, 56rem), onde a
+   pilha centrada do celular vira duas colunas alinhadas à esquerda. Todo o
+   resto — respiro, raio, distância entre os blocos — anda por `clamp()`, ou
+   seja, acompanha a largura continuamente em vez de pular em degraus.
+
+   É isso que faz a mudança parecer suave: quando a virada acontece, os espaços
+   ao redor já cresceram junto com a tela e estão no valor certo dos dois lados.
+   Um rodapé com quatro breakpoints e medidas fixas dá quatro solavancos. */
+.rodape {
+  /* O bloco entre a página e o painel. Sem ele o painel encosta na seção de
+     cima e a moldura perde o sentido — ela existe para destacá-lo do fluxo. */
+  padding-block: clamp(2rem, 5vw, 4rem);
+
+  /* O RESPIRO LATERAL MORA AQUI, e não num `.wrap` como no resto da página.
+     `.wrap` traz `max-width: 74rem` junto, o que deixaria o painel parado no
+     meio de uma tela larga; este vai quase de borda a borda.
+
+     Os extremos do `clamp` são de propósito os mesmos do `.wrap`
+     (`layout.css`): 1.25rem no celular, 2rem no desktop. O que muda é o
+     caminho entre eles — o `.wrap` pula de um para o outro em 768px, e aqui a
+     margem cresce junto com a tela. Como o painel não alinha mais com o
+     conteúdo de cima (ele é bem mais largo), essa liberdade não custa nada. */
+  padding-inline: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.rodape__painel {
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  box-shadow: var(--sombra);
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+/* ---- o corpo: marca, links e ações ---- */
+
+/* No celular tudo é uma pilha centrada, como na referência. */
+.rodape__corpo {
+  display: grid;
+  gap: clamp(1.75rem, 4vw, 2.5rem);
+  justify-items: center;
+  text-align: center;
+}
+
+.rodape__marca-bloco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .75rem;
+}
+.rodape__descricao {
+  max-width: 34ch;
+  font-size: var(--fs-apoio);
+  color: var(--tinta-fraca);
+}
+.rodape__email {
+  font-size: var(--fs-apoio);
+  color: var(--tinta-fraca);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--borda-forte);
+  transition: color .15s ease, text-decoration-color .15s ease;
+}
+.rodape__email:hover { color: var(--tinta); text-decoration-color: currentColor; }
+
+/* Duas colunas no celular, como na referência — e é `grid`, não `flex-wrap`,
+   porque a grade alinha os rótulos em coluna mesmo com larguras diferentes.
+   Com wrap, "Como funciona" e "O problema" ficariam desencontrados. */
+.rodape__links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, auto));
+  gap: .75rem clamp(1.5rem, 6vw, 3rem);
+  justify-content: center;
+}
+.rodape__links a {
+  font-size: var(--fs-apoio);
+  color: var(--tinta-fraca);
+  transition: color .15s ease;
+}
+.rodape__links a:hover { color: var(--tinta); }
+
+.rodape__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .75rem;
+}
+
+/* ---- a base: copyright e redes ---- */
 .rodape__base {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
-  margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--borda);
-  font-size: var(--fs-nota); color: var(--tinta-fraca);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  padding-top: clamp(1.25rem, 3vw, 1.75rem);
+  border-top: 1px solid var(--borda);
+  font-size: var(--fs-nota);
+  color: var(--tinta-fraca);
+  text-align: center;
+}
+
+.rodape__social {
+  display: flex;
+  gap: .5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+/* 40px de alvo, com o ícone de 18px centrado dentro. O contorno só aparece no
+   hover e no foco: em repouso, seis caixas desenhadas puxariam mais atenção que
+   o texto ao lado — e a fileira de redes é o item menos importante do rodapé. */
+.rodape__social a {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  color: var(--tinta-fraca);
+  transition: background-color .15s ease, color .15s ease;
+}
+.rodape__social a:hover { background: var(--bloco); color: var(--tinta); }
+
+/* ---- do desktop para cima ---- */
+@media (min-width: 56rem) {
+  /* Marca e links à esquerda, ações à direita — as ações ocupam as duas linhas
+     e sobem para o topo, como as lojas de app fazem na referência. */
+  .rodape__corpo {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "marca acoes"
+      "links acoes";
+    justify-items: start;
+    text-align: left;
+    gap: 1.5rem clamp(2rem, 5vw, 4rem);
+  }
+  .rodape__marca-bloco { grid-area: marca; align-items: flex-start; }
+  .rodape__links { grid-area: links; }
+  .rodape__acoes { grid-area: acoes; align-self: start; }
+
+  .rodape__links {
+    /* Fileira única — e `grid-auto-flow: column` em vez de um `repeat(5, auto)`
+       para a contagem sair do próprio conteúdo: acrescentar um link em
+       `RODAPE.links` não pede vir mexer num número aqui. */
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    justify-content: start;
+    gap: 1.5rem;
+  }
+
+  .rodape__base {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
 }

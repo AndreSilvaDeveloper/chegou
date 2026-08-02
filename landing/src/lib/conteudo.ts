@@ -371,25 +371,32 @@ export const CHAMADA = {
 } as const;
 
 export const RODAPE = {
-  colunas: [
-    {
-      titulo: 'Produto',
-      links: [
-        { href: '#problema', rotulo: 'O problema' },
-        { href: '#funciona', rotulo: 'Como funciona' },
-        { href: '#diferenca', rotulo: 'A diferença' },
-        { href: '#preco', rotulo: 'Preço' },
-      ],
-    },
-    {
-      titulo: 'Contato',
-      links: [
-        { href: '#duvidas', rotulo: 'Dúvidas frequentes' },
-        { href: `mailto:${MARCA.email}`, rotulo: MARCA.email },
-        { href: '#chamada', rotulo: 'Agendar demonstração' },
-      ],
-    },
+  /* Uma fileira só, sem os títulos "Produto" e "Contato" que existiam antes.
+     Dois grupos de três ou quatro itens pedem um rótulo para justificar a
+     separação; uma lista curta e única se lê sem ele.
+
+     "Agendar demonstração" saiu daqui porque virou botão em `acoes` — e o
+     e-mail saiu porque endereço é dado de contato, não navegação: ele agora
+     fica junto da descrição da marca. */
+  links: [
+    { href: '#problema', rotulo: 'O problema' },
+    { href: '#funciona', rotulo: 'Como funciona' },
+    { href: '#diferenca', rotulo: 'A diferença' },
+    { href: '#preco', rotulo: 'Preço' },
+    { href: '#duvidas', rotulo: 'Dúvidas' },
   ],
+
+  /* TODO: colar as URLs. O rodapé só desenha o ícone de quem tem `href`
+     preenchido, então uma rede sem link some da fileira em vez de virar um
+     ícone que não leva a lugar nenhum. Sobra rede? Apague a linha. Falta?
+     Acrescente — o ícone precisa existir em `ui/Icone.tsx`. */
+  social: [
+    { rede: 'Instagram', icone: 'instagram', href: 'https://www.instagram.com/' },
+    { rede: 'LinkedIn', icone: 'linkedin', href: 'https://www.linkedin.com/' },
+    { rede: 'Facebook', icone: 'facebook', href: 'https://www.facebook.com/' },
+    { rede: 'YouTube', icone: 'youtube', href: 'https://www.youtube.com/' },
+  ],
+
   assinatura: 'Feito para quem trabalha em pé.',
 } as const;
 
