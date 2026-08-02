@@ -11,6 +11,99 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.31.2 — 2026-08-02
+
+**`movimento.css` tinha um `@media` perdido, e quem pedia menos movimento
+ganhava uma área vazia gigante.** Uma edição anterior (commit `e656541`, antes
+da migração para Next) apagou a linha `@media (prefers-reduced-motion: reduce) {`
+e deixou o conteúdo dela **dentro da regra do link "pular para o conteúdo"**:
+
+```css
+.pular:focus { left: 1rem; top: 1rem;   /* comentário do bloco perdido */
+  .pilha { height: auto; }
+  ...
+}
+```
+
+As chaves fechavam, então **o CSS não dava erro de parse e o build passava** —
+por isso sobreviveu a uma migração inteira sem ninguém ver. Com o aninhamento
+nativo do CSS, aquelas regras viraram `.pular:focus .pilha` e nunca se
+aplicaram.
+
+O estrago aparecia só com `prefers-reduced-motion` ligado, na seção "Como
+funciona": `.pilha` é a **pista** de rolagem, com altura `100vh + (n-1) × 80vh`,
+que existe só para alimentar o efeito de empilhar os cartões. Sem o
+`height: auto`, o palco soltava mas a pista continuava ocupando o espaço — três
+telas de rolagem vazia depois da seção. O `.passos` escapava porque tinha regra
+equivalente no bloco de cima; a `.pilha` não tinha.
+
+Agora as quatro regras estão no `@media` certo (o espaçamento passou a vir do
+`gap` do `.pilha__cartoes`, não de margem no cartão) e `.pular:focus` voltou a
+ser uma linha só.
+
+> Conferido o resto: chaves balanceadas em todos os CSS da landing, e nenhum
+> outro bloco aninhado por acidente.
+
+### A ordem do CSS se inverteu na migração, e ninguém percebeu
+
+Consertar o `@media` acima **não mudou nada na tela** — e foi isso que revelou
+o problema de verdade. Medido no navegador:
+
+| Folha | Arquivo | Regra |
+|---|---|---|
+| 0 | `styles/movimento.css` | `.pilha { height: auto }` |
+| 1 | `secoes/ComoFunciona.css` | `.pilha { height: calc(…) }` |
+
+Mesma especificidade, `movimento.css` primeiro → **quem vence é o componente**.
+
+No Vite, `main.tsx` importava `movimento.css` por último e ele vencia por
+ordem. O Next injeta o CSS do layout **antes** do CSS de componente, que vem em
+chunk próprio. A inversão passou despercebida porque as regras com `!important`
+(`animation: none`) continuaram vencendo — a animação parava de rodar, como
+esperado — enquanto **toda regra de pose estática perdia em silêncio**,
+deixando os elementos presos no primeiro quadro da animação recém-desligada.
+
+Agora todo seletor daquele bloco começa com `html`, o que sobe a especificidade
+para (0,1,1) e vence **independente da ordem do bundle** — a ordem passou a ser
+decisão do empacotador, não nossa. `.pilha` saiu de 2368px para 974px.
+
+### Três leituras de navegador quebravam a hidratação (React #418)
+
+O console acusava `Minified React error #418`. Reproduzido com o dev server, o
+diff apontou `TituloFlutuante` e `PixelCanvas` renderizando marcação diferente
+no servidor e no cliente. A causa nos três casos era a mesma:
+
+```ts
+useState(() => typeof window !== 'undefined' && matchMedia(q).matches)
+```
+
+O guard evita o `ReferenceError` no build — e cria o mismatch, porque o
+servidor gera `false` e o primeiro render do cliente devolve o valor real.
+Quando discordam, o React **descarta o HTML do servidor e regenera a árvore**.
+Só se manifesta em quem tem a preferência ligada, o que explica não ter
+aparecido antes.
+
+Corrigidos `use-movimento-reduzido`, `use-media-query` e a constante de módulo
+`TEM_SCROLL_TIMELINE` do `TituloFlutuante` (essa via `typeof CSS`): estado
+inicial igual ao do servidor, leitura do navegador — **inclusive a inicial** —
+dentro do `useEffect`. Console limpo; sobra só um atributo injetado por
+extensão do navegador, fora do nosso controle.
+
+### `/favicon.ico` respondia 404
+
+Não havia `icons` no metadata, então o navegador pedia `/favicon.ico` no
+palpite e levava 404. Passa a apontar para a arte oficial (`/logo.png`), sem
+segunda cópia no repositório — a reconstrução em SVG foi descartada de
+propósito (ver `components/marca/Logo.tsx`). Fica anotado que 512×512 e ~300 KB
+é pesado para favicon: o certo, quando houver fôlego, é gerar um derivado
+pequeno **a partir** deste arquivo.
+
+> **Nota para quem for investigar "a landing está sem animação":** a preferência
+> `prefers-reduced-motion` do sistema desliga o movimento por design, e foi o
+> que aconteceu aqui. Confirme com
+> `matchMedia('(prefers-reduced-motion: reduce)').matches` **antes** de procurar
+> bug — no Windows 11 é Acessibilidade → Efeitos visuais → Efeitos de animação.
+
 ## 0.31.1 — 2026-08-02
 
 **A landing prometia três coisas que o produto não entrega mais.** Correção de

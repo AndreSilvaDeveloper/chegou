@@ -122,21 +122,54 @@ existir mais uma folha única.
 
 ## Quatro regras que não são óbvias
 
-**1. A ordem do CSS no bundle é a ordem dos imports em `app/layout.tsx`.**
-`styles/index.css` (tokens, reset, escala) precisa vir antes de qualquer
-componente, e `styles/movimento.css` depois de todos — ele desliga animações
-com `!important` e tem de vencer o CSS de componente. Está comentado no arquivo.
+**1. O CSS do layout vem ANTES do CSS de componente — e não dá para inverter.**
+O Next injeta o CSS de `app/layout.tsx` primeiro e o de cada componente em
+chunk próprio, depois. No Vite era o contrário (o `main.tsx` importava
+`movimento.css` por último, e ele vencia por ordem de cascata); a migração
+inverteu isso **em silêncio**, porque as regras com `!important` continuaram
+vencendo e só as outras passaram a perder.
+
+Foi assim que o bloco `prefers-reduced-motion` quebrou em produção: a animação
+parava (`animation: none !important` vence sempre), mas as regras de **pose
+estática** — `.pilha`, `.caixa`, `.forma`, `.separador__*` — perdiam para o CSS
+do componente e deixavam os elementos presos no primeiro quadro da animação
+recém-desligada. O sintoma era ~2400px de rolagem vazia em "Como funciona".
+
+Por isso todo seletor daquele bloco começa com **`html`**: sobe a
+especificidade de (0,1,0) para (0,1,1) e vence independente da ordem do bundle.
+Regra nova ali dentro mantém o prefixo. Tokens e reset (`index.css`) continuam
+bem servidos pela ordem do import, porque ninguém compete com eles.
 
 **2. O texto mora em `lib/conteudo.ts`, não no markup.**
 Revisar a copy inteira não deve exigir abrir um `.tsx`. O `**destaque**` do
 conteúdo vira `<strong>` pelo componente `ui/Texto`. E como o `<head>`, o
 JSON-LD e o `/llms.txt` saem de lá, **revisar a copy revisa os três junto**.
 
-**3. Nada de `window` fora de efeito.** O código de componente roda no build,
-onde `window` não existe. Um `useState(() => window.matchMedia(...))` passa no
-`tsc` e quebra o `next build` com `ReferenceError` — foi assim que o `use-tema`
-quebrou. Leitura de navegador vai em `useEffect`, e o estado inicial tem de ser
-o mesmo que o servidor produziria.
+**3. Nada de `window` fora de efeito — e `typeof window` não é a solução.**
+O código de componente roda no build, onde `window` não existe. Um
+`useState(() => window.matchMedia(...))` passa no `tsc` e quebra o `next build`
+com `ReferenceError` — foi assim que o `use-tema` quebrou.
+
+**A armadilha é o conserto errado**, que já custou um bug em produção:
+
+```ts
+// ERRADO — parece defensivo, quebra a hidratação
+useState(() => typeof window !== 'undefined' && matchMedia(q).matches)
+```
+
+O guard evita o `ReferenceError`, então o build passa e o `tsc` fica quieto.
+Mas o servidor gera o HTML com `false` e o **primeiro** render do cliente
+devolve o valor real. Quando os dois discordam, a hidratação falha inteira
+(React #418) e o React **descarta o HTML do servidor e regenera a árvore** —
+sintoma: erro no console e comportamento que só aparece em algumas máquinas,
+porque depende da preferência/viewport de quem abre. Foi o que aconteceu com
+`use-movimento-reduzido`, `use-media-query` e a constante `TEM_SCROLL_TIMELINE`
+do `TituloFlutuante` (essa via `typeof CSS`).
+
+O certo: **estado inicial igual ao do servidor** (normalmente `false`) e a
+leitura do navegador dentro do `useEffect` — inclusive a leitura inicial, não
+só o listener de `change`. Vale para qualquer capacidade que só o navegador
+sabe responder: `matchMedia`, `CSS.supports`, `navigator`, `localStorage`.
 
 **4. O tema é aplicado antes da primeira pintura, por um script inline.**
 `src/lib/tema.ts` gera um script bloqueante que o `layout` injeta no `<head>`.

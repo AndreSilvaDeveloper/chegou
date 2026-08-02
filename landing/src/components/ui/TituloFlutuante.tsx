@@ -1,14 +1,33 @@
 'use client';
 
-import { Fragment, useMemo, type ReactElement } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactElement } from 'react';
 import { cn, vars } from '@/lib/css';
 import { useEmVista } from '@/hooks/use-em-vista';
 import { useMovimentoReduzido } from '@/hooks/use-movimento-reduzido';
 import './TituloFlutuante.css';
 
-/** O navegador resolve o progresso pelo scroll, sem listener nem rAF? */
-const TEM_SCROLL_TIMELINE =
-  typeof CSS !== 'undefined' && CSS.supports?.('animation-timeline: view()');
+/**
+ * O navegador resolve o progresso pelo scroll, sem listener nem rAF?
+ *
+ * É pergunta que SÓ o navegador responde — no build não existe `CSS`. Por isso
+ * ela não pode ser constante de módulo nem entrar no primeiro render: o
+ * servidor responderia `false` (`gatilho`) e o Chrome `true` (`scroll`), o
+ * `data-modo` sairia diferente dos dois lados e a hidratação acusaria. Mesma
+ * armadilha dos hooks de media query — ver `use-movimento-reduzido.ts`.
+ *
+ * Começa em `false`: o modo `gatilho` funciona em qualquer navegador, então o
+ * primeiro quadro nunca fica sem animação; o efeito só troca para o caminho
+ * mais barato onde ele existe.
+ */
+function useTemScrollTimeline(): boolean {
+  const [tem, setTem] = useState(false);
+
+  useEffect(() => {
+    setTem(CSS.supports?.('animation-timeline: view()') ?? false);
+  }, []);
+
+  return tem;
+}
 
 /** Janela de cada letra e o quanto a largada escorrega da primeira à última. */
 const INICIO = 8;
@@ -30,6 +49,7 @@ const ESCORREGA = 18;
  */
 export function TituloFlutuante({ children }: { children: string }): ReactElement {
   const reduzido = useMovimentoReduzido();
+  const temScrollTimeline = useTemScrollTimeline();
   const [ref, visivel] = useEmVista<HTMLHeadingElement>({
     umaVez: true,
     margem: '0px 0px -12% 0px',
@@ -52,7 +72,7 @@ export function TituloFlutuante({ children }: { children: string }): ReactElemen
   // Sem movimento, nada de dividir o texto: o título fica como está.
   if (reduzido) return <h2 className="t-titulo">{children}</h2>;
 
-  const modo = TEM_SCROLL_TIMELINE ? 'scroll' : 'gatilho';
+  const modo = temScrollTimeline ? 'scroll' : 'gatilho';
 
   return (
     <h2

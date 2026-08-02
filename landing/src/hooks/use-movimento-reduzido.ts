@@ -13,13 +13,27 @@ const CONSULTA = '(prefers-reduced-motion: reduce)';
  * já ter pago por ela seria só metade da cortesia.
  */
 export function useMovimentoReduzido(): boolean {
-  const [reduzido, setReduzido] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia(CONSULTA).matches,
-  );
+  /*
+   * COMEÇA EM `false` DE PROPÓSITO — é o único valor que o servidor produz.
+   *
+   * O que estava aqui antes era `typeof window !== 'undefined' && matchMedia(…)`,
+   * que parece defensivo e é o contrário: o guard evita o "window is not
+   * defined" no build, mas faz o PRIMEIRO render do cliente devolver o valor
+   * real enquanto o HTML do servidor foi gerado com `false`. Para quem tem a
+   * preferência ligada, os dois discordam e a hidratação falha inteira
+   * (React #418) — o React descarta o HTML do servidor e regenera a árvore.
+   *
+   * É a regra 3 do CLAUDE.md desta pasta: o estado inicial tem de ser o mesmo
+   * que o servidor produziria. Ler o navegador é trabalho do efeito.
+   */
+  const [reduzido, setReduzido] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia(CONSULTA);
     const aoMudar = () => setReduzido(mq.matches);
+    // A leitura inicial mora AQUI, não no `useState`. Sem esta linha o hook
+    // ficaria em `false` até a preferência mudar — que é o oposto do objetivo.
+    aoMudar();
     mq.addEventListener('change', aoMudar);
     return () => mq.removeEventListener('change', aoMudar);
   }, []);

@@ -5,14 +5,20 @@ import { DESCRICAO, TERMOS, TITULO, URL_SITE, dadosEstruturados } from '@/lib/si
 import { MARCA } from '@/lib/conteudo';
 import { SCRIPT_TEMA } from '@/lib/tema';
 
-// A ORDEM DESTES IMPORTS É A ORDEM DO CSS NO BUNDLE.
+// ⚠️ A ORDEM DESTES IMPORTS **NÃO** É A ORDEM DO CSS NO BUNDLE.
 //
-//   1. `styles/index.css` — tokens, reset e escala, ANTES de qualquer componente
-//   2. o CSS de componente entra junto com cada componente que o importa
-//   3. `styles/movimento.css` — desliga animações com `!important` e precisa
-//      vencer o CSS de componente, por isso é o último aqui
+// No Vite era: o `main.tsx` importava `movimento.css` por último e ele vencia o
+// CSS de componente por ordem de cascata. Aqui não — o Next injeta o CSS do
+// layout ANTES do CSS dos componentes, que vem em chunk próprio. Estes dois
+// arquivos são sempre as PRIMEIRAS folhas, nunca as últimas.
 //
-// Era a mesma regra no `main.tsx` do Vite; mudou só o arquivo onde ela mora.
+// Consequência prática, aprendida com bug em produção: regra de
+// `movimento.css` com a mesma especificidade de uma regra de componente PERDE.
+// Por isso os seletores do bloco `prefers-reduced-motion` de lá começam com
+// `html` — ver o comentário longo naquele arquivo antes de mexer.
+//
+// O que continua valendo: `index.css` (tokens, reset e escala) vem antes de
+// tudo, e para isso a ordem aqui basta.
 import '@/styles/index.css';
 import '@/styles/movimento.css';
 
@@ -50,6 +56,16 @@ export const metadata: Metadata = {
   applicationName: MARCA.completo,
   authors: [{ name: MARCA.completo }],
   alternates: { canonical: '/' },
+  // Sem isto o navegador pede `/favicon.ico` no palpite, leva 404 e a aba fica
+  // com o ícone genérico. Aponta para a arte oficial em vez de uma segunda
+  // cópia no repositório — ver o comentário de `components/marca/Logo.tsx`,
+  // onde a reconstrução em SVG foi descartada de propósito.
+  //
+  // ⚠️ `logo.png` tem 512×512 e ~300 KB, o que é pesado para um favicon. Se um
+  // dia sobrar fôlego, o certo é gerar um derivado pequeno (32/180 px) A PARTIR
+  // deste arquivo — redimensionar não é redesenhar, e não briga com a decisão
+  // acima.
+  icons: { icon: '/logo.png', apple: '/logo.png' },
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
