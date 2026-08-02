@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState, type ReactElement } from 'react';
 import { Marca } from '@/components/marca/Marca';
 import { Botao } from '@/components/ui/Botao';

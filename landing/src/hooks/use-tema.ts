@@ -1,8 +1,10 @@
+'use client';
+
 import { useCallback, useEffect, useState } from 'react';
+import { CHAVE_TEMA, type Tema } from '@/lib/tema';
 
-export type Tema = 'light' | 'dark';
+export type { Tema };
 
-const CHAVE = 'condoavisa.tema';
 const ESCURO = '(prefers-color-scheme: dark)';
 
 function marcado(): Tema | null {
@@ -12,13 +14,18 @@ function marcado(): Tema | null {
 
 function guardado(): Tema | null {
   try {
-    const v = localStorage.getItem(CHAVE);
+    const v = localStorage.getItem(CHAVE_TEMA);
     return v === 'dark' || v === 'light' ? v : null;
   } catch {
     // Navegador sem storage (aba anônima restrita): segue a preferência do
     // sistema, que é o comportamento correto para quem nunca escolheu.
     return null;
   }
+}
+
+/** O tema que vale AGORA, lido do próprio documento. Só faz sentido no cliente. */
+function vigente(): Tema {
+  return marcado() ?? guardado() ?? (window.matchMedia(ESCURO).matches ? 'dark' : 'light');
 }
 
 /**
@@ -34,14 +41,22 @@ function guardado(): Tema | null {
  * estado é como as duas discordam.
  */
 export function useTema() {
-  const [escuro, setEscuro] = useState(
-    () => (guardado() ?? (window.matchMedia(ESCURO).matches ? 'dark' : 'light')) === 'dark',
-  );
+  /*
+   * COMEÇA EM `false` DE PROPÓSITO — não é um palpite, é o único valor que o
+   * servidor pode produzir.
+   *
+   * O HTML nasce no build, onde não existe `window` nem a escolha de ninguém.
+   * Ler o tema aqui quebra o build ("window is not defined") e, guardado num
+   * `useState` que só o cliente sabe responder, viraria erro de hidratação.
+   *
+   * O que NÃO espera pela hidratação é a COR DA PÁGINA: o `SCRIPT_TEMA` do
+   * layout já aplicou `data-theme` antes da primeira pintura. O que se acerta
+   * no efeito abaixo é só o ícone do botão.
+   */
+  const [escuro, setEscuro] = useState(false);
 
-  // Aplica a escolha guardada antes da primeira pintura útil.
   useEffect(() => {
-    const g = guardado();
-    if (g) document.documentElement.setAttribute('data-theme', g);
+    setEscuro(vigente() === 'dark');
   }, []);
 
   // Sem escolha explícita, acompanha o sistema.
@@ -58,7 +73,7 @@ export function useTema() {
     const proximo: Tema = escuro ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', proximo);
     try {
-      localStorage.setItem(CHAVE, proximo);
+      localStorage.setItem(CHAVE_TEMA, proximo);
     } catch {
       /* sem storage: vale só nesta visita */
     }

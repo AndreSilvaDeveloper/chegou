@@ -1,3 +1,5 @@
+'use client';
+
 import { cloneElement, type ReactElement } from 'react';
 import { cn } from '@/lib/css';
 import { useEmVista } from '@/hooks/use-em-vista';

@@ -18,7 +18,10 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      {/* O painel mora sob `/app/` — a raiz do domínio é da landing page.
+          Este `basename` é o par obrigatório do `base: '/app/'` do Vite: sem
+          ele o react-router acha que está na raiz e todo link quebra. */}
+      <BrowserRouter basename="/app">
         <App />
         <Toaster />
       </BrowserRouter>

@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, type RefObject } from 'react';
 
 /** Quanto do cartão anterior fica à mostra acima do que chega, em px. */

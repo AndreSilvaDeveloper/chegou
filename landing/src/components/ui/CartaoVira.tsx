@@ -1,3 +1,5 @@
+'use client';
+
 import type { CSSProperties, ReactElement, Ref } from 'react';
 import { cn, vars } from '@/lib/css';
 import { CenaCartao, type Cena } from './CenaCartao';

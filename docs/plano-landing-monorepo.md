@@ -1,12 +1,13 @@
 # Plano — landing page + painel no mesmo domínio
 
-> **Status: planejado, não implementado.** Este documento é o combinado de como
-> a landing page entra no projeto. Nada aqui existe ainda no código.
+> **Status: implementado.** A landing está em `landing/`, o painel mudou para
+> `/app/`, e os dois compose têm o roteamento. Este documento virou **registro**:
+> a decisão de não migrar para Next.js (§ 1) e o que mudou entre o combinado e a
+> implementação (§ 11).
 >
-> Quando a pasta `landing/` for criada, as seções "O app da landing" e
-> "Decisões e armadilhas" viram `landing/CLAUDE.md` — é a convenção do projeto
-> (doc de módulo mora ao lado do código e é carregada automaticamente). Este
-> arquivo pode então virar só o histórico da decisão.
+> **A regra viva mora em [`landing/CLAUDE.md`](../landing/CLAUDE.md)** — é lá
+> que se confere ao mexer no código. A lista de verificação (§ 9) continua
+> valendo e **ainda não foi rodada em produção**.
 
 ---
 
@@ -55,7 +56,8 @@ um deploy, um domínio.
 
 ---
 
-## 2. Arquitetura alvo
+## 2. Arquitetura alvo 
+
 
 ```
                     Internet
@@ -184,30 +186,33 @@ domínio (`/`) já não pertence ao painel, é da landing.
 
 ### Stack
 
-**Next.js** (App Router) é a escolha default por ser o que você já quer usar e
-por resolver SEO/OG/sitemap sem ginástica. **Astro** seria mais leve para um site
-que é quase todo estático, mas adiciona uma terceira ferramenta ao projeto — só
-vale se a landing crescer para blog/conteúdo.
+> ⚠️ **Esta decisão foi revista depois de implementada.** A landing começou em
+> Vite + React, como planejado abaixo, e **hoje é Next.js**. O texto original
+> fica porque o motivo da virada só se entende contra ele. O porquê está no
+> § 11; a regra viva, em [`landing/CLAUDE.md`](../landing/CLAUDE.md).
 
-Decisão a tomar na implementação; o roteamento da seção 3 é o mesmo para os dois
-(qualquer um sobe HTTP numa porta e recebe `proxy_pass`).
+<details>
+<summary>O que estava combinado (Vite + React)</summary>
 
-### Estrutura sugerida
+**Nem Next nem Astro: Vite + React**, a mesma stack do painel.
 
-```
-landing/
-├── app/
-│   ├── layout.tsx         # <html>, fontes, metadata base
-│   ├── page.tsx           # a landing
-│   ├── precos/page.tsx
-│   ├── contato/page.tsx
-│   └── sitemap.ts, robots.ts
-├── components/
-├── public/                # og-image, favicon PRÓPRIO (ver armadilhas)
-├── Dockerfile             # build + runtime `next start` (ou estático)
-├── Dockerfile.dev
-└── CLAUDE.md              # ← seções 5 e 8 deste doc mudam de casa para cá
-```
+A landing foi escrita antes desta decisão ser fechada, e ficou boa — uma página
+só, sem rota, sem dado dinâmico, sem formulário com servidor. O que se compraria
+com o Next (SSR, RSC, roteamento) não tem o que fazer aqui; o que se pagaria é
+uma terceira ferramenta no projeto e um processo Node em produção, num servidor
+que já roda postgres, redis, minio e o OCR.
+
+O SEO de que ela precisa — `<title>`, description, Open Graph — está no
+`index.html`, servido estático. Um crawler não pede mais que isso de uma página
+só. **Se um dia virar blog**, aí a conversa muda e o Astro passa a ser a escolha
+natural.
+
+</details>
+
+### Estrutura
+
+Ver [`landing/CLAUDE.md`](../landing/CLAUDE.md) — o texto todo mora em
+`src/lib/conteudo.ts`, e o CSS de cada componente é importado por ele mesmo.
 
 ### Design: reaproveitar sem acoplar
 
@@ -241,7 +246,7 @@ Um serviço novo, no molde do `web`:
     image: chegou-landing:local
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/healthz"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -356,3 +361,78 @@ Landing:
 | Infra (fases 1, 2, 4, 5) | ~2,5 dias úteis |
 | Conteúdo da landing (fase 3) | depende de design/copy |
 | **Comparação: migrar tudo para Next.js** | **12–18 dias úteis, sem ganho para o painel** |
+
+---
+
+## 11. O que mudou entre o combinado e a implementação
+
+**A stack começou em Vite e terminou em Next.js.** O § 5 argumentava contra o
+Next e o argumento estava certo *para o que estava sendo pesado* — SSR, RSC e
+roteamento, nenhum dos três necessário numa página só. O que ficou de fora da
+conta foi o resto: quem lê a landing não é só um navegador.
+
+O que passou a valer a ferramenta a mais e o processo Node:
+
+- **`next/font` auto-hospeda Poppins e JetBrains Mono.** Some a ida e volta a
+  `fonts.googleapis.com` no caminho crítico, e o `size-adjust` gerado mata o
+  pulo de layout na troca de fonte — metade de um CLS ruim, na página cuja
+  única função é converter visitante.
+- **O `<head>` vira dado, não markup.** Canonical, Open Graph e JSON-LD saem do
+  mesmo `conteudo.ts` que a copy (`src/lib/site.ts`). Escrito à mão no
+  `index.html`, o preço do structured data divergiria do preço da página no
+  primeiro ajuste de texto — e é o buscador que penaliza isso.
+- **`sitemap.xml`, `robots.txt` e `/llms.txt` são gerados no build.** O último é
+  o que move o ponteiro hoje: quando alguém pergunta a um assistente "qual
+  sistema de portaria com aviso por WhatsApp?", a resposta sai do que ele
+  conseguiu ler. Servir a nossa copy em texto puro é mais barato que torcer para
+  ele extrair sentido de `div` aninhada.
+- **O HTML nasce completo.** As peças com `'use client'` continuam
+  pré-renderizadas: `'use client'` diz onde o JS *hidrata*, não onde o HTML
+  nasce. Um agente que não executa script lê a página inteira.
+
+O custo previsto no § 5 foi pago, e é honesto registrá-lo: **existe um processo
+Node em produção** (`next start` sobre o build `standalone`, ~40 MB de imagem).
+`output: 'export'` chegou a ser considerado para evitá-lo, mas levaria junto o
+`/llms.txt` e qualquer rota futura — e era exatamente por eles que a migração
+aconteceu.
+
+Duas armadilhas que a migração trouxe, e como foram fechadas:
+
+- **`useState` que lê `window` quebra o build.** O `use-tema` inicializava o
+  estado com `window.matchMedia(...)`; no Vite isso só rodava no navegador, e no
+  Next roda no build (`ReferenceError: window is not defined`). Hoje ele começa
+  em `false` — o único valor que o servidor pode produzir — e se corrige no
+  primeiro efeito.
+- **O tema piscava.** Com o HTML igual para todo mundo, quem escolheu o tema
+  *contrário* ao do sistema via a cor errada até o React hidratar. Resolvido por
+  um script bloqueante no `<head>` (`src/lib/tema.ts`), que aplica `data-theme`
+  antes da primeira pintura — com `suppressHydrationWarning` no `<html>`, já que
+  a divergência de atributo passa a ser deliberada.
+
+**Fase 4 (proxy no dev) foi feita junto, não depois.** O plano sugeria começar
+sem proxy em dev e migrar antes do deploy. Como a landing já estava pronta, a
+fase 4 virou pré-requisito da 5: sem ela, a **barra final do `proxy_pass`** — a
+decisão central do § 3 — só seria testada em produção. `nginx-dev.conf` espelha
+`deploy/nginx/app.conf`; a diferença é só o alvo (dev server em vez de build
+pronto, com os cabeçalhos de WebSocket que mantêm o HMR vivo).
+
+**Nasceu um redirect que o plano não previa: `/cadastro/`.** O QR de autocadastro
+montava a URL como `${origin}/cadastro/${token}` — com o painel em `/app/`, todo
+QR **já impresso e colado no elevador** levaria o morador à landing. Duas
+correções, porque são dois problemas:
+
+- QRs novos: `QrAutocadastroDialog` passou a usar `import.meta.env.BASE_URL`;
+- QRs antigos: `location /cadastro/ { return 301 /app$request_uri; }` nos dois
+  nginx. Papel não se atualiza.
+
+**O `navigateFallbackDenylist` do service worker ganhou `/^\/(?!app\/)/`.** O
+`scope: '/app/'` já impede o SW de *controlar* a landing, mas o fallback de
+navegação é outra coisa: sem a negativa, ele responderia o `index.html` do
+painel para uma URL do site. É o mesmo bug que o § 8 descreve, por um caminho
+que o plano não tinha mapeado.
+
+**A tabela de preços da landing estava desatualizada** e foi corrigida junto:
+ela publicava o corte antigo em 50 apartamentos e prometia à administradora um
+desconto por volume que não existe mais (hoje ela tem tabela própria, R$ 1,99).
+Não é assunto de infraestrutura, mas era o tipo de erro que só aparece na
+primeira fatura do cliente.

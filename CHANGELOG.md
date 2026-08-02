@@ -11,6 +11,128 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.31.1 — 2026-08-02
+
+**A landing prometia três coisas que o produto não entrega mais.** Correção de
+copy em `landing/src/lib/conteudo.ts` — que é também o `<head>`, o JSON-LD e o
+`/llms.txt`, então a promessa errada estava saindo para o buscador junto.
+
+- **Preço da administradora**: um item de `PERFIS` ainda vendia "desconto por
+  volume somando a carteira inteira". A administradora tem **tabela própria**
+  (R$ 1,99, valor único) desde a migration 028 — o bloco `PRECO` já tinha sido
+  corrigido, este passou batido e dizia o contrário dele, na mesma página.
+- **"Botão grande, letra grande"** em `PERFIS` (porteiro) e em `DUVIDAS`
+  ("quanto tempo o porteiro leva para aprender", que ainda prometia "nome
+  sempre ao lado do ícone"): premissa de fonte e alvo de toque aumentados que
+  **saiu do produto** — a interface segue os padrões do shadcn/ui. O que
+  continua verdade ficou: um campo por linha, uma decisão por tela, nenhum
+  gesto para decorar.
+
+> Ao mexer em preço, o par continua sendo `PRECO.faixas` **e**
+> `assinatura_faixas` (migration 028) — mas este release mostra que a copy
+> repete o número em mais de um bloco. Procure o valor na página inteira, não
+> só na tabela.
+
+## 0.31.0 — 2026-08-01
+
+**A landing page entra no ar, no mesmo domínio do painel.**
+Ver [o plano](docs/plano-landing-monorepo.md) e [landing/CLAUDE.md](landing/CLAUDE.md).
+
+### O painel mudou de endereço: `/app/`
+`chegou.bellory.com.br/` passa a ser o site público; o painel vive sob `/app/`.
+
+Três arquivos fazem isso funcionar, e só funcionam **juntos** — um sem o outro
+quebra tudo (assets em 404, ou links apontando para fora do painel):
+- `base: '/app/'` em `web/vite.config.ts`
+- `basename="/app"` em `web/src/main.tsx`
+- `location /app/` com **barra final** no `proxy_pass` (a barra é que remove o
+  `/app` antes de repassar, então o `web/nginx.conf` continua valendo intacto)
+
+> ⚠️ **Quem já tem o PWA instalado precisa reinstalar.** O atalho na tela do
+> celular aponta para o `start_url` antigo (`/`), que agora abre a landing. É a
+> única mudança deste release sentida pelo usuário final — avise os condomínios
+> antes de subir.
+
+**O prefixo existe por causa do escopo do service worker.** Ele é um prefixo de
+caminho: com o painel na raiz, o único escopo possível seria `/`, e o SW do
+painel passaria a controlar e cachear a **landing** — publicar uma mudança no
+site e ela não aparecer para quem já abriu o painel é bug que só se manifesta
+depois, com cliente na frente.
+
+### A landing passou a ser Next.js
+Ela nasceu em Vite + React e migrou **antes de subir** — o § 5 do plano tinha
+decidido o contrário, e o § 11 registra por que a decisão virou. O que se
+comprou não foi SSR (a página continua estática, pré-renderizada no build):
+
+- **Fontes auto-hospedadas** (`next/font`): some a ida a `fonts.googleapis.com`
+  no caminho crítico e o pulo de layout na troca de fonte — metade de um CLS
+  ruim, na página cuja única função é converter visitante.
+- **`<head>`, Open Graph e JSON-LD gerados da copy** (`src/lib/site.ts`).
+  Revisar `conteudo.ts` revisa os três junto, em vez de deixar o preço do
+  structured data divergir do preço da página no primeiro ajuste de texto.
+- **`sitemap.xml`, `robots.txt` e `/llms.txt`** gerados no build. O último é a
+  página em texto puro, para agente de IA: quando alguém pergunta a um
+  assistente "qual sistema de portaria com aviso por WhatsApp?", a resposta sai
+  do que ele conseguiu ler.
+
+**O custo foi aceito de olhos abertos: existe um processo Node em produção**
+(`next start` sobre o build `standalone`, ouvindo na 3000). `output: 'export'`
+evitaria isso, mas levaria junto o `/llms.txt` — que é metade do motivo da
+migração. O painel **não** migrou e continua em Vite.
+
+### Adicionado
+- `landing/Dockerfile`, `Dockerfile.dev` e `.dockerignore` — a landing existia
+  mas não tinha como subir. O build `standalone` empacota só as dependências
+  realmente usadas, em vez de copiar `node_modules` inteiro para a imagem.
+- Serviço `landing` nos dois compose, e `nginx-dev.conf`: **um proxy também em
+  dev**. Sem ele, a barra final do `proxy_pass` só seria testada em produção.
+- Redirects `/login` → `/app/login` e `/app` → `/app/`.
+- `/healthz` na landing: o healthcheck do container não precisa baixar a home
+  inteira a cada 30 segundos. Mesmo endereço que o painel já expunha.
+
+### Corrigido
+- **O QR de autocadastro apontaria para a landing.** `QrAutocadastroDialog`
+  montava `${origin}/cadastro/${token}`; com o painel em `/app/`, o morador
+  abriria o site de marketing. Duas correções, porque são dois problemas: os QRs
+  novos usam `import.meta.env.BASE_URL`, e um redirect `/cadastro/` →
+  `/app/cadastro/` atende os **já impressos e colados no elevador** — papel não
+  se atualiza.
+- **`navigateFallbackDenylist` ganhou `/^\/(?!app\/)/`.** O `scope` impede o SW
+  de *controlar* a landing, mas o fallback de navegação é outra coisa: sem a
+  negativa, ele responderia o `index.html` do painel para uma URL do site.
+- **A tabela de preços da landing estava desatualizada.** Publicava o corte
+  antigo em 50 apartamentos (hoje são 100) e prometia à administradora um
+  desconto por volume que não existe mais — ela tem tabela própria, R$ 1,99.
+  Não é infraestrutura, mas era o tipo de erro que aparece na primeira fatura.
+- **`useTema` quebrava o `next build`.** O estado inicial lia
+  `window.matchMedia(...)`; no Vite isso só rodava no navegador, no Next roda no
+  build (`ReferenceError: window is not defined`). Agora começa no único valor
+  que o servidor pode produzir e se corrige no primeiro efeito.
+- **O tema piscava a cor errada.** Com o HTML igual para todo mundo, quem
+  escolheu o tema *contrário* ao do sistema via a cor errada até o React
+  hidratar. Um script bloqueante no `<head>` (`src/lib/tema.ts`) aplica
+  `data-theme` antes da primeira pintura.
+- **O `next build` traçava os arquivos a partir da pasta errada.** Sem
+  `turbopack.root`, o Next procura lockfile para cima e adotava a raiz do
+  repositório (ou um lockfile solto no perfil do usuário) como raiz do projeto.
+
+### Alterado
+- `npm run versao` passou a sincronizar **três** `package.json` (raiz, `web/` e
+  `landing/`). Cada app é buildado da própria pasta; a landing ficaria para trás.
+- `landing/README.md` virou `landing/CLAUDE.md` — a convenção do projeto, para a
+  doc ser carregada sozinha por quem for mexer ali.
+
+### Pendente
+- [ ] **A lista de verificação de roteamento (§ 9 do plano) não foi rodada.** O
+      Docker estava parado ao fim desta implementação; o `next build`, o runtime
+      `standalone` e os compose foram validados, o roteamento ao vivo não.
+- [ ] `MARCA.email` em `landing/src/lib/conteudo.ts` ainda é placeholder.
+- [ ] A copy de `PERFIS` ainda vende "botão grande, letra grande" ao porteiro —
+      premissa que saiu do produto quando a interface voltou aos padrões do
+      shadcn/ui. A landing está prometendo o que a tela não entrega mais.
+
+---
+
 ## 0.30.3 — 2026-08-01
 
 ### Corrigido

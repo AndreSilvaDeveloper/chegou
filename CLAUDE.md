@@ -38,6 +38,28 @@
 no servidor próprio, pelo `deploy/` (ver `deploy/README.md`). Não há provedor
 gerenciado nem WhatsApp de terceiro no caminho.
 
+### Um domínio, dois front-ends
+
+`chegou.bellory.com.br` serve o site público **e** o painel. Quem divide é o
+nginx interno da stack (`deploy/nginx/app.conf`; em dev, `nginx-dev.conf`):
+
+| URL | Quem responde |
+|---|---|
+| `/` | **landing** (`landing/`) — marketing, SEO |
+| `/app/...` | **painel** (`web/`) — todas as rotas internas |
+| `/login` | redirect 301 → `/app/login` |
+| `/cadastro/:token` | redirect 301 → `/app/cadastro/:token` (QR já impresso) |
+| `/api/...` · `/fotos/...` | API NestJS e MinIO |
+
+**O prefixo `/app` existe por causa do escopo do service worker.** Ele é um
+prefixo de caminho: com o painel na raiz, o único escopo possível seria `/` — e
+o SW do painel passaria a controlar e cachear a landing. Detalhe em
+[landing/CLAUDE.md](landing/CLAUDE.md).
+
+Os três arquivos que fazem isso funcionar, e que só funcionam **juntos**:
+`base: '/app/'` (`web/vite.config.ts`), `basename="/app"` (`web/src/main.tsx`) e
+o `location /app/` com **barra final** no `proxy_pass`.
+
 ### Multitenancy
 - **Modelo**: Database compartilhado, schema compartilhado
 - **Isolamento**: Toda tabela possui `tenant_id` (FK para `tenants`)
@@ -143,7 +165,7 @@ chegou/
 │       ├── usuarios/             # Gestão de usuários (login)
 │       ├── vagas/                # Vagas de garagem + cobrança
 │       └── whatsapp/             # Gateway WhatsApp + webhooks
-├── web/                          # Frontend React
+├── web/                          # Frontend React — o PAINEL, servido em /app/
 │   ├── src/
 │   │   ├── main.tsx              # Entry point React
 │   │   ├── App.tsx               # Router + rotas
@@ -156,6 +178,7 @@ chegou/
 │   │   └── pages/                # Páginas do app
 │   ├── public/                   # Assets estáticos
 │   └── tailwind.config.js        # Configuração Tailwind
+├── landing/                      # Site público (Next.js), servido em /
 ├── db/
 │   └── migrations/               # Migrations SQL (node-pg-migrate)
 ├── scripts/                      # Scripts utilitários (seed, etc.)
@@ -346,6 +369,7 @@ naquela pasta.
 | Common | [src/common](src/common/CLAUDE.md) | Guards, decorators, escopo de tenant e auditoria |
 | Frontend | [web/src](web/src/CLAUDE.md) | Páginas, componentes, hooks e client da API |
 | Componentes de UI | [web/src/components/ui](web/src/components/ui/CLAUDE.md) | **Catálogo da identidade visual**: quero X → use Y, as seis leis, checklist de PR |
+| Landing | [landing](landing/CLAUDE.md) | Site público na raiz do domínio; por que o painel vive em `/app/` |
 
 ---
 
@@ -359,17 +383,12 @@ A documentação é dividida em duas camadas, e cada uma tem um dono claro:
 | Local | `CLAUDE.md` de cada módulo | Rotas + perfis, entidades, regras de negócio e armadilhas daquele módulo |
 | Planejado | `docs/` | Trabalho combinado que ainda não virou código |
 
-### Planejado (ainda não implementado)
-
-| Doc | O que é |
-|---|---|
-| [Landing + painel no mesmo domínio](docs/plano-landing-monorepo.md) | A landing entra como app próprio (`landing/`) e o painel passa a viver sob `/app/`. Inclui o porquê de **não** migrar para Next.js |
-
 ### Entregue, mas vale ler
 
 | Doc | Por que ainda importa |
 |---|---|
 | [Cobrança pela Payment API](docs/plano-cobranca-gateway.md) | As **seis fases estão no código**. O documento continua valendo como registro das decisões e do que mudou na implementação — inclusive o que foi feito **diferente** do combinado, e por quê. A regra viva mora em [Assinaturas](src/modules/assinaturas/CLAUDE.md) e [Pagamentos](src/modules/pagamentos/CLAUDE.md) |
+| [Landing + painel no mesmo domínio](docs/plano-landing-monorepo.md) | **Implementado.** Guarda o porquê de **não** migrar o painel para Next.js — e, no § 11, por que a **landing** acabou indo (SEO, fontes auto-hospedadas e `/llms.txt`), contra o que o § 5 tinha combinado. A regra viva mora em [landing](landing/CLAUDE.md) |
 
 **Por que `CLAUDE.md` e não `README.md`**: arquivos `CLAUDE.md` em subpastas são
 carregados automaticamente no contexto quando se trabalha naquela pasta. Na
@@ -733,9 +752,9 @@ npm run versao maior       # virada de versão
 npm run versao 1.2.3       # número exato
 ```
 
-O script sobe o número **nos dois `package.json`** (raiz e `web/`) — eles
-precisam bater porque o build do front só enxerga a pasta `web/`, e a raiz é o
-que a API informa em `GET /api/health`.
+O script sobe o número **nos três `package.json`** (raiz, `web/` e `landing/`) —
+eles precisam bater porque cada app é buildado a partir da própria pasta, e a
+raiz é o que a API informa em `GET /api/health`.
 
 **No mesmo commit da alteração**: subir a versão + descrever a mudança no
 [CHANGELOG.md](CHANGELOG.md). Versão sem linha no changelog não diz nada a
@@ -842,7 +861,7 @@ passaria a acontecer no meio do que o porteiro estiver digitando.
     virada de produto é `MAIOR` (ver "Versionamento")
 35. **SEMPRE** registrar a mudança no `CHANGELOG.md`, no commit da alteração
 36. **NUNCA** editar a versão só em um dos `package.json` — use o script, que
-    mantém raiz e `web/` no mesmo número
+    mantém raiz, `web/` e `landing/` no mesmo número
 
 ---
 

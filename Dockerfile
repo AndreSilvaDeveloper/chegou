@@ -1,5 +1,5 @@
 # ---- build (compila TS + módulos nativos como bcrypt) ----
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 # toolchain necessária para compilar bcrypt no Alpine (musl)
 RUN apk add --no-cache python3 make g++
@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build && npm prune --omit=dev
 
 # ---- runtime (só o necessário, sem toolchain) ----
-FROM node:20-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules

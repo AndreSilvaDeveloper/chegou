@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, type ReactElement } from 'react';
 import { cn } from '@/lib/css';
 import { NAVEGACAO } from '@/lib/conteudo';

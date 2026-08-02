@@ -1,3 +1,5 @@
+'use client';
+
 import type { ReactElement } from 'react';
 import { Botao } from '@/components/ui/Botao';
 import { Faixa } from '@/components/ui/Faixa';

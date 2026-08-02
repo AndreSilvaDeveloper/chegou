@@ -36,8 +36,11 @@ export class AuditInterceptor implements NestInterceptor {
     // A resposta
     return next.handle().pipe(
       tap((responseBody) => {
-        // Tenta pegar o ID da entidade (do param na rota, ou do corpo de retorno se for POST)
-        let entityId = params.id;
+        // Tenta pegar o ID da entidade (do param na rota, ou do corpo de retorno se for POST).
+        // No Express 5 um parâmetro de rota é `string | string[]` — repetido ou
+        // curinga vira lista. Nenhuma rota nossa faz isso, mas `audit_log.entity_id`
+        // guarda texto: normaliza aqui em vez de gravar "1,2" sem querer.
+        let entityId: string | null = (Array.isArray(params.id) ? params.id[0] : params.id) ?? null;
         if (method === 'POST' && responseBody && responseBody.id) {
           entityId = responseBody.id;
         }

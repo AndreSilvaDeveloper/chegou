@@ -1,3 +1,5 @@
+'use client';
+
 import type { ReactElement } from 'react';
 import { CabecaSecao } from '@/components/ui/CabecaSecao';
 import { CenaLeitura, type CenaNumero } from '@/components/ui/CenaLeitura';

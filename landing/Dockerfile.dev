@@ -1,0 +1,10 @@
+# Landing em modo DEV (Next dev server, com Fast Refresh).
+# O código entra por bind mount no docker-compose; o node_modules e o cache do
+# Next ficam no container — ver a nota sobre volume anônimo em landing/CLAUDE.md.
+FROM node:24-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+EXPOSE 5174
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]

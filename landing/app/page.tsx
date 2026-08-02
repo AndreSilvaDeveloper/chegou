@@ -19,8 +19,13 @@ import { ChamadaFinal } from '@/components/secoes/ChamadaFinal';
  *
  * Este arquivo não sabe COMO nada é desenhado. Ele só diz a ordem — e é por
  * isso que reordenar a narrativa é mover uma linha.
+ *
+ * Ele é um **Server Component**: a árvore inteira é renderizada para HTML no
+ * build. As peças com `'use client'` abaixo continuam sendo pré-renderizadas —
+ * `'use client'` diz onde o JS *hidrata*, não onde o HTML nasce. É o que
+ * garante que um agente de IA sem execução de script leia a página inteira.
  */
-export default function App(): ReactElement {
+export default function Pagina(): ReactElement {
   return (
     <>
       <PularParaConteudo />

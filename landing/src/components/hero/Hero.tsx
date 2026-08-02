@@ -1,3 +1,5 @@
+'use client';
+
 import { useRef, type ReactElement } from 'react';
 import { Botao } from '@/components/ui/Botao';
 import { Icone } from '@/components/ui/Icone';

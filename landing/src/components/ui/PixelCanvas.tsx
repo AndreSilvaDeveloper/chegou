@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, type ReactElement } from 'react';
 import { useMovimentoReduzido } from '@/hooks/use-movimento-reduzido';
 import './PixelCanvas.css';

@@ -1,3 +1,5 @@
+'use client';
+
 import type { ReactElement } from 'react';
 import { Icone } from '@/components/ui/Icone';
 import { useTema } from '@/hooks/use-tema';

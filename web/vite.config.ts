@@ -9,6 +9,17 @@ import { readFileSync } from 'node:fs';
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
 
 export default defineConfig({
+  // O painel vive sob `/app/` — a raiz do domínio é da landing page.
+  //
+  // Isto faz o build referenciar `/app/assets/...` em vez de `/assets/...`, e é
+  // o par obrigatório do `basename="/app"` do react-router em `main.tsx`: um sem
+  // o outro quebra tudo — assets em 404, ou links apontando para fora do painel.
+  //
+  // **Não afeta `fetch`.** O `client.ts` continua chamando `/api/...` absoluto a
+  // partir da raiz, e é assim que ele cai no bloco `/api/` do nginx. Se um dia
+  // alguém "corrigir" isso para caminho relativo, as chamadas viram
+  // `/app/api/...` e o painel inteiro cai de uma vez.
+  base: '/app/',
   define: {
     __APP_VERSION__: JSON.stringify(version),
   },
@@ -37,16 +48,25 @@ export default defineConfig({
         background_color: '#F3F0EA',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        // **O escopo é o motivo de existir o prefixo `/app`.** O escopo de um
+        // service worker é um prefixo de caminho: com o painel na raiz, o único
+        // possível seria `/` — e aí o SW do painel passaria a controlar e
+        // cachear a **landing page**. Publicar uma mudança no site de marketing
+        // e ela não aparecer para quem já abriu o painel é bug que só se
+        // manifesta depois, com cliente na frente.
+        start_url: '/app/',
+        scope: '/app/',
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/app/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/app/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/app/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
-        navigateFallbackDenylist: [/^\/api/],
+        // Fora de `/app/` não é painel: é a landing. Sem esta negativa, o
+        // fallback de navegação do SW responderia o `index.html` do painel para
+        // uma URL do site de marketing.
+        navigateFallbackDenylist: [/^\/api/, /^\/(?!app\/)/],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api'),

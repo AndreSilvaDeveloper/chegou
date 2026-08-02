@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useRef, useState, type ReactElement } from 'react';
 import { vars } from '@/lib/css';
 import { CabecaSecao } from '@/components/ui/CabecaSecao';

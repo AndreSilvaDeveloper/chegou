@@ -1,3 +1,5 @@
+'use client';
+
 import { Fragment, useMemo, type ReactElement } from 'react';
 import { cn, vars } from '@/lib/css';
 import { useEmVista } from '@/hooks/use-em-vista';

@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, type ReactElement } from 'react';
 import { vars } from '@/lib/css';
 import { useEmVista } from '@/hooks/use-em-vista';

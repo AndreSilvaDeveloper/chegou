@@ -1,3 +1,5 @@
+'use client';
+
 import type { ReactElement, ReactNode } from 'react';
 import { cn } from '@/lib/css';
 import { Separador } from '@/components/layout/Separador';

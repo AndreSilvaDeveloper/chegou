@@ -1,3 +1,5 @@
+'use client';
+
 import type { ReactElement } from 'react';
 import { Logo } from '@/components/marca/Logo';
 import { useEmVista } from '@/hooks/use-em-vista';

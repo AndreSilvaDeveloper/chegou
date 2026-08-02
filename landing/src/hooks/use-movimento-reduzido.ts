@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 
 const CONSULTA = '(prefers-reduced-motion: reduce)';

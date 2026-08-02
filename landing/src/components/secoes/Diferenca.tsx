@@ -1,3 +1,5 @@
+'use client';
+
 import type { ReactElement } from 'react';
 import { cn } from '@/lib/css';
 import { CabecaSecao } from '@/components/ui/CabecaSecao';

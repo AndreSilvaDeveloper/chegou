@@ -166,6 +166,28 @@ services:
       timeout: 5s
       retries: 5
 
+  # Landing page (site público, na raiz do domínio). Next.js: ao contrário do
+  # `web`, aqui HÁ um processo Node — as páginas são pré-renderizadas no build,
+  # mas quem as serve (e quem gera /llms.txt e /sitemap.xml) é o `next start`.
+  # O build `standalone` é o que mantém a conta baixa num servidor que já roda
+  # postgres, redis, minio e o OCR: empacota só as dependências usadas.
+  landing:
+    build:
+      context: ../landing
+      dockerfile: Dockerfile
+      args:
+        # A URL canônica é assada no BUILD (canonical, Open Graph, sitemap).
+        # Errada aqui, o Google indexa o endereço errado — por isso ela vem do
+        # mesmo DOMAIN que o resto da stack, e não de um valor fixo no código.
+        NEXT_PUBLIC_SITE_URL: https://${DOMAIN}
+    image: chegou-landing:local
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
   # Nginx INTERNO: unifica /, /api e /fotos numa porta local (só no 127.0.0.1).
   # O TLS e o domínio ficam no reverse proxy que JÁ EXISTE no host (nginx/caddy/etc),
   # que encaminha chegou.bellory.com.br → 127.0.0.1:${APP_PORT}. Ver README.
@@ -175,6 +197,7 @@ services:
     depends_on:
       - api
       - web
+      - landing
     ports:
       - "127.0.0.1:${APP_PORT:-8090}:80"
     volumes:

@@ -37,7 +37,12 @@ export function QrAutocadastroDialog({
   const [rotacionando, setRotacionando] = useState(false);
 
   const aplicarToken = async (token: string) => {
-    const link = `${window.location.origin}/cadastro/${token}`;
+    // `BASE_URL` é o `base` do Vite (`/app/` em produção, `/` em dev sem
+    // prefixo). Escrever `/cadastro/...` na mão aqui geraria um QR apontando
+    // para a **raiz do domínio**, que é a landing page — o morador abriria o
+    // site de marketing em vez do formulário, e o erro só apareceria com o QR
+    // já impresso e colado no elevador.
+    const link = `${window.location.origin}${import.meta.env.BASE_URL}cadastro/${token}`;
     setUrl(link);
     setQr(await QRCode.toDataURL(link, { width: 320, margin: 1 }));
   };

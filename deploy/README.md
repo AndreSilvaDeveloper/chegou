@@ -16,11 +16,17 @@ outros apps) — ele encaminha `chegou.bellory.com.br` → `127.0.0.1:8090`.
   Internet ──▶ proxy do HOST ──────┤
    (TLS 443)  nginx/caddy/traefik  └─ chegou.bellory.com.br ─▶ 127.0.0.1:8090
                                                                   │
-                        proxy interno (nginx :80) ─┬─ /      ▶ web   (SPA React)
-                                                   ├─ /api   ▶ api   (NestJS + migrations)
-                                                   └─ /fotos ▶ minio (bucket público)
+                        proxy interno (nginx :80) ─┬─ /       ▶ landing (site, Next.js :3000)
+                                                   ├─ /app/   ▶ web     (painel, SPA React)
+                                                   ├─ /api    ▶ api     (NestJS + migrations)
+                                                   └─ /fotos  ▶ minio   (bucket público)
                                                      api ▶ postgres · redis · minio
 ```
+
+**A raiz é o site público; o painel vive em `/app/`.** `/login` e `/cadastro/:token`
+redirecionam para dentro do painel — o segundo atende os QRs de autocadastro já
+impressos. O motivo do prefixo é o escopo do service worker: ver
+[landing/CLAUDE.md](../landing/CLAUDE.md).
 
 Postgres, Redis e MinIO **não** publicam porta nenhuma — só o proxy interno, e mesmo assim
 só no `127.0.0.1`. Nada da Chegou conflita com seus outros serviços.
@@ -33,7 +39,8 @@ só no `127.0.0.1`. Nada da Chegou conflita com seus outros serviços.
 - Um reverse proxy já rodando no host (você tem — é ele que ocupa a 80/443). Normalmente
   **nginx**, **caddy** ou **traefik**.
 - Subdomínio **chegou.bellory.com.br** apontando pro IP do servidor (registro **A**).
-- Como o front é buildado no servidor, tenha **≥ 1 GB de RAM livre** (crie swap se a VPS for pequena).
+- Como os **dois** front-ends são buildados no servidor (o painel e a landing), tenha
+  **≥ 1,5 GB de RAM livre** (crie swap se a VPS for pequena).
 
 ---
 
@@ -158,6 +165,12 @@ Pronto: **https://chegou.bellory.com.br** no ar, TLS gerenciado pelo proxy do ho
 O `deploy.sh` faz `git pull`, rebuilda e recria os containers. Front, back e migrations
 atualizam juntos. Não precisa mexer no proxy do host de novo.
 
+> ⚠️ **No deploy que estreia a landing (0.31.0), avise os condomínios antes.** O
+> painel saiu de `/` para `/app/`, e quem tem o **PWA instalado** precisa
+> reinstalar: o atalho na tela do celular aponta para o endereço antigo, que
+> agora abre o site público. Quem usa pelo navegador não sente nada — `/login`
+> redireciona sozinho.
+
 ---
 
 ## Parte 5 — WhatsApp (OpenWA)
@@ -213,7 +226,9 @@ gunzip -c backups/chegou-AAAAMMDD-HHMMSS.sql.gz | docker compose exec -T postgre
 
 ## Como cada peça se atualiza
 
-- **Frontend / Backend**: `./deploy.sh` rebuilda a partir do código e recria os containers.
+- **Frontend / Backend / Landing**: `./deploy.sh` rebuilda a partir do código e recria os
+  containers. A landing é buildada com a URL canônica do `DOMAIN` — se você trocar de
+  domínio, é o rebuild que atualiza o `canonical` e o `sitemap.xml`, não um restart.
 - **Banco de dados**: o container `api` roda `npm run db:migrate` no start (idempotente) —
   toda migration nova em `db/migrations/` é aplicada automaticamente no deploy.
 - **TLS**: gerenciado pelo reverse proxy do host (certbot/caddy que você já usa).
@@ -229,4 +244,6 @@ gunzip -c backups/chegou-AAAAMMDD-HHMMSS.sql.gz | docker compose exec -T postgre
 | 502 no domínio | `curl -I http://127.0.0.1:8090` no servidor. Se falhar, veja `docker compose logs proxy api`. Se responder, o problema é o vhost do host. |
 | `api` não sobe | `docker compose logs api`. Em geral falta variável obrigatória no `.env`. |
 | Foto não abre | `docker compose logs minio-init` e confira `STORAGE_PUBLIC_URL` no `.env`. |
+| O domínio abre o **painel** em vez do site | O container `landing` não subiu: `docker compose logs landing`. O nginx interno cai no `/` dele — se ele estiver fora, o navegador vê 502, não o painel. |
+| O site abre mas sem estilo (`/_next/...` em 404) | O `proxy_pass` da landing perdeu a forma: ele é `http://landing:3000` **sem** barra final. A barra removeria o caminho que o Next precisa receber inteiro. |
 | Upload falha por tamanho | Aumente `client_max_body_size` no vhost do host (nginx) — o interno já está em 20m. |

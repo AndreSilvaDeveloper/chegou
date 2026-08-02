@@ -1,7 +1,7 @@
 # Backend em modo DEV (hot reload via `nest start --watch`).
 # O código-fonte é montado por bind mount no docker-compose; o node_modules
 # fica dentro do container (compilado aqui, inclusive bcrypt).
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 # toolchain para compilar módulos nativos (bcrypt) no Alpine
 RUN apk add --no-cache python3 make g++

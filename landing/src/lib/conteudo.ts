@@ -226,7 +226,7 @@ export const PERFIS = {
       papel: 'Porteiro',
       titulo: 'Registrar e entregar',
       texto:
-        'Botão grande, letra grande, uma coisa por tela. Feito para ser usado em pé, com o celular numa mão e o pacote na outra — inclusive no sol da portaria, onde tela clarinha some.',
+        'Uma coisa por tela, no celular. Feito para ser usado em pé, com o telefone numa mão e o pacote na outra — inclusive no sol da portaria, onde tela clarinha some.',
       itens: [
         'Escanear código ou fotografar a etiqueta',
         'Dar baixa com o código do morador',
@@ -253,7 +253,7 @@ export const PERFIS = {
         'Todos os condomínios sob sua gestão num lugar só, com troca de prédio em um clique — e uma conta única no fim do mês, não uma por condomínio.',
       itens: [
         'Cadastrar e configurar condomínios da carteira',
-        'Desconto por volume somando a carteira inteira',
+        'Tabela própria de atacado sobre a carteira somada',
         'Fatura única, com a composição por prédio',
       ],
     },
@@ -265,9 +265,13 @@ export const PRECO = {
   titulo: 'Por apartamento. Na tabela, não na reunião.',
   apoio:
     'A faixa vale para todos os apartamentos — não é somada por trecho. Unidade desativada sai da conta sozinha, no mês seguinte.',
+  // ⚠️ Estes números são a tabela REAL do sistema, e as duas precisam andar
+  // juntas: `assinatura_faixas` com `tipo_cliente = 'condominio'` (migration
+  // 028). Publicar uma faixa que o sistema não cobra é o cliente descobrindo a
+  // diferença na primeira fatura.
   faixas: [
-    { rotulo: 'Até 50 apartamentos', valor: 'R$ 3,99' },
-    { rotulo: 'De 51 a 200 apartamentos', valor: 'R$ 3,49' },
+    { rotulo: 'Até 100 apartamentos', valor: 'R$ 3,99' },
+    { rotulo: 'De 101 a 200 apartamentos', valor: 'R$ 3,49' },
     { rotulo: 'Acima de 200 apartamentos', valor: 'R$ 2,99' },
   ],
   exemplo: {
@@ -286,10 +290,13 @@ export const PRECO = {
       'Atualizações automáticas, sem parar a portaria',
     ],
   },
+  // A administradora tem **tabela própria** (preço de atacado), e não
+  // desconto por volume sobre a tabela do condomínio. Era assim antes da
+  // migration 028; o texto antigo prometia R$ 3,49 a quem hoje paga R$ 1,99.
   administradoras: {
     eyebrow: 'Administradoras',
     texto:
-      'A carteira soma para o desconto. Três condomínios de 40 unidades somam 120 — e **todos os três pagam R$ 3,49**, mesmo que sozinho cada um ficasse na faixa de R$ 3,99.',
+      'Quem administra carteira paga **R$ 1,99 por apartamento** — valor único, sobre a soma de todos os condomínios. Uma fatura só para a carteira inteira, com cada prédio discriminado nela.',
   },
   rodape:
     'Módulos de garagem e avisos entram conforme o condomínio contrata. Fale com a gente para o que fugir da tabela.',
@@ -312,7 +319,7 @@ export const DUVIDAS = {
     {
       pergunta: 'Quanto tempo o porteiro leva para aprender?',
       resposta:
-        'Uma troca de turno. A tela dele tem três botões: registrar, procurar, dar baixa. Tudo foi dimensionado para quem trabalha em pé e muitas vezes precisa de letra maior — **botão grande, um campo por linha, nome sempre ao lado do ícone**. Não existe menu escondido nem gesto para decorar.',
+        'Uma troca de turno. A tela dele tem três botões: registrar, procurar, dar baixa. Tudo foi dimensionado para quem trabalha em pé, com o celular numa mão e o pacote na outra — **um campo por linha, uma decisão por tela**. Não existe menu escondido nem gesto para decorar.',
     },
     {
       pergunta: 'Precisa instalar alguma coisa na portaria?',

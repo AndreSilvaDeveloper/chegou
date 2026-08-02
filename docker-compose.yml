@@ -173,6 +173,50 @@ services:
       - ./web:/app
       - /app/node_modules
 
+  # ---- Landing page (Next dev server) ----
+  landing:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile.dev
+    container_name: portaria-landing
+    restart: unless-stopped
+    ports:
+      - "${LANDING_PORT:-5174}:5174"
+    environment:
+      # Bind mount não propaga evento de arquivo do host para o container no
+      # Docker Desktop; sem polling o Fast Refresh simplesmente não dispara.
+      WATCHPACK_POLLING: "true"
+      # Em dev o site é http://localhost:8090 (o proxy abaixo). Sem isto, o
+      # canonical e o Open Graph apontariam para produção já no ambiente local.
+      NEXT_PUBLIC_SITE_URL: http://localhost:${PROXY_PORT:-8090}
+    volumes:
+      - ./landing:/app
+      # ⚠️ Volume anônimo: dependência nova no package.json NÃO chega ao volume
+      # antigo. Depois de instalar algo aqui:
+      #   docker compose up -d --build --renew-anon-volumes landing
+      - /app/node_modules
+      # O cache do Next fica no container: no bind mount ele seria escrito no
+      # disco do host a cada tecla, e é a diferença entre recompilar em 1s e
+      # em 10s no Windows.
+      - /app/.next
+
+  # ---- Proxy de dev: espelha o roteamento de produção ----
+  # Sem ele, `/` (landing) vs `/app/` (painel) só existiria em produção — e uma
+  # barra final errada no proxy_pass seria descoberta no primeiro deploy.
+  # Os dev servers continuam acessíveis direto (5173 e 5174) para depurar.
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: portaria-proxy
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+      - landing
+    ports:
+      - "${PROXY_PORT:-8090}:80"
+    volumes:
+      - ./nginx-dev.conf:/etc/nginx/conf.d/default.conf:ro
+
 volumes:
   portaria_pgdata:
   portaria_redisdata:

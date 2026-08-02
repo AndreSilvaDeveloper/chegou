@@ -1,23 +1,28 @@
 #!/usr/bin/env node
 /**
- * Sobe a versão do Chegou nos dois package.json de uma vez (API e web).
+ * Sobe a versão do Chegou nos três package.json de uma vez.
  *
  *   npm run versao correcao    # 0.9.0 -> 0.9.1   bug corrigido
  *   npm run versao recurso     # 0.9.1 -> 0.10.0  funcionalidade grande
  *   npm run versao maior       # 0.10.0 -> 1.0.0  virada de versão
  *   npm run versao 1.2.3       # define exatamente
  *
- * Existem dois arquivos porque o build do front (deploy/docker-compose.yml)
- * só enxerga a pasta `web/`. Manter os dois no mesmo número é o que faz a
- * versão da sidebar valer para o sistema inteiro — por isso o script mexe
- * sempre nos dois, nunca em um só.
+ * São três arquivos porque cada app é buildado a partir da **própria pasta**
+ * (`deploy/docker-compose.yml`): a API na raiz, o painel em `web/`, a landing
+ * em `landing/`. Um número só para os três é o que faz a versão da sidebar
+ * valer para o sistema inteiro — por isso o script mexe sempre em todos, nunca
+ * em um só.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ARQUIVOS = [join(raiz, 'package.json'), join(raiz, 'web', 'package.json')];
+const ARQUIVOS = [
+  join(raiz, 'package.json'),
+  join(raiz, 'web', 'package.json'),
+  join(raiz, 'landing', 'package.json'),
+];
 
 const TIPOS = {
   correcao: 'patch',
