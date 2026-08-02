@@ -11,6 +11,36 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.31.3 — 2026-08-02
+
+**O logo do painel quebrou com a mudança para `/app/`.** Aparecia como imagem
+quebrada na tela de login (duas vezes) e no menu lateral — as três ocorrências
+de `<img src="/logo-mark.png">`.
+
+O caminho absoluto aponta para a **raiz do domínio**, que desde a 0.31.0 é a
+landing: o navegador pedia `chegou.bellory.com.br/logo-mark.png`, o nginx
+entregava ao Next e voltava 404. O arquivo mora em `/app/logo-mark.png`.
+
+**Por que passou pelo build e pelos testes:** o Vite reescreve os caminhos do
+`index.html` (`/icon-192.png` virou `/app/icon-192.png`) e de qualquer asset
+que passe por `import` — mas uma **string literal dentro do JSX** ele não tem
+como enxergar. `npm run build` passa, `tsc` passa, e a imagem só quebra no ar.
+O manifest do PWA já tinha sido tratado na migração; estes três ficaram.
+
+A correção não é escrever `/app/` à mão — isso amarraria o código ao lugar onde
+o painel mora hoje e quebraria de novo se ele mudar. Passa a existir
+`asset()` (`web/src/lib/asset.ts`), que monta o caminho a partir de
+`import.meta.env.BASE_URL` — `/app/` no build, `/` no dev sem proxy, sem `if`.
+É o mesmo mecanismo que o `QrAutocadastroDialog` já usava para o link do QR.
+
+```tsx
+<img src={asset('logo-mark.png')} alt="Chegou" />
+```
+
+> Varri o resto do `web/src`: não sobrou nenhum outro caminho absoluto de asset
+> (`src="/…"`, `href="/…"`, `url(/…)`). Ao adicionar imagem de `web/public/`,
+> use `asset()` — está na tabela de peças reutilizáveis do `CLAUDE.md`.
+
 ## 0.31.2 — 2026-08-02
 
 **`movimento.css` tinha um `@media` perdido, e quem pedia menos movimento

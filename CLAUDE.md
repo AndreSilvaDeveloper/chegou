@@ -704,6 +704,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
 | `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
+| `asset()` | `web/src/lib/asset.ts` | Caminho de arquivo de `web/public/` — **o painel mora em `/app/`**, e `src="/x.png"` à mão cai na landing e dá 404 |
 | `CheckboxField` | `web/src/components/ui/checkbox.tsx` | Caixa de seleção com o texto clicável |
 | `rolagem-sem-barra` (utility CSS) | `web/src/styles.css` | Esconde a barra de rolagem sem tirar a rolagem — use com `max-md:` |
 | `PageShell` | `web/src/components/ui/page-shell.tsx` | **Casca de toda tela do painel**: faixa âmbar no celular (título, busca, filtro, voltar), cabeçalho comum no desktop |

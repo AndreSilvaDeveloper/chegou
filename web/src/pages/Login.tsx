@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { CheckboxField } from '@/components/ui/checkbox';
 import { CodigoStrip } from '@/components/ui/codigo-strip';
 import { clearLoginLembrado, getLoginLembrado, setLoginLembrado } from '@/lib/lembrar-login';
+import { asset } from '@/lib/asset';
 
 /** Onde cada papel cai depois de entrar. */
 const DESTINO_POR_PAPEL: Record<AuthenticatedUser['role'], string> = {
@@ -86,7 +87,7 @@ export function Login() {
 
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-signal">
-            <img src="/logo-mark.png" alt="Chegou" className="h-7 w-7" />
+            <img src={asset('logo-mark.png')} alt="Chegou" className="h-7 w-7" />
           </div>
           <div className="leading-none">
             <span className="txt-secao font-extrabold tracking-tight text-foreground">chegou</span>
@@ -121,7 +122,7 @@ export function Login() {
           <div className="flex flex-col space-y-2 text-center md:text-left">
             <div className="mb-2 flex justify-center md:hidden">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-signal">
-                <img src="/logo-mark.png" alt="Chegou" className="h-9 w-9" />
+                <img src={asset('logo-mark.png')} alt="Chegou" className="h-9 w-9" />
               </div>
             </div>
             <p className="eyebrow hidden md:block">Acesso restrito</p>

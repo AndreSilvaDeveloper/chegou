@@ -37,6 +37,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useTheme } from '@/hooks/use-theme';
 import { APP_VERSION } from '@/lib/versao';
+import { asset } from '@/lib/asset';
 import { VoltarProvider, useVoltar } from '@/components/ui/voltar-slot';
 
 const COLLAPSE_KEY = 'chegou.sidebar.collapsed';
@@ -100,7 +101,7 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <div className={cn('flex items-center gap-2.5', compact && 'justify-center')}>
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary shadow-xs">
-        <img src="/logo-mark.png" alt="Chegou" className="h-6 w-6" />
+        <img src={asset('logo-mark.png')} alt="Chegou" className="h-6 w-6" />
       </div>
       {!compact && (
         <div className="leading-none">
