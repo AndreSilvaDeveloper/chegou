@@ -36,21 +36,18 @@
   .separador__linha::after { display: none; }
   .separador__marca { opacity: 1; transform: none; }
   .separador__marca::before { opacity: .5; transform: none; }
-  /* Sem empilhar: os três passos viram uma coluna comum. */
-  .passos .passo { position: static; transform: none; opacity: 1; margin-bottom: 1.25rem; }
-  .passos { padding-bottom: 0; }
-}
+  /* Sem travar a tela: a pista some, o palco solta e os três passos viram uma
+     coluna comum. Prender a rolagem de quem pediu menos movimento é o oposto
+     do que a preferência pede.
 
-.pular {
-  position: absolute; left: -9999px;
-  padding: .75rem 1.25rem; background: var(--sinal); color: var(--sinal-tinta);
-  border-radius: var(--raio); font-weight: 600; z-index: 100;
-}
-.pular:focus { left: 1rem; top: 1rem;   /* Sem travar a tela: a pista some, o palco solta e os três passos viram
-     uma coluna comum. Prender a rolagem de quem pediu menos movimento é o
-     oposto do que a preferência pede. */
+     Zerar `.pilha` é a parte que não pode faltar: ela é a PISTA, com altura
+     medida em telas de rolagem (`100vh + (n-1) × 80vh`) que existe só para
+     alimentar o efeito. Sem `height: auto` aqui, o palco solta mas a pista
+     continua ocupando o espaço — e sobra uma área vazia enorme depois da
+     seção. Ver o comentário de `secoes/ComoFunciona.css`. */
   .pilha { height: auto; }
   .pilha__palco { position: static; height: auto; padding-block: 0; }
+  /* O espaçamento passa a vir daqui (gap), não de margem no cartão. */
   .pilha__cartoes { display: flex; flex-direction: column; gap: 1.25rem; }
   .passos .passo {
     position: static;
@@ -59,4 +56,12 @@
     opacity: 1;
     box-shadow: none;
   }
+  .passos { padding-bottom: 0; }
 }
+
+.pular {
+  position: absolute; left: -9999px;
+  padding: .75rem 1.25rem; background: var(--sinal); color: var(--sinal-tinta);
+  border-radius: var(--raio); font-weight: 600; z-index: 100;
+}
+.pular:focus { left: 1rem; top: 1rem; }
