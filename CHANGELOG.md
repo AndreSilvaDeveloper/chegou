@@ -104,6 +104,24 @@ pequeno **a partir** deste arquivo.
 > `matchMedia('(prefers-reduced-motion: reduce)').matches` **antes** de procurar
 > bug — no Windows 11 é Acessibilidade → Efeitos visuais → Efeitos de animação.
 
+### O botão do topo virou "Entrar"
+
+Era "Quero ver funcionando", âncora para `#chamada`. Passa a levar ao painel:
+**`/app/login`**.
+
+- **Por que `/app/login` e não `/login`**: os dois chegam lá, mas `/login` gasta
+  um 301 do nginx. Aquele redirect existe para URL digitada, compartilhada e
+  impressa — um link nosso, que conhece o destino, não precisa dele.
+- **O rótulo é o mesmo do painel** ("Entrar", em `web/src/pages/Login.tsx`).
+  Dois vocabulários para a mesma porta é como o usuário deixa de reconhecê-la.
+- O texto saiu do markup para `lib/conteudo.ts` (`TOPO.acao`), que era onde ele
+  já devia estar — ver a regra 2 do `landing/CLAUDE.md`.
+
+O caminho de conversão **não** ficou órfão: "Agendar uma demonstração" continua
+no hero, na chamada final e no rodapé. O que mudou é que a barra fixa agora
+serve quem **já é cliente**, em vez de repetir um CTA que a página faz três
+vezes. É o único link da landing que sai para o painel.
+
 ## 0.31.1 — 2026-08-02
 
 **A landing prometia três coisas que o produto não entrega mais.** Correção de

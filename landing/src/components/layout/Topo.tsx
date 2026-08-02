@@ -6,7 +6,7 @@ import { Botao } from '@/components/ui/Botao';
 import { BotaoTema } from './BotaoTema';
 import { Hamburguer, MenuMovel, MenuPilulas } from './Menu';
 import { useSecaoAtiva } from '@/hooks/use-secao-ativa';
-import { NAVEGACAO } from '@/lib/conteudo';
+import { NAVEGACAO, TOPO } from '@/lib/conteudo';
 import './Topo.css';
 
 const IDS = NAVEGACAO.map((n) => n.id);
@@ -36,7 +36,7 @@ export function Topo(): ReactElement {
         <MenuPilulas ativa={ativa} />
         <Hamburguer aberto={menuAberto} aoAlternar={() => setMenuAberto((v) => !v)} />
         <BotaoTema />
-        <Botao href="#chamada">Quero ver funcionando</Botao>
+        <Botao href={TOPO.acao.href}>{TOPO.acao.rotulo}</Botao>
       </div>
 
       <MenuMovel aberto={menuAberto} aoFechar={() => setMenuAberto(false)} ativa={ativa} />

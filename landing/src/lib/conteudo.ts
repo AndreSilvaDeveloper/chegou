@@ -28,6 +28,26 @@ export const NAVEGACAO = [
   { id: 'duvidas', rotulo: 'Dúvidas' },
 ] as const;
 
+/**
+ * O botão à direita da barra do topo.
+ *
+ * É o ÚNICO link da landing que sai para o painel — todo o resto é âncora
+ * dentro da própria página ou `mailto:`. Por isso ele é absoluto e não uma
+ * âncora: `/app/login`.
+ *
+ * **Por que `/app/login` e não `/login`.** Os dois funcionam: o nginx devolve
+ * 301 de `/login` para cá (`deploy/nginx/app.conf`). Mas aquele redirect existe
+ * para URL digitada, compartilhada e impressa — um link nosso, que sabe o
+ * destino real, não tem por que gastar uma ida e volta. Se o painel um dia
+ * deixar de morar em `/app/`, é esta linha que muda.
+ *
+ * O rótulo é o mesmo do painel ("Entrar na central", em `web/src/pages/Login.tsx`):
+ * dois vocabulários para a mesma porta é como o usuário deixa de reconhecê-la.
+ */
+export const TOPO = {
+  acao: { rotulo: 'Entrar', href: '/app/login' },
+} as const;
+
 export const HERO = {
   selo: 'Central de portaria · **o morador não baixa nada**',
   tituloLinha1: 'Chegou.',
