@@ -1,4 +1,4 @@
-import { Briefcase, Building2, CalendarClock, Info, Receipt, Wallet } from 'lucide-react';
+import { Briefcase, Building2, CalendarClock, CreditCard, Info, Receipt, Wallet } from 'lucide-react';
 import type { AssinaturaFatura, MinhaAssinatura } from '@/api/types';
 import {
   AvisoVencimentoFaixa,
@@ -6,6 +6,7 @@ import {
   MODO_LABEL,
   StatusFaturaBadge,
 } from '@/components/assinatura/assinatura-shared';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageShell } from '@/components/ui/page-shell';
@@ -217,6 +218,41 @@ function ContaAtual({
   );
 }
 
+/**
+ * O que a fatura oferece ao cliente, conforme o estado da cobrança.
+ *
+ * **Só a situação `pagavel` vira botão.** As outras viram texto — mostrar
+ * "Pagar" numa fatura sem link seria oferecer uma ação que não acontece, e a
+ * reação a isso é abrir chamado no suporte.
+ *
+ * O link abre em aba nova (`_blank` + `noopener`): é a tela do gateway, e
+ * trocar a aba do painel por ela faria o cliente perder o que estava vendo.
+ */
+function BotaoPagar({ fatura }: { fatura: AssinaturaFatura }) {
+  const { situacao, linkPagamento } = fatura.pagamento;
+
+  if (situacao === 'sem_pendencia') return null;
+
+  if (situacao === 'pagavel' && linkPagamento) {
+    return (
+      <Button asChild size="sm" className="rounded-full">
+        <a href={linkPagamento} target="_blank" rel="noopener noreferrer">
+          <CreditCard className="mr-2 h-4 w-4" />
+          Pagar
+        </a>
+      </Button>
+    );
+  }
+
+  return (
+    <span className="max-w-40 txt-nota text-muted-foreground">
+      {situacao === 'preparando'
+        ? 'Preparando a cobrança…'
+        : 'Link indisponível — fale com o suporte'}
+    </span>
+  );
+}
+
 function HistoricoFaturas({ faturas }: { faturas: AssinaturaFatura[] }) {
   if (faturas.length === 0) {
     return (
@@ -259,9 +295,12 @@ function HistoricoFaturas({ faturas }: { faturas: AssinaturaFatura[] }) {
                   {fatura.desconto > 0 ? ` · desconto de ${fmtMoeda(fatura.desconto)}` : ''}
                 </p>
               </div>
-              <span className="shrink-0 font-mono txt-numero-sm font-bold tabular text-foreground">
-                {fmtMoeda(fatura.valor)}
-              </span>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="font-mono txt-numero-sm font-bold tabular text-foreground">
+                  {fmtMoeda(fatura.valor)}
+                </span>
+                <BotaoPagar fatura={fatura} />
+              </div>
             </CardContent>
           </Card>
         ))}

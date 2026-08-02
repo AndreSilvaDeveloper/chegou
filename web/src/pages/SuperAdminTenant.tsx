@@ -18,6 +18,7 @@ import { EquipeManager } from '../components/EquipeManager';
 import { PageShell } from '@/components/ui/page-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DocumentoInput } from '@/components/ui/documento-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +47,7 @@ export function SuperAdminTenant() {
   const [tab, setTab] = useState<Tab>('dados');
 
   const [form, setForm] = useState({
-    nome: '', slug: '', cnpj: '', cidade: '', estado: '', plano: '', ativo: true,
+    nome: '', slug: '', documento: '', cidade: '', estado: '', plano: '', ativo: true,
   });
   const [config, setConfig] = useState<Required<TenantConfig>>(DEFAULT_CONFIG);
   const [saving, setSaving] = useState(false);
@@ -56,7 +57,7 @@ export function SuperAdminTenant() {
     api.get<Tenant>(`/admin/tenants/${id}`).then((t) => {
       setTenant(t);
       setForm({
-        nome: t.nome, slug: t.slug, cnpj: t.cnpj ?? '', cidade: t.cidade ?? '',
+        nome: t.nome, slug: t.slug, documento: t.documento ?? '', cidade: t.cidade ?? '',
         estado: t.estado ?? '', plano: t.plano, ativo: t.ativo,
       });
       setConfig({ ...DEFAULT_CONFIG, ...(t.configJson ?? {}) });
@@ -71,7 +72,7 @@ export function SuperAdminTenant() {
       await api.patch(`/admin/tenants/${id}`, {
         nome: form.nome,
         slug: form.slug,
-        cnpj: form.cnpj || null,
+        documento: form.documento || null,
         cidade: form.cidade || null,
         estado: form.estado || null,
         plano: form.plano,
@@ -215,8 +216,8 @@ export function SuperAdminTenant() {
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="cnpj">CNPJ</Label>
-                    <Input id="cnpj" className="font-mono" placeholder="Apenas números" value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value.replace(/\D/g, '') })} maxLength={14} />
+                    <Label htmlFor="documento">CPF ou CNPJ</Label>
+                    <DocumentoInput id="documento" value={form.documento} onChange={(documento) => setForm({ ...form, documento })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="plano">Plano da Assinatura</Label>

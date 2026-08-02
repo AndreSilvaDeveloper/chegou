@@ -1,3 +1,4 @@
+import { DocumentoBrasileiro } from '../../../common/documento';
 import { Type } from 'class-transformer';
 import {
   IsEmail,
@@ -58,8 +59,8 @@ export class AtualizarCondominioDto {
   nome?: string;
 
   @IsOptional()
-  @Matches(/^\d{14}$/, { message: 'CNPJ deve ter 14 dígitos' })
-  cnpj?: string;
+  @DocumentoBrasileiro()
+  documento?: string;
 
   @IsOptional()
   @IsString()

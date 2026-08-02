@@ -1,3 +1,4 @@
+import { DocumentoBrasileiro } from '../../../common/documento';
 import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class CriarTenantDto {
@@ -10,8 +11,8 @@ export class CriarTenantDto {
   slug!: string;
 
   @IsOptional()
-  @Matches(/^\d{14}$/)
-  cnpj?: string;
+  @DocumentoBrasileiro()
+  documento?: string;
 
   @IsOptional()
   @IsString()

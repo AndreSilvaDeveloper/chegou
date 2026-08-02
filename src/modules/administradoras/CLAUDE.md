@@ -36,7 +36,8 @@ usuário logado (`@AdministradoraId()`). Não existe id para adulterar na URL.
 
 ## Dados
 
-- `administradoras`: `nome`, `cnpj` (único quando preenchido), contatos, `ativo`
+- `administradoras`: `nome`, `documento` (CPF **ou** CNPJ, só dígitos, único
+  quando preenchido), contatos, `ativo`
 - `tenants.administradora_id`: NULL = condomínio direto com o superadmin
 - `users.administradora_id`: preenchido só para `role = 'admin'`
 
@@ -59,7 +60,7 @@ erro. O caminho é desativar (`ativo = false`), como no resto do sistema.
 
 ## O que ela configura num condomínio
 
-`PATCH /minha-administradora/condominios/:tenantId` — cadastro (nome, CNPJ,
+`PATCH /minha-administradora/condominios/:tenantId` — cadastro (nome, documento,
 cidade, UF, endereço, contatos) e, em `configJson`, **só o operacional**:
 
 | Campo | Quem edita | Por quê |

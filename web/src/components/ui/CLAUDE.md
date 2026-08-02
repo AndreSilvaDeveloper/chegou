@@ -29,7 +29,10 @@
 | Select com lista grande | `SearchSelect` | `ui/search-select.tsx` |
 | Campo que aceita valor fora da lista | `Combobox` | `ui/combobox.tsx` |
 | Telefone | `PhoneInput` (**nunca peça `+55`**) | `ui/phone-input.tsx` |
+| CPF ou CNPJ | `DocumentoInput` (**nunca peça "só os números"**) | `ui/documento-input.tsx` |
 | Sim/não numa linha | `CheckboxField` | `ui/checkbox.tsx` |
+| Aviso passageiro (salvo, erro) | `toast` do Sonner | `ui/sonner.tsx` |
+| Aviso que **fica** na tela, com ação | componente próprio — veja `AvisoAtualizacao` | `components/` |
 | Carregando | `Skeleton` (**nunca** o texto "Carregando…") | `ui/skeleton.tsx` |
 | Lista vazia | `EmptyState` com ação | `ui/empty-state.tsx` |
 | Gráfico | `ChartContainer` + cores de `lib/graficos.ts` | `ui/chart.tsx` |
@@ -225,6 +228,20 @@ Duas regras de forma, antes da cor:
 
 Antes de mudar cor de gráfico, rode o validador da skill `dataviz`.
 
+### Toast (`Toaster`) — e o que **não** é toast
+
+O `Toaster` fica no topo à direita, sobre a superfície do projeto. **Sem
+`richColors`**: ele repinta o toast com a paleta do próprio Sonner, e era daí
+que saía botão preto onde a ação do sistema é âmbar. Cor de estado aqui é o
+ícone colorido sobre superfície neutra — a mesma língua do `StatusDot`.
+
+**Toast é passageiro.** Aviso que fica esperando na tela (versão nova, conexão
+caída) ganha componente próprio, no rodapé: forçar `duration: Infinity` cobra o
+preço no layout (o botão de fechar do Sonner é posicionado por conta dele e cai
+por cima do título) e no tema. Referência pronta:
+`components/AvisoAtualizacao.tsx` — mesma anatomia do card de lista, no canto
+inferior, respeitando `safe-area-inset-bottom`.
+
 ### `DropdownMenu`
 
 Ícone de item entra solto — a base já tem `gap-2` e `[&>svg]:size-4`, então
@@ -268,6 +285,8 @@ Cada uma custou uma sessão. Não as recompre.
 | `border-1` no botão de tipo de pacote | Classe que o Tailwind não gera: os botões estavam sem borda nenhuma |
 | Dois mapas de status (lista e detalhe) | Mesmo dado com duas cores e dois textos; e status novo entrava só num deles |
 | Embrulhar `acoes` do `PageShell` num `<div>` | O embrulho vira um item só da fita e o `flex-1` dos botões para de valer |
+| Toast com `duration: Infinity` para aviso persistente | O X do Sonner caía por cima do título e o `richColors` pintava a ação com a cor da biblioteca. Aviso que fica é componente próprio |
+| `<Input>` + `replace(/\D/g,'')` no campo de CPF/CNPJ | Quatro telas, quatro versões do mesmo campo — uma sem a fonte mono, outra sem `maxLength`, todas pedindo "só os números" ao usuário. Documento de cobrança se digita igual em todo lugar: `DocumentoInput` |
 
 ---
 

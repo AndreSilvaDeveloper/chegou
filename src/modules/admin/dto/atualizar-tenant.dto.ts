@@ -1,3 +1,4 @@
+import { DocumentoBrasileiro } from '../../../common/documento';
 import { IsBoolean, IsOptional, IsString, Matches, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ConfigTenantDto } from './config-tenant.dto';
@@ -13,8 +14,8 @@ export class AtualizarTenantDto {
   slug?: string;
 
   @IsOptional()
-  @Matches(/^\d{14}$/, { message: 'CNPJ deve ter 14 dígitos' })
-  cnpj?: string;
+  @DocumentoBrasileiro()
+  documento?: string;
 
   @IsOptional()
   @IsString()

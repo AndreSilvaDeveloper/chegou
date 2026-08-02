@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DocumentoInput } from '@/components/ui/documento-input';
 import { Label } from '@/components/ui/label';
 import { PageShell } from '@/components/ui/page-shell';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -56,7 +57,7 @@ const TABS: { key: Tab; label: string; icon: typeof Building2 }[] = [
 ];
 
 const CADASTRO_VAZIO = {
-  nome: '', cnpj: '', cidade: '', estado: '', endereco: '', telefoneContato: '', emailContato: '',
+  nome: '', documento: '', cidade: '', estado: '', endereco: '', telefoneContato: '', emailContato: '',
 };
 
 /**
@@ -112,7 +113,7 @@ export function MeuCondominio() {
     if (!condominio) return;
     setCadastro({
       nome: condominio.nome,
-      cnpj: condominio.cnpj ?? '',
+      documento: condominio.documento ?? '',
       cidade: condominio.cidade ?? '',
       estado: condominio.estado ?? '',
       endereco: condominio.endereco ?? '',
@@ -141,7 +142,7 @@ export function MeuCondominio() {
       nome: cadastro.nome.trim(),
       // Campo vazio some do corpo: mandar string vazia num CNPJ reprovaria no
       // formato, e o DTO trata ausência como "não mexi nisso".
-      cnpj: cadastro.cnpj.trim() || undefined,
+      documento: cadastro.documento.trim() || undefined,
       cidade: cadastro.cidade.trim() || undefined,
       estado: cadastro.estado.trim().toUpperCase() || undefined,
       endereco: cadastro.endereco.trim() || undefined,
@@ -279,14 +280,11 @@ export function MeuCondominio() {
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="cond-cnpj">CNPJ</Label>
-                    <Input
-                      id="cond-cnpj"
-                      className="font-mono"
-                      placeholder="Apenas números"
-                      value={cadastro.cnpj}
-                      onChange={(e) => setCadastro({ ...cadastro, cnpj: e.target.value.replace(/\D/g, '') })}
-                      maxLength={14}
+                    <Label htmlFor="cond-documento">CPF ou CNPJ</Label>
+                    <DocumentoInput
+                      id="cond-documento"
+                      value={cadastro.documento}
+                      onChange={(documento) => setCadastro({ ...cadastro, documento })}
                     />
                   </div>
                   <div className="space-y-2">

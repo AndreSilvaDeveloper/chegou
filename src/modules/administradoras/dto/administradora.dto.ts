@@ -1,3 +1,4 @@
+import { DocumentoBrasileiro } from '../../../common/documento';
 import {
   IsBoolean,
   IsEmail,
@@ -16,8 +17,8 @@ export class CriarAdministradoraDto {
   nome!: string;
 
   @IsOptional()
-  @Matches(/^\d{14}$/, { message: 'CNPJ deve ter 14 dígitos' })
-  cnpj?: string;
+  @DocumentoBrasileiro()
+  documento?: string;
 
   @IsOptional()
   @IsEmail()
@@ -35,8 +36,8 @@ export class AtualizarAdministradoraDto {
   nome?: string;
 
   @IsOptional()
-  @Matches(/^\d{14}$/, { message: 'CNPJ deve ter 14 dígitos' })
-  cnpj?: string;
+  @DocumentoBrasileiro()
+  documento?: string;
 
   @IsOptional()
   @IsEmail()

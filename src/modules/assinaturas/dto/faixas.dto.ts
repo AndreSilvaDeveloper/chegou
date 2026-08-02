@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -10,6 +11,20 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { TipoClienteAssinatura } from '../../../database/entities/assinatura-faixa.entity';
+
+/**
+ * De qual das duas tabelas de preço se está falando.
+ *
+ * Vai na **query**, e não no corpo, para `GET` e `PUT` usarem a mesma forma de
+ * dizer isso — no `GET` não há corpo onde escrever.
+ */
+export class TipoClienteQueryDto {
+  @IsEnum(TipoClienteAssinatura, {
+    message: 'tipo deve ser condominio ou administradora',
+  })
+  tipo!: TipoClienteAssinatura;
+}
 
 /** Uma linha da tabela de preços. */
 export class FaixaDto {

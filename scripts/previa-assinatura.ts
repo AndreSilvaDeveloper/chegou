@@ -10,6 +10,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { AssinaturasService } from '../src/modules/assinaturas/assinaturas.service';
+import { TipoClienteAssinatura } from '../src/database/entities/assinatura-faixa.entity';
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -17,10 +18,14 @@ async function main(): Promise<void> {
   const app = await NestFactory.createApplicationContext(AppModule, { logger: ['error'] });
   const service = app.get(AssinaturasService);
 
-  console.log('\n--- Tabela de preços ---');
-  for (const f of await service.faixas()) {
-    const ate = f.ateQuantidade === null ? 'acima disso' : `até ${f.ateQuantidade}`;
-    console.log(`  ${ate.padEnd(14)} ${brl(f.precoApartamento)} / apartamento`);
+  for (const tipo of [TipoClienteAssinatura.CONDOMINIO, TipoClienteAssinatura.ADMINISTRADORA]) {
+    console.log(`\n--- Tabela de preços · ${tipo} ---`);
+    const faixas = await service.faixas(tipo);
+    if (faixas.length === 0) console.log('  (sem faixas cadastradas)');
+    for (const f of faixas) {
+      const ate = f.ateQuantidade === null ? 'acima disso' : `até ${f.ateQuantidade}`;
+      console.log(`  ${ate.padEnd(14)} ${brl(f.precoApartamento)} / apartamento`);
+    }
   }
 
   console.log('\n--- Prévia do mês ---');

@@ -97,14 +97,14 @@ export class AdministradorasService {
       return await this.repo.save(
         this.repo.create({
           nome: dto.nome,
-          cnpj: dto.cnpj ?? null,
+          documento: dto.documento ?? null,
           emailContato: dto.emailContato ?? null,
           telefoneContato: dto.telefoneContato ?? null,
           ativo: true,
         }),
       );
     } catch (err) {
-      throw this.traduzirUnique(err, 'CNPJ já cadastrado em outra administradora');
+      throw this.traduzirUnique(err, 'Documento já cadastrado em outra administradora');
     }
   }
 
@@ -113,7 +113,7 @@ export class AdministradorasService {
     if (!administradora) throw new NotFoundException('Administradora não encontrada');
 
     if (dto.nome !== undefined) administradora.nome = dto.nome;
-    if (dto.cnpj !== undefined) administradora.cnpj = dto.cnpj || null;
+    if (dto.documento !== undefined) administradora.documento = dto.documento || null;
     if (dto.emailContato !== undefined) administradora.emailContato = dto.emailContato || null;
     if (dto.telefoneContato !== undefined) {
       administradora.telefoneContato = dto.telefoneContato || null;
@@ -123,7 +123,7 @@ export class AdministradorasService {
     try {
       return await this.repo.save(administradora);
     } catch (err) {
-      throw this.traduzirUnique(err, 'CNPJ já cadastrado em outra administradora');
+      throw this.traduzirUnique(err, 'Documento já cadastrado em outra administradora');
     }
   }
 
@@ -197,7 +197,7 @@ export class AdministradorasService {
     const tenant = await this.obterCondominioDaCarteira(administradoraId, tenantId);
 
     if (dto.nome !== undefined) tenant.nome = dto.nome;
-    if (dto.cnpj !== undefined) tenant.cnpj = dto.cnpj || null;
+    if (dto.documento !== undefined) tenant.documento = dto.documento || null;
     if (dto.cidade !== undefined) tenant.cidade = dto.cidade || null;
     if (dto.estado !== undefined) tenant.estado = dto.estado || null;
     if (dto.endereco !== undefined) tenant.endereco = dto.endereco || null;
@@ -218,7 +218,7 @@ export class AdministradorasService {
 
       return salvo;
     } catch (err) {
-      throw this.traduzirUnique(err, 'CNPJ já em uso por outro condomínio');
+      throw this.traduzirUnique(err, 'Documento já em uso por outro condomínio');
     }
   }
 

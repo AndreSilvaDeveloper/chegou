@@ -68,6 +68,27 @@ ponto do menu e a faixa da tela poderiam discordar sobre o mesmo vencimento.
 Ela fica desligada para superadmin e porteiro, que não têm conta a pagar — os
 endpoints responderiam 403.
 
+### `SuperAdminAssinaturas` — a aba que impede o silêncio
+
+A aba **Pendências** lista quem hoje não poderia ser cobrado. Ela existe porque
+a falha aqui é silenciosa por natureza: um condomínio sem CNPJ simplesmente não
+recebe cobrança, e o primeiro sinal seria a receita do mês vir menor sem
+explicação. O contador fica no rótulo da aba para o problema aparecer sem
+ninguém precisar abrir a aba.
+
+Duas decisões da tela:
+
+- **O botão Sincronizar só aparece onde ele resolve alguma coisa.** Cliente sem
+  documento se conserta no cadastro; clicar em sincronizar ali só produziria o
+  mesmo erro. Quem separa os dois casos é `MOTIVO_PENDENCIA[motivo].sincronizavel`.
+- **O endpoint responde 200 mesmo quando não deu certo** — a falha é estado do
+  cliente, não erro da request. Quem traduz isso em toast de erro é o
+  `onSuccess` da mutation, olhando o `ok` da resposta.
+
+Com `PAYMENT_API_BASE_URL` vazio a aba diz que a cobrança está desligada, em vez
+de listar todo mundo como erro. A lista continua útil: ela mostra o que
+precisaria de conserto no cadastro **antes** de ligar.
+
 ### Uma tela, dois poderes
 
 `SuperAdminTenant` e `MeuCondominio` configuram o mesmo condomínio. O que muda é
@@ -114,6 +135,8 @@ linhas precisar e **quem manda na largura da aba é o rótulo dela** (ver
 | Campo com sugestões, mas que aceita o que for digitado | `Combobox` (ver abaixo) |
 | Telefone | `PhoneInput` — digita `(32) 99999-9999`, entrega E.164. **Nunca peça `+55`** |
 | Telefone em listagem | `formatarTelefone()` de `@/lib/telefone` |
+| CPF ou CNPJ | `DocumentoInput` — mascara enquanto se digita, entrega só dígitos. **Nunca peça "só os números"** |
+| CPF/CNPJ em listagem | `formatarDocumento()` de `@/lib/documento` |
 | Foto que vai subir para o servidor | `prepararFoto()` de `@/lib/imagem` (ver abaixo) |
 | Erro de request | `toast.error(mensagemErro(err, 'Não foi possível …'))` |
 | Dinheiro, data, competência | `fmtMoeda` / `fmtData` / `fmtCompetencia` de `@/lib/formato` |
@@ -606,6 +629,16 @@ em Vagas e em Encomendas, e as três cópias já tinham divergido do original.
 - Por isso o `vite.config.ts` usa `registerType: 'prompt'`. Com `autoUpdate` o
   service worker recarregaria na hora que quisesse — inclusive no meio de um
   cadastro.
+- **O hook não desenha nada**: devolve `{ temVersaoNova, aplicar, dispensar }`, e
+  quem mostra é o `AvisoAtualizacao` (`components/AvisoAtualizacao.tsx`), no
+  rodapé. Era um toast de duração infinita, e **toast é passageiro por
+  definição** — forçar um a ficar cobrava o preço no layout (o X do Sonner é
+  posicionado por conta dele e caía por cima do título) e no tema (a ação vinha
+  com a cor da biblioteca, não com o âmbar do sistema). Aviso que fica na tela
+  ganha componente próprio.
+- **Dispensar não cancela a atualização** — só esconde o aviso; ela entra sozinha
+  no próximo momento seguro. O texto do aviso diz isso, em vez de sugerir uma
+  escolha que não existe.
 - **Toda alteração sobe a versão**: `npm run versao correcao|recurso|maior` +
   linha no `CHANGELOG.md`. Ver "Versionamento" no `CLAUDE.md` raiz.
 

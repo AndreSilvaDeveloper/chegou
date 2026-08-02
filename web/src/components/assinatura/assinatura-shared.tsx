@@ -17,6 +17,11 @@ export const STATUS_FATURA_META: Record<StatusFatura, { label: string; variant: 
   paga: { label: 'Paga', variant: 'success' },
   vencida: { label: 'Vencida', variant: 'destructive' },
   cancelada: { label: 'Cancelada', variant: 'outline' },
+  // Os dois chegam do gateway, nunca de uma ação nossa. `estornada` fica
+  // neutra (não é falha do cliente: o dinheiro voltou) e `em_disputa` é a
+  // única que pede atenção — chargeback correndo precisa de gente.
+  estornada: { label: 'Estornada', variant: 'outline' },
+  em_disputa: { label: 'Em disputa', variant: 'warning' },
 };
 
 export const MODO_LABEL: Record<ModoAssinatura, string> = {

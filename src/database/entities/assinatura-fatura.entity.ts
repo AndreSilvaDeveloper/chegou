@@ -19,6 +19,29 @@ export enum StatusFatura {
   PAGA = 'paga',
   VENCIDA = 'vencida',
   CANCELADA = 'cancelada',
+  /** Dinheiro devolvido: não é dívida ativa nem receita. Chega pelo webhook. */
+  ESTORNADA = 'estornada',
+  /** Chargeback ou cobrança em disputa: fica fora de todo total e pede gente. */
+  EM_DISPUTA = 'em_disputa',
+}
+
+/**
+ * O estado da **emissão** da cobrança — que não é o mesmo que o estado da
+ * fatura.
+ *
+ * `status` responde "o cliente deve ou pagou?"; este aqui responde "a cobrança
+ * chegou a existir no gateway?". Uma fatura pode estar `aberta` e `pendente`
+ * (ainda não emitimos), `aberta` e `emitida` (link no ar, esperando), ou
+ * `aberta` e `erro` (não conseguimos emitir) — e as três pedem coisas
+ * diferentes de quem olha a tela.
+ */
+export enum StatusCobranca {
+  PENDENTE = 'pendente',
+  EMITIDA = 'emitida',
+  ERRO = 'erro',
+  /** Não havia gateway configurado quando a fatura nasceu. */
+  DESLIGADA = 'desligada',
+  CANCELADA = 'cancelada',
 }
 
 /**
@@ -101,6 +124,68 @@ export class AssinaturaFatura {
 
   @Column({ type: 'text', nullable: true })
   observacao!: string | null;
+
+  // ---------------------------------------------------------------- cobrança
+
+  /** Id da cobrança na Payment API. String porque `bigint` não cabe em `number`. */
+  @Column({ name: 'cobranca_id', type: 'bigint', nullable: true })
+  cobrancaId!: string | null;
+
+  @Column({ name: 'cobranca_asaas_id', type: 'varchar', length: 60, nullable: true })
+  cobrancaAsaasId!: string | null;
+
+  @Column({ name: 'cobranca_status', type: 'varchar', length: 20, default: StatusCobranca.PENDENTE })
+  cobrancaStatus!: StatusCobranca;
+
+  /** Status bruto do gateway. O nosso é resumo; resumo não investiga divergência. */
+  @Column({ name: 'cobranca_status_gateway', type: 'varchar', length: 40, nullable: true })
+  cobrancaStatusGateway!: string | null;
+
+  /**
+   * Gerada **uma vez** e gravada **antes** do POST.
+   *
+   * É o que impede cobrar o cliente duas vezes: no retry depois de um timeout,
+   * a mesma chave faz a API devolver a mesma cobrança. Gerar chave nova no
+   * retry é exatamente como se cobra em duplicidade.
+   */
+  @Column({ name: 'cobranca_idempotency_key', type: 'uuid', nullable: true })
+  cobrancaIdempotencyKey!: string | null;
+
+  @Column({ name: 'cobranca_erro', type: 'text', nullable: true })
+  cobrancaErro!: string | null;
+
+  /** Link de pagamento: o cliente escolhe PIX, boleto ou cartão na tela do gateway. */
+  @Column({ name: 'invoice_url', type: 'text', nullable: true })
+  invoiceUrl!: string | null;
+
+  @Column({ name: 'sincronizado_em', type: 'timestamptz', nullable: true })
+  sincronizadoEm!: Date | null;
+
+  /** Baixa/cancelamento aplicado aqui que o gateway ainda não confirmou. */
+  @Column({ name: 'cobranca_dessincronizada', type: 'boolean', default: false })
+  cobrancaDessincronizada!: boolean;
+
+  // ------------------------------------------------------------------ cupom
+
+  /**
+   * O cupom aplicado nesta fatura, se houve.
+   *
+   * O desconto **já está** dentro de `valor`. Estes dois campos existem para a
+   * fatura se explicar: sem eles, uma fatura com cupom seria indistinguível de
+   * uma fatura com preço errado — o valor viria menor e nada diria por quê.
+   */
+  @Column({ name: 'cupom_codigo', type: 'varchar', length: 60, nullable: true })
+  cupomCodigo!: string | null;
+
+  @Column({
+    name: 'cupom_desconto',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: numericTransformer,
+  })
+  cupomDesconto!: number | null;
 
   @OneToMany(() => AssinaturaFaturaItem, (item) => item.fatura, { cascade: ['insert'] })
   itens!: AssinaturaFaturaItem[];

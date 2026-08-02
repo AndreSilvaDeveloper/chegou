@@ -55,12 +55,12 @@ async function main() {
 
   // 2. Administradora de teste (dona da carteira)
   const administradoraRepo = ds.getRepository(Administradora);
-  let administradora = await administradoraRepo.findOne({ where: { cnpj: '11222333000181' } });
+  let administradora = await administradoraRepo.findOne({ where: { documento: '11222333000181' } });
   if (!administradora) {
     administradora = await administradoraRepo.save(
       administradoraRepo.create({
         nome: 'Administradora Central',
-        cnpj: '11222333000181',
+        documento: '11222333000181',
         emailContato: 'contato@central.app',
         ativo: true,
       }),

@@ -34,7 +34,7 @@ export class Tenant {
   slug!: string;
 
   @Column({ type: 'varchar', length: 14, nullable: true })
-  cnpj!: string | null;
+  documento!: string | null;
 
   @Column({ type: 'text', nullable: true })
   endereco!: string | null;

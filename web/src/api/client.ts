@@ -1,3 +1,7 @@
+import {
+  anunciarBloqueio,
+  type BloqueioAssinatura,
+} from '@/components/assinatura/FaixaBloqueio';
 import type { TenantConfig } from './types';
 
 const TOKEN_KEY = 'portaria.token';
@@ -62,6 +66,22 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 402 = assinatura em atraso. Avisa a faixa antes de o erro subir.
+ *
+ * Fica aqui, e não em cada `onError` de mutation, porque o bloqueio pode chegar
+ * em **qualquer** escrita do sistema — deixar para cada tela tratar significaria
+ * que a próxima tela nova esqueceria, e o usuário veria um "erro inesperado" sem
+ * saber que precisa pagar uma fatura.
+ *
+ * O erro continua sendo lançado: a tela ainda precisa saber que a ação falhou.
+ */
+function anunciarSeBloqueio(status: number, data: unknown): void {
+  if (status !== 402) return;
+  const bloqueio = (data as { assinatura?: BloqueioAssinatura } | null)?.assinatura;
+  if (bloqueio?.bloqueado) anunciarBloqueio(bloqueio);
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -91,6 +111,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         ? data.message.join(', ')
         : data.message
       : `HTTP ${res.status}`;
+    anunciarSeBloqueio(res.status, data);
     throw new ApiError(res.status, data, msg);
   }
 
@@ -120,6 +141,7 @@ async function upload<T>(path: string, formData: FormData, signal?: AbortSignal)
     const msg = data?.message
       ? Array.isArray(data.message) ? data.message.join(', ') : data.message
       : `HTTP ${res.status}`;
+    anunciarSeBloqueio(res.status, data);
     throw new ApiError(res.status, data, msg);
   }
   return data as T;
@@ -155,6 +177,7 @@ async function requestPublico<T>(method: string, path: string, body?: unknown): 
     const msg = data?.message
       ? Array.isArray(data.message) ? data.message.join(', ') : data.message
       : `HTTP ${res.status}`;
+    anunciarSeBloqueio(res.status, data);
     throw new ApiError(res.status, data, msg);
   }
   return data as T;

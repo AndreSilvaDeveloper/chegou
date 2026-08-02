@@ -11,6 +11,473 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.30.0 — 2026-08-01
+
+Fase 6 — a última do [plano de cobrança pela Payment API](docs/plano-cobranca-gateway.md).
+**Cupom de desconto**, e com ele a integração fica completa: das faixas por tipo
+de cliente ao bloqueio por inadimplência.
+
+### Adicionado
+- **Cupons** (`/admin/assinaturas/cupons`), como **proxy** da Payment API. O
+  cupom vive lá — escopo, vigência, limites e contagem de uso são de lá, e é de
+  lá que sai o desconto. Guardar uma cópia criaria duas fontes da verdade que
+  divergem no primeiro erro de rede, e a que importa é a que desconta.
+- **Atribuição por cliente** (`assinatura_cupom_cliente`, migration 034) — esta
+  parte é nossa. Um cupom em aberto por cliente (índice parcial), como
+  `assinatura_condicoes`: dois ativos exigiriam uma regra de desempate que
+  ninguém lembraria seis meses depois.
+- `assinatura_faturas` ganhou `cupom_codigo` e `cupom_desconto`. Sem elas, uma
+  fatura com cupom seria indistinguível de uma fatura com preço errado: o valor
+  viria menor e nada diria por quê.
+- **Aba Cupons** na tela do superadmin, com `usos` e "vale agora" vindos do
+  gateway.
+
+### A armadilha que o desenho inteiro evita
+**O desconto não pode nascer na cobrança.** Mandar só o `couponCode` e deixar a
+API descontar faria a fatura dizer R$ 418,80 e a cobrança cobrar R$ 376,92 — e
+três coisas quebrariam de uma vez: o cliente veria na tela um número que não é o
+que paga, o resumo reportaria faturado maior que recebido **todo mês**, e a
+conciliação acusaria divergência. Um alarme falso mensal é a maneira mais rápida
+de ninguém mais olhar para os alarmes.
+
+Então: **manda-se o valor SEM o cupom + o código**, e confere-se o valor que
+voltou. Mandar o valor já descontado *e* o código aplica o desconto duas vezes —
+tem teste dedicado.
+
+### O cupom entra na EMISSÃO, não na geração
+O plano descrevia validar → gravar → cobrar como se fossem passos da geração.
+Implementando, isso bateu de frente com a regra da fase 3: **a geração mensal não
+pode depender de rede**, e validar cupom é chamada ao gateway.
+
+A fatura passou a nascer pelo valor cheio, e os três passos acontecem na emissão
+— que já é a fila com retry. É legítimo pelo motivo que o próprio plano dá no
+caso do cupom expirado: ali a fatura ainda está em `pendente` e **nunca foi
+cobrada**. Fatura emitida continua sendo fotografia intocável.
+
+### Os três desfechos que não são o caminho feliz
+| Situação | O que acontece |
+|---|---|
+| Valor da cobrança ≠ valor da fatura | **Não emite** — e **cancela a cobrança**. Ela já existe do outro lado, com um link que o cliente pode pagar; deixá-la viva seria o pior dos dois mundos |
+| 422 (cupom expirou entre validar e cobrar) | Recalcula sem o cupom e emite, com registro no `audit_log`. **Chave de idempotência nova**: a anterior está associada à tentativa recusada |
+| Cupom zera a fatura | **Não vira cobrança** — o gateway não emite R$ 0,00. A fatura nasce `paga` com o motivo, e o histórico mostra o mês coberto em vez de um buraco |
+
+### Toda dúvida cobra o valor cheio
+Sem cupom atribuído, fora da validade, gateway que não respondeu, resposta sem
+desconto: em todos, a fatura sai pelo valor cheio. **Errar para mais é conserto
+de um clique; errar para menos é dinheiro que não volta.**
+
+### Cortesia total não é cupom
+`PERCENTAGE` é limitado a 90% pelo gateway. Para isentar por completo, o lugar é
+**preço especial com `valor_fixo = 0`** — e aí a regra que já existe ("fatura de
+R$ 0,00 não nasce") resolve sozinha. A tela diz isso.
+
+### Testes
+- `cupom-fatura.service.spec.ts` (10): toda dúvida cobra cheio, `aplicar_ate`
+  como freio, e o `finalValue` deles vence uma subtração nossa.
+- `assinatura-cobrancas.service.spec.ts` ganhou 7 casos: o valor sem cupom, a
+  divergência que cancela, o 422 que recalcula, e o cupom que zera.
+
+---
+
+## 0.29.0 — 2026-08-01
+
+Fase 5 do [plano de cobrança pela Payment API](docs/plano-cobranca-gateway.md):
+**bloqueio por inadimplência.**
+
+> ⚠️ **Nasce desligado.** `PAYMENT_BLOQUEIO_ATIVO=false` é o padrão, e nada
+> muda para ninguém até alguém ligar de propósito. A ordem para ligar está em
+> `src/modules/pagamentos/CLAUDE.md`.
+
+### Adicionado
+- **`AcessoAssinaturaGuard`**, global, depois do escopo de condomínio. Trava a
+  **escrita**; leitura nunca é bloqueada. O 402 carrega motivo, valor em aberto,
+  dias de atraso, link de pagamento e para onde ir resolver.
+- **`PAYMENT_BLOQUEIO_ATIVO`** — o interruptor, que o plano não previa.
+  Implementar deixou claro que faltava: este é o único ponto do sistema capaz de
+  tirar clientes adimplentes do ar, e sem ele o bloqueio começaria a valer no
+  mesmo instante em que o código sobe — sem ninguém ter conferido a política do
+  gateway, os clientes sincronizados nem as faturas em aberto. É também o freio
+  de mão: **desligar não precisa de deploy.**
+- **Migration 033** (`assinatura_politica_acesso`): tolerância em dias, faturas
+  vencidas até bloquear, mensagem e TTL. Linha única por `CHECK (id = 1)`, não
+  por disciplina — somos uma company só no gateway, e duas linhas fariam a tela
+  mostrar uma política e a API usar outra.
+- **Aba de política** na tela do superadmin, que diz **duas coisas separadas**: a
+  política salva e se o bloqueio está mesmo agindo. Confundir as duas é o erro
+  mais fácil aqui.
+- **Faixa de bloqueio** no topo do app. O 402 vira faixa, não toast: toast some
+  em quatro segundos e leva junto a informação de como resolver.
+
+### Fail-open é inegociável
+Toda dúvida libera: gateway fora, timeout, 404, cliente sem `customer`, Redis
+indisponível, resposta que não entendemos, **e o próprio provider não resolver**.
+O prejuízo de deixar um inadimplente trabalhar por um dia é menor que o de travar
+todos os adimplentes numa queda nossa.
+
+Não existe um único `catch` que devolva bloqueado — e há um teste para cada
+caminho de falha, justamente para a regressão aparecer.
+
+### O que o teste encontrou
+**Um guard global que lança na resolução do provider derruba toda escrita do
+sistema com 500.** O `moduleRef.get()` estava fora do `try`. Isso não apareceu
+lendo o código: apareceu no caso "serviço indisponível passa".
+
+### Rotas que **nunca** são bloqueadas
+`/auth/*` (login é onde ele descobre o bloqueio), `/assinatura*` e
+`/minha-administradora/assinatura*` (**é a saída** — onde está o link para
+pagar), `/health`, `/webhooks/*` e tudo do superadmin.
+
+Sem a isenção de `/assinatura`, o cliente bloqueado não conseguiria abrir a tela
+onde está o link — e o único caminho de saída seria ligar para o suporte.
+
+### O desbloqueio é imediato
+Toda baixa (webhook, conciliação ou manual) limpa o cache de acesso na hora. Na
+baixa manual isso acontece **antes** de falar com o gateway e mesmo com ele fora:
+cinco minutos olhando uma tela travada depois de ter pago é a pior experiência
+que este sistema pode oferecer.
+
+### A decisão consciente sobre a portaria
+Com a escrita travada, **registrar encomenda também para**. A portaria para, e
+quem sente primeiro é o morador, que não deve nada. Isso foi aceito de olhos
+abertos (§ 9.2 do plano), com três amortecedores: tolerância em dias (padrão 5),
+faturas vencidas até bloquear (padrão 1), e a constante `ISENTAS` no guard —
+**uma linha** libera a portaria se um dia isso doer demais.
+
+### Testes
+- `acesso.service.spec.ts` (13): um caso por caminho de falha, todos liberando.
+- `acesso-assinatura.guard.spec.ts` (22): o que nunca bloqueia, e o 402 completo.
+- `test/acesso-bloqueio.e2e-spec.ts` (9): por HTTP, prova que **nasce inerte**,
+  que `/assinatura` continua acessível e que falha ao avaliar libera.
+
+---
+
+## 0.28.0 — 2026-08-01
+
+Fase 4 do [plano de cobrança pela Payment API](docs/plano-cobranca-gateway.md):
+**a cobrança passa a ter garantia.** Antes disto, a única forma de uma fatura
+sair de "aberta" era baixa manual — nada escutava o gateway, e um cliente que
+pagasse continuaria marcado como devedor.
+
+### Adicionado
+- **Webhook de pagamento** (`POST /webhooks/pagamentos`), público e validado por
+  `PAYMENT_WEBHOOK_TOKEN` com `timingSafeEqual`.
+  - **Sem o token configurado, a rota recusa tudo.** Um endpoint público que
+    altera estado de fatura não pode ficar aberto porque alguém esqueceu de
+    preencher uma variável de ambiente.
+  - **Grava primeiro, processa depois.** Webhook que processa em linha é webhook
+    que o remetente considera falho por timeout — e reenvia, multiplicando o
+    trabalho justamente quando o sistema está lento.
+  - **Corpo ilegível também responde 200** e fica guardado: devolver erro faria o
+    remetente reenviar para sempre um evento que repetição nenhuma conserta.
+- **Migration 032** (`assinatura_webhook_eventos`): id do evento único, payload
+  **bruto**, status, tentativas. O bruto fica porque, quando um valor não fechar
+  daqui a três meses, a pergunta vai ser "o que exatamente eles nos mandaram?" —
+  e nenhum resumo nosso responde isso.
+- **Conciliação horária**: relê no gateway o estado de toda cobrança não
+  terminal e registra divergência no `audit_log` com o antes e o depois.
+  - Agendada por **repeatable do BullMQ**, não `@Cron`: o repeatable é coordenado
+    pelo Redis, então duas réplicas produzem uma execução por hora. Com um cron
+    em processo, cada réplica consultaria o gateway pelas mesmas faturas.
+  - `@nestjs/schedule` **não** foi adicionado como dependência para isso.
+- **Aba Pendências** ganhou as cobranças: fatura sem cobrança há mais de 24h,
+  baixa não confirmada no gateway, e o botão "Conciliar agora".
+
+### As três regras que este release existe para garantir
+1. **Evento repetido não dá baixa duas vezes.** A dedup é o **índice único do
+   banco**, não uma consulta antes do insert — duas entregas simultâneas
+   passariam as duas pela consulta e as duas dariam baixa.
+2. **Evento fora de ordem não desfaz uma baixa.** `RECEIVED` pode chegar antes
+   de `CONFIRMED`, e um `PENDING` atrasado depois do pagamento. A comparação é
+   por **precedência de estado**, nunca por ordem de chegada.
+3. **Evento de fatura desconhecida não quebra.** Pode ser cobrança de outro
+   sistema na mesma company: registra e ignora.
+
+### O parser que não aposta num formato
+O formato do repasse nunca foi visto na prática, então `webhook-payload.ts`
+**procura os campos** em largura, em qualquer profundidade, em vez de exigir um
+envelope. Três formatos plausíveis estão cobertos por teste.
+
+**A armadilha que isso revelou:** `status` na raiz de um envelope pode ser o
+`WebhookEventStatus` deles (`PROCESSED`, `FAILED`) — o status do *processamento
+do evento*, não o do pagamento. Acreditar nele marcaria fatura como paga por
+causa de um evento processado com sucesso que dizia o contrário. O parser marca
+o status como não confiável fora de um objeto `payment`/`charge`, e nesse caso
+consulta-se o gateway.
+
+### Alterado
+- **`paga` deixou de ser estado terminal** para a conciliação. Parece terminal e
+  não é: estorno e chargeback chegam **depois** da baixa, e é justamente o caso
+  em que perder o webhook custa caro — o cliente aparece adimplente com o
+  dinheiro já devolvido.
+- **Divergência de valor é alarme, nunca correção automática.** A fatura é a
+  fonte da verdade do que o cliente deve; ajustar em silêncio esconderia
+  exatamente o que precisa ser visto.
+
+### Diferenças em relação ao plano (documentadas em `docs/`)
+- **O pull de `GET /webhooks/events` não foi implementado como via separada.**
+  Aquele endpoint devolve o *evento*, não o *estado da cobrança* — saber o status
+  exigiria um `GET /charges/{id}` de qualquer forma. Reler a cobrança é
+  estritamente mais confiável que reprocessar um log de eventos, então a
+  conciliação virou a rede de segurança e passou a rodar **de hora em hora** em
+  vez de uma vez por dia.
+- **O controller do webhook mora em Assinaturas**, não em Pagamentos: Assinaturas
+  já importa Pagamentos, e um controller lá que precisasse do serviço de fatura
+  fecharia um ciclo entre os módulos. O conhecimento do formato do gateway
+  continua em `pagamentos/webhook-payload.ts`.
+
+### Testes
+- `webhook-payload.spec.ts` (14), `webhook-pagamento.service.spec.ts` (12),
+  `conciliacao.service.spec.ts` (9).
+- `test/webhook-pagamentos.e2e-spec.ts` (7): por HTTP, prova que a rota é
+  pública, que o token é conferido e que **a dedup é do índice único**.
+
+---
+
+## 0.27.0 — 2026-08-01
+
+Fase 3 do [plano de cobrança pela Payment API](docs/plano-cobranca-gateway.md):
+**o Chegou passa a cobrar de verdade.** A fatura vira cobrança no gateway, o
+cliente recebe um link e a baixa manual espelha dos dois lados.
+
+### Adicionado
+- **Emissão de cobrança em fila** (`cobranca-emissao`, BullMQ). Gerar a fatura e
+  emitir a cobrança são passos separados porque **a geração mensal não pode
+  depender de rede**: com o gateway fora no dia 1º, as faturas nascem do mesmo
+  jeito e a emissão espera. Misturar os dois é como se perde um mês de
+  faturamento por um timeout.
+  - Fila própria, não a de notificação: aquela é deliberadamente lenta (regras
+    anti-bloqueio do WhatsApp) e esta quer terminar o lote do dia 1º.
+  - O worker **não relança** o erro: a falha já virou estado na fatura, com o
+    motivo. Relançar faria o BullMQ repetir cinco vezes uma emissão que falhou
+    por cliente sem documento — algo que repetição nenhuma conserta.
+- **`POST /charges/undefined`**: um link só, e o cliente escolhe PIX, boleto ou
+  cartão na tela do gateway. Escolher o método por ele seria decidir por um
+  condomínio inteiro como o síndico prefere pagar.
+- **Botão "Pagar"** na tela do cliente, e coluna de estado da cobrança na do
+  superadmin (com "Emitir cobrança" onde a emissão resolve).
+- **Migration 031**: `cobranca_id`, `cobranca_asaas_id`, `cobranca_status`,
+  `cobranca_status_gateway`, `cobranca_idempotency_key`, `cobranca_erro`,
+  `invoice_url`, `sincronizado_em`, `cobranca_dessincronizada` — e os status
+  `estornada` e `em_disputa`.
+  - As duas partes entram **na mesma migration** de propósito: separadas,
+    existiria um intervalo em que o código já grava `estornada` e o CHECK ainda
+    recusa, e um evento de estorno chegando nele derrubaria o processamento.
+  - Índice único em `cobranca_id`: sem ele, duas faturas apontando para a mesma
+    cobrança fariam a baixa de uma marcar a outra como paga.
+
+### Idempotência — três camadas, e as três são necessárias
+1. `jobId` do BullMQ impede enfileirar a mesma fatura duas vezes.
+2. Só emite fatura em `pendente`/`erro`/`desligada`.
+3. **A `Idempotency-Key` é gravada ANTES do POST** e reusada no retry. Gerar e
+   mandar sem gravar perderia a chave num crash entre as duas coisas, e o retry
+   criaria outra — que é exatamente como se cobra o cliente duas vezes. Tem
+   teste dedicado.
+
+**409 é sucesso**, não erro: é a resposta de um retry idempotente que deu certo.
+Tratar como falha marcaria a fatura como erro tendo cobrança viva no gateway — o
+cliente recebe o link e nós achamos que não emitimos.
+
+### Baixa e cancelamento têm ordens **opostas**
+Não é inconsistência, é o risco de cada lado:
+- **Baixa**: local primeiro. Falhando no gateway, a baixa vale assim mesmo e a
+  fatura fica `cobranca_dessincronizada`. **Dinheiro que entrou não fica refém
+  de API fora do ar.**
+- **Cancelar**: gateway primeiro. Falhando, o cancelamento local **não
+  acontece** — cancelar só do nosso lado deixaria uma cobrança viva que o
+  cliente pode pagar por engano.
+
+### Alterado
+- `CONFIRMED` do gateway já vira `paga`. Confirmado é "o pagamento aconteceu";
+  liquidado é "o dinheiro caiu", o que no boleto leva o D+1 do banco — e quem
+  pagou não pode ficar bloqueado esperando a compensação.
+- `estornada` e `em_disputa` ficam **fora de `valorFaturado`**: somar dinheiro
+  devolvido ou em disputa faria a receita do mês mentir. Baixa manual é recusada
+  nos dois.
+- **O cliente não vê `cobranca_status`.** Ele recebe `pagamento`, com uma
+  resposta só: dá para pagar agora, e por onde? Duas decisões guardadas por
+  teste:
+  - "Já está resolvida?" vem **antes** de "tem link?". O `invoiceUrl` continua
+    gravado depois da baixa; invertendo a ordem, a tela mostraria "Pagar" numa
+    fatura paga.
+  - **Disputa não oferece pagamento.** O link continua vivo, mas pagar no meio
+    de um chargeback é como se paga duas vezes: se a disputa for resolvida a
+    nosso favor, o valor volta.
+
+### Corrigido
+- `jobId` do BullMQ não aceita `:` — o e2e pegou isso na geração de faturas, que
+  passou a responder 500. Trocado por `-`.
+
+### Testes
+- `assinatura-cobrancas.service.spec.ts` (16 casos), `cobrancas.service.spec.ts`
+  (26) e `situacao-pagamento.spec.ts` (10).
+- O e2e ganhou o caso que prova que **a fatura nasce com a cobrança desligada** —
+  gateway ausente não pode custar faturamento.
+
+---
+
+## 0.26.0 — 2026-08-01
+
+Fase 2 do [plano de cobrança pela Payment API](docs/plano-cobranca-gateway.md):
+o cliente passa a existir no gateway. **Ainda não cobra** — emitir cobrança é a
+fase 3. O que muda é que agora dá para saber, antes do dia 1º, quem não poderia
+ser cobrado.
+
+### Adicionado
+- **Módulo `pagamentos`** (`src/modules/pagamentos/`), com fronteira explícita:
+  ele fala com a Payment API e **não conhece regra de assinatura**. Quem sabe
+  quem é o sacado e quanto ele deve continua sendo o módulo Assinaturas.
+- **`PaymentApiClient`** — autenticação, retry e disjuntor:
+  - O par de tokens vive no **Redis**, não em memória: com mais de uma réplica,
+    cada uma logando por conta própria multiplicaria sessões. E como o refresh
+    **rotaciona**, duas renovando na mesma janela derrubariam uma à outra — daí
+    a trava `pay:auth:lock`.
+  - **Refresh que falha cai para login.** Temos as credenciais em env, então
+    rotação perdida nunca é beco sem saída. Sem esse degrau, uma corrida infeliz
+    deixaria a integração fora do ar até alguém reiniciar o processo.
+  - `expiresIn` é lido como **milissegundos**. Tratado como segundos, o token
+    ficaria guardado por 24 mil dias e o primeiro sinal seria um 401 em produção.
+  - Retry só no transitório (rede, timeout, 5xx). **400/403/404/409/422 não têm
+    retry**: payload errado não melhora com insistência, e 409 é a resposta certa
+    de um retry idempotente — quem decide o que fazer com ele é o chamador.
+  - **4xx não conta para o disjuntor.** O gateway está de pé e respondeu; contar
+    faria o cadastro errado de um cliente derrubar a emissão de todos os outros.
+- **`ClientesGatewayService`** — o cliente do Chegou virando `customer`:
+  - **Falha de sincronização não sobe como exceção, vira estado gravado.** A
+    linha do vínculo guarda o motivo e a aba Pendências mostra. Erro que só
+    existe no log é erro que ninguém vê — e este custa a cobrança de um cliente
+    no mês.
+  - **400 de documento duplicado adota o customer existente.** Acontece de
+    verdade (retry depois de timeout, cliente criado à mão no painel deles,
+    restauração de banco), e sem a adoção o cliente ficaria permanentemente sem
+    cobrança: criar outro é impossível, porque o documento é único entre os
+    ativos da company. A conferência do documento **exato** é nossa — o `search`
+    deles é LIKE, e adotar por semelhança cobraria o cliente errado.
+  - Campo vazio fica **fora** do corpo, nunca como string vazia: no `PUT`
+    parcial, string vazia apagaria o e-mail por onde o cliente recebe o link.
+  - Telefone vai sem o `+55` — guardamos E.164, o gateway espera DDD sem DDI.
+- **Migration 030** (`assinatura_clientes_gateway`): tenant XOR administradora,
+  `customer_id`, `asaas_id`, `documento_enviado`, `sincronizado_em`,
+  `erro_ultima_sync`.
+  - `customer_id` é **nullable** de propósito: a linha também registra a
+    tentativa que falhou, que é o que alimenta a tela de Pendências.
+  - Índice único em `customer_id` (não previsto no plano): sem ele, dois
+    clientes nossos apontando para o mesmo customer fariam a inadimplência de um
+    bloquear o outro na fase 5, e a conta de um aparecer no extrato do outro.
+- **Aba Pendências** em `/admin/assinaturas`, com contador no rótulo. O botão
+  Sincronizar **só aparece onde resolve**: cliente sem documento se conserta no
+  cadastro, e clicar ali só produziria o mesmo erro.
+- Rotas (superadmin): `GET /admin/assinaturas/clientes/pendencias` e
+  `POST /admin/assinaturas/clientes/:tipo/:id/sincronizar`. O `tipo` está no
+  path porque condomínio e administradora são os dois UUID — o plano escrevia só
+  `:id`, e a ambiguidade apareceu na implementação.
+
+### Regras
+- **Condomínio de carteira não vira cliente do gateway**, e a recusa é do nosso
+  lado. Lá ele seria criado sem reclamação, e sobraria um cliente no Asaas que
+  nunca recebe cobrança — sujeira que só apareceria na conciliação.
+- **`PAYMENT_API_BASE_URL` vazio desliga a cobrança inteira**, como
+  `OPENWA_BASE_URL` faz com o WhatsApp. A fatura continua sendo gerada e
+  calculada; a tela diz que está desligada em vez de listar todos como erro.
+
+### Testes
+- `payment-api.client.spec.ts` (19 casos): as fronteiras de retry, o 401 que
+  renova uma vez só, o refresh que cai para login, `expiresIn` em ms e o
+  disjuntor que ignora 4xx.
+- `clientes-gateway.service.spec.ts` (13 casos): pendência gravada em vez de
+  exceção, adoção só com documento exato, `PUT` sem documento, desligado não
+  chama nada.
+
+---
+
+## 0.25.0 — 2026-08-01
+
+Fase 1 do [plano de cobrança pela Payment API](docs/plano-cobranca-gateway.md):
+a fundação do preço e da identidade do cliente. **Ainda não cobra nada** — o
+gateway entra da fase 2 em diante. O que muda hoje é o preço da próxima geração
+e o cadastro do cliente.
+
+### Adicionado
+- **Duas tabelas de preço, uma por tipo de cliente** (migration 028). A
+  administradora traz vários condomínios de uma vez e paga preço de atacado
+  (R$ 1,99 por apartamento, faixa única); o condomínio direto continua andando
+  pelas faixas de volume, agora **3,99 até 100 · 3,49 de 101 a 200 · 2,99 acima
+  de 200**.
+  - `GET/PUT /admin/assinaturas/faixas` passam a **exigir** `?tipo=`. Sem padrão
+    de propósito: a tela abriria mostrando os preços do outro tipo, e editar dali
+    substituiria a tabela errada.
+  - O `delete` da substituição é filtrado pelo tipo. Enquanto havia uma tabela
+    só, ele varria `assinatura_faixas` inteira — com duas, isso apagaria a do
+    outro tipo a cada edição, e o próximo cliente daquele tipo cairia em
+    `TabelaDePrecosVaziaError` no fechamento do mês.
+  - A migration **não sobrescreve tabela já mexida** pelo superadmin: o corte
+    novo só entra onde os valores ainda eram os originais. Negociação vale mais
+    que o nosso padrão.
+  - A aba **Preços** ganhou `SegmentedFilter` para trocar entre as duas, cada uma
+    dizendo para quem vale.
+- **`DocumentoInput`** (`components/ui/documento-input.tsx`) e
+  `lib/documento.ts`: o campo mascara `12.345.678/0001-90` enquanto se digita e
+  entrega só dígitos para a API — a mesma disciplina do `PhoneInput`. O campo
+  estava em quatro telas, cada uma com o seu `replace(/\D/g,'')`, o seu
+  `maxLength` e o seu "Só os números" (uma já sem a fonte mono das outras).
+- **`@DocumentoBrasileiro()`** (`src/common/documento.ts`): tira a máscara e
+  confere os **dígitos verificadores**, não só o tamanho. Documento inválido volta
+  400 do gateway quando já não dá para explicar ao usuário onde ele errou.
+
+### Alterado
+- **`cnpj` virou `documento` e aceita CPF ou CNPJ** (migration 029), em `tenants`
+  e `administradoras`. Nem todo condomínio tem CNPJ — muitos são administrados
+  pelo síndico em nome próprio, e exigir CNPJ deixaria esses clientes sem
+  cobrança possível quando o gateway entrar.
+  - O CHECK antigo exigia **exatamente 14 dígitos**; renomear a coluna não o
+    desfazia, e ele continuaria recusando todo CPF. Ele sai, e o novo entra
+    `NOT VALID`: vale para toda linha nova ou alterada, sem derrubar a migration
+    por causa de dado legado com máscara.
+  - Mensagens de conflito deixaram de dizer "CNPJ já em uso".
+
+### Testes
+- `test/assinaturas.e2e-spec.ts` acompanhou o modelo novo: a carteira agora sai a
+  1,99 (109,45 em 55 unidades) em vez de 3,49, e entrou um caso que prova que
+  **trocar a tabela de um tipo não apaga a do outro**.
+  - O arquivo chamava `definirFaixas()` com a assinatura antiga e **não
+    quebrava o build**: o `tsconfig.json` exclui `test/`. Só o e2e pega isso.
+
+### Documentação
+- `src/modules/assinaturas/CLAUDE.md`: as duas tabelas, por que o tipo não tem
+  padrão e por que a limpeza é filtrada.
+- Regra 30.1 no `CLAUDE.md` raiz: nunca pedir "só os números" num campo de
+  documento.
+- `docs/plano-cobranca-gateway.md` marca a fase 1 como entregue.
+
+---
+
+## 0.24.18 — 2026-08-01
+
+### Alterado
+- **"Nova versão disponível" virou componente próprio** (`AvisoAtualizacao`), no
+  rodapé. Era um toast com `duration: Infinity` — e toast é passageiro por
+  definição. Forçar um a ficar cobrava o preço em dois lugares: o botão de
+  fechar do Sonner é posicionado por conta dele e **caía por cima do título**, e
+  a ação vinha com a cor da biblioteca em vez do âmbar do sistema.
+  - Agora tem a anatomia do card de lista (bloco de ícone chapado, título,
+    apoio, ação), superfície `popover` com `rounded-surface`, entrada em mola e
+    respeito à área segura do aparelho.
+  - Fica no **rodapé** porque no celular o topo é a faixa âmbar com busca e
+    menu, que era exatamente o que o aviso cobria.
+  - O X ficou onde o do diálogo fica: canto superior direito, discreto.
+  - O texto diz o que **vai** acontecer ("ela entra sozinha quando você terminar
+    o que está fazendo; nada do que você digitou se perde") em vez de sugerir uma
+    escolha que não existe — dispensar esconde o aviso, não cancela a
+    atualização.
+- **`Toaster` alinhado aos tokens do projeto.** Saiu o `richColors`, que
+  repintava o toast com a paleta do Sonner: superfície, raio e sombra agora são
+  os do sistema, a ação é âmbar e o estado aparece no ícone colorido sobre
+  superfície neutra — a mesma língua do `StatusDot`. Saíram também os
+  `min-h-[44px]` forçados (regra 17).
+- `useAtualizacaoAutomatica()` deixou de desenhar: devolve
+  `{ temVersaoNova, aplicar, dispensar }` e quem mostra é a tela.
+
+---
+
 ## 0.24.17 — 2026-08-01
 
 ### Corrigido

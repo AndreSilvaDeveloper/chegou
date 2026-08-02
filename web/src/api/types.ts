@@ -284,7 +284,7 @@ export interface Tenant {
   id: string;
   nome: string;
   slug: string;
-  cnpj: string | null;
+  documento: string | null;
   cidade: string | null;
   estado: string | null;
   endereco?: string | null;
@@ -303,7 +303,7 @@ export interface Tenant {
 export interface Administradora {
   id: string;
   nome: string;
-  cnpj: string | null;
+  documento: string | null;
   emailContato: string | null;
   telefoneContato: string | null;
   ativo: boolean;
@@ -577,13 +577,176 @@ export interface Notificacao {
 // ---------------------------------------------------------------------------
 
 export type ModoAssinatura = 'tabela' | 'preco_apartamento' | 'valor_fixo';
-export type StatusFatura = 'aberta' | 'paga' | 'vencida' | 'cancelada';
+/**
+ * `estornada` e `em_disputa` chegam do gateway de pagamento (webhook), nunca de
+ * uma ação nossa. Nenhuma das duas entra nos totais: estorno é dinheiro
+ * devolvido, disputa é chargeback correndo.
+ */
+export type StatusFatura =
+  | 'aberta'
+  | 'paga'
+  | 'vencida'
+  | 'cancelada'
+  | 'estornada'
+  | 'em_disputa';
+
+/**
+ * O estado da **emissão** da cobrança da assinatura — não o da fatura.
+ *
+ * O sufixo `Assinatura` não é ruído: `StatusCobranca` (sem sufixo) já existe
+ * neste arquivo e é da **cobrança de vaga**, que o condomínio faz ao morador.
+ * São dois dinheiros diferentes — aqui a plataforma cobra o cliente, lá o
+ * condomínio cobra o morador — e um nome só faria as duas se misturarem na
+ * primeira tela que importasse as duas coisas.
+ */
+export type StatusCobrancaAssinatura =
+  | 'pendente'
+  | 'emitida'
+  | 'erro'
+  | 'desligada'
+  | 'cancelada';
+
+/**
+ * A cobrança traduzida para quem paga.
+ *
+ * O cliente não vê `cobranca_status` nem o status bruto do gateway: ele precisa
+ * de uma resposta só — dá para pagar agora, e por onde?
+ */
+export type SituacaoPagamento = {
+  situacao: 'pagavel' | 'preparando' | 'sem_pendencia' | 'indisponivel';
+  linkPagamento: string | null;
+};
+
+/**
+ * De qual tabela de preço se fala. São duas, independentes: o condomínio que
+ * paga sozinho anda pelas faixas de volume, a administradora paga o preço de
+ * atacado sobre a carteira inteira.
+ */
+export type TipoClienteAssinatura = 'condominio' | 'administradora';
 
 /** Uma linha da tabela de preços. `ateQuantidade: null` = última faixa, sem teto. */
 export interface AssinaturaFaixa {
   ateQuantidade: number | null;
   precoApartamento: number;
   ordem: number;
+}
+
+/**
+ * Por que um cliente não teria cobrança possível hoje.
+ *
+ * A ordem é de gravidade e de **onde se conserta**: `sem_documento` e
+ * `documento_invalido` são cadastro nosso; `nunca_sincronizado` e `erro_sync`
+ * são o gateway. É essa diferença que a tela precisa dizer — mandar o superadmin
+ * clicar em "Sincronizar" num cliente sem CNPJ só produz o mesmo erro de novo.
+ */
+export type MotivoPendenciaCliente =
+  | 'sem_documento'
+  | 'documento_invalido'
+  | 'nunca_sincronizado'
+  | 'erro_sync'
+  | 'desligada';
+
+export interface PendenciaCliente {
+  tipo: 'condominio' | 'administradora';
+  id: string;
+  nome: string;
+  motivo: MotivoPendenciaCliente;
+  detalhe: string;
+  documento: string | null;
+  sincronizadoEm: string | null;
+}
+
+export interface PainelPendencias {
+  /** `false` = sem gateway configurado; a tela diz isso em vez de listar tudo como erro. */
+  integracaoLigada: boolean;
+  resumo: { clientes: number; sincronizados: number; pendentes: number };
+  pendencias: PendenciaCliente[];
+}
+
+/** Uma fatura reduzida ao que a tela de pendências precisa. */
+export interface FaturaEmPendencia {
+  id: string;
+  competencia: string;
+  vencimento: string;
+  valor: number;
+  status: StatusFatura;
+  cobrancaStatus: StatusCobrancaAssinatura | null;
+  cobrancaErro: string | null;
+  sacadoNome: string;
+}
+
+/** `GET /admin/assinaturas/cobrancas/pendencias` — o que a conciliação não conserta sozinha. */
+export interface PendenciasDeCobranca {
+  /** Em aberto há mais de 24h e nunca virou cobrança. */
+  semCobranca: FaturaEmPendencia[];
+  /** Baixa registrada aqui que o gateway ainda não confirmou. */
+  dessincronizadas: FaturaEmPendencia[];
+}
+
+/**
+ * Um cupom da plataforma. **Vive no gateway** — aqui é só espelho de leitura.
+ *
+ * `usageCount` e `currentlyValid` vêm calculados de lá: guardar uma cópia
+ * criaria duas fontes da verdade que divergem no primeiro erro de rede.
+ */
+export interface Cupom {
+  id: number;
+  code: string;
+  description: string | null;
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  discountValue: number;
+  validFrom: string | null;
+  validUntil: string | null;
+  maxUses: number | null;
+  maxUsesPerCustomer: number | null;
+  usageCount: number;
+  active: boolean;
+  /** Ativo **e** dentro da vigência **e** com uso disponível. */
+  currentlyValid: boolean;
+}
+
+/** Quem usa qual cupom — esta parte é nossa. */
+export interface AtribuicaoCupom {
+  id: string;
+  tenantId: string | null;
+  administradoraId: string | null;
+  codigo: string;
+  /** Última competência em que aplica (`YYYY-MM-01`). `null` = enquanto valer. */
+  aplicarAte: string | null;
+  observacao: string | null;
+}
+
+/** `GET/PUT /admin/assinaturas/politica-acesso`. */
+export interface PoliticaAcesso {
+  maxFaturasVencidas: number;
+  diasTolerancia: number;
+  /** `blockOnStandaloneCharges`. **Falso = nada bloqueia**, jamais. */
+  bloquearAvulsas: boolean;
+  mensagemBloqueio: string | null;
+  cacheTtlMinutos: number;
+  sincronizadoEm: string | null;
+  erroUltimaSync: string | null;
+  /** O interruptor `PAYMENT_BLOQUEIO_ATIVO` — não é a política. */
+  bloqueioAtivo: boolean;
+  integracaoLigada: boolean;
+}
+
+/** `POST /admin/assinaturas/cobrancas/conciliar`. */
+export interface ResultadoConciliacao {
+  ligada: boolean;
+  conferidas: number;
+  divergentes: number;
+  falhas: number;
+  semCobranca: number;
+  detalhes: { faturaId: string; de: string; para: string }[];
+}
+
+/** Resposta de `POST /admin/assinaturas/clientes/:tipo/:id/sincronizar`. */
+export interface ResultadoSincronizacao {
+  ok: boolean;
+  customerId: string | null;
+  motivo?: MotivoPendenciaCliente;
+  detalhe?: string;
 }
 
 /** Quem recebe a fatura: um condomínio direto ou uma administradora. */
@@ -652,6 +815,20 @@ export interface AssinaturaFatura {
   formaPagamento: string | null;
   observacao: string | null;
   itens: AssinaturaFaturaItem[];
+  /**
+   * A cobrança traduzida para quem paga — é daqui que sai o botão "Pagar".
+   *
+   * Vem junto da fatura, e não de uma rota por linha: a lista precisa do botão
+   * na fatura em aberto, e uma requisição por linha seria N chamadas para
+   * montar uma tela.
+   */
+  pagamento: SituacaoPagamento;
+  /** Estado da emissão. Só o superadmin usa — o cliente lê `pagamento`. */
+  cobrancaStatus?: StatusCobrancaAssinatura;
+  cobrancaErro?: string | null;
+  cobrancaId?: string | null;
+  invoiceUrl?: string | null;
+  cobrancaDessincronizada?: boolean;
   createdAt: string;
   updatedAt: string;
 }

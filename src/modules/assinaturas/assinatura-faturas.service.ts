@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { AssinaturaCondicao, AssinaturaFatura, AssinaturaFaturaItem } from '../../database/entities';
 import { StatusFatura } from '../../database/entities/assinatura-fatura.entity';
+import { AssinaturaCobrancasService } from './assinatura-cobrancas.service';
 import {
   AssinaturasService,
   PreviaAssinatura,
   ResponsavelPeloCondominio,
   Sacado,
 } from './assinaturas.service';
+import { FilaCobrancaService } from './fila-cobranca.service';
+import { situacaoDePagamento, type SituacaoPagamento } from './situacao-pagamento';
 import { avaliarVencimento, type AvisoVencimento } from './aviso-vencimento';
 import { hojeISO, primeiroDia, vencimentoDaCompetencia } from './datas';
 import {
@@ -33,8 +36,29 @@ const UNIQUE_VIOLATION = '23505';
 /** Status que ainda esperam pagamento. */
 const EM_ABERTO = [StatusFatura.ABERTA, StatusFatura.VENCIDA];
 
+/**
+ * O que não entra em "faturado".
+ *
+ * Cancelada nunca foi cobrada; estornada teve o dinheiro devolvido; em disputa
+ * ainda não se sabe de quem é. Somar qualquer uma faria a receita do mês mentir
+ * — e é a partir dela que se decide se o mês fechou bem.
+ */
+const FORA_DOS_TOTAIS = [
+  StatusFatura.CANCELADA,
+  StatusFatura.ESTORNADA,
+  StatusFatura.EM_DISPUTA,
+];
+
 export interface FaturaComSacado extends AssinaturaFatura {
   sacado: Sacado;
+  /**
+   * A cobrança traduzida para quem paga.
+   *
+   * Vem junto da fatura, e não numa rota à parte, porque a tela precisa do
+   * botão "Pagar" na linha da fatura em aberto — buscar o link uma vez por
+   * fatura seria uma requisição por linha da lista.
+   */
+  pagamento: SituacaoPagamento;
 }
 
 /** A assinatura vista pelo próprio cliente. */
@@ -127,6 +151,8 @@ export class AssinaturaFaturasService {
     @InjectRepository(AssinaturaFaturaItem)
     private readonly itemRepo: Repository<AssinaturaFaturaItem>,
     private readonly assinaturas: AssinaturasService,
+    private readonly cobrancas: AssinaturaCobrancasService,
+    private readonly filaCobranca: FilaCobrancaService,
   ) {}
 
   // ------------------------------------------------------------------ geração
@@ -198,13 +224,15 @@ export class AssinaturaFaturasService {
       else jaExistiam++;
     }
 
-    return {
-      competencia,
-      criadas,
-      jaExistiam,
-      ignorados,
-      faturas: await this.listar({ competencia: dto.competencia }),
-    };
+    const faturas = await this.listar({ competencia: dto.competencia });
+
+    // A emissão vai para a fila **depois** de tudo gravado, e nunca em linha:
+    // um gateway lento transformaria o fechamento do mês numa requisição de
+    // minutos, e um gateway fora derrubaria o lote inteiro. A fatura nasce
+    // sempre; a cobrança vai atrás, com retry.
+    await this.filaCobranca.enfileirar(await this.cobrancas.pendentesDeEmissao());
+
+    return { competencia, criadas, jaExistiam, ignorados, faturas };
   }
 
   /** Grava a fatura e os itens. `false` quando outra geração chegou antes. */
@@ -255,7 +283,14 @@ export class AssinaturaFaturasService {
 
   // ----------------------------------------------------------------- consulta
 
-  /** Marca como vencida a fatura em aberto cujo vencimento já passou. */
+  /**
+   * Marca como vencida a fatura em aberto cujo vencimento já passou.
+   *
+   * O filtro é `status = 'aberta'`, e não "diferente de paga": é o que mantém
+   * `estornada` e `em_disputa` fora daqui sozinhos. Uma fatura em disputa
+   * virando "vencida" pelo calendário reabriria como dívida algo que está
+   * justamente sendo contestado.
+   */
   private async atualizarVencidas(): Promise<void> {
     await this.repo
       .createQueryBuilder()
@@ -440,12 +475,17 @@ export class AssinaturaFaturasService {
     const por = (s: StatusFatura) => linhas.find((l) => l.status === s);
     const abertas = linhas.filter((l) => EM_ABERTO.includes(l.status));
 
+    const emDisputa = por(StatusFatura.EM_DISPUTA);
+    const estornadas = por(StatusFatura.ESTORNADA);
+
     return {
       competencia: competencia ? primeiroDia(competencia) : null,
       totalFaturas: linhas.reduce((acc, l) => acc + Number(l.total), 0),
-      // Cancelada não entra em nenhum total: não foi cobrada e não é dívida.
+      // Fora dos totais: cancelada (não foi cobrada e não é dívida), estornada
+      // (o dinheiro voltou) e em disputa (ainda não se sabe de quem é). Somar
+      // qualquer uma delas em "faturado" faria a receita do mês mentir.
       valorFaturado: linhas
-        .filter((l) => l.status !== StatusFatura.CANCELADA)
+        .filter((l) => !FORA_DOS_TOTAIS.includes(l.status))
         .reduce((acc, l) => acc + Number(l.valor), 0),
       emAberto: abertas.reduce((acc, l) => acc + Number(l.total), 0),
       valorEmAberto: abertas.reduce((acc, l) => acc + Number(l.valor), 0),
@@ -453,6 +493,12 @@ export class AssinaturaFaturasService {
       valorVencido: Number(por(StatusFatura.VENCIDA)?.valor ?? 0),
       pagas: Number(por(StatusFatura.PAGA)?.total ?? 0),
       valorRecebido: Number(por(StatusFatura.PAGA)?.valor ?? 0),
+      // Aparecem separados porque pedem gente, não conta: estorno é dinheiro
+      // devolvido e disputa é chargeback correndo.
+      estornadas: Number(estornadas?.total ?? 0),
+      valorEstornado: Number(estornadas?.valor ?? 0),
+      emDisputa: Number(emDisputa?.total ?? 0),
+      valorEmDisputa: Number(emDisputa?.valor ?? 0),
     };
   }
 
@@ -468,6 +514,16 @@ export class AssinaturaFaturasService {
     if (fatura.status === StatusFatura.CANCELADA) {
       throw new ConflictException('Fatura cancelada não pode receber pagamento');
     }
+    if (fatura.status === StatusFatura.ESTORNADA) {
+      throw new ConflictException('Fatura estornada não recebe baixa: o dinheiro foi devolvido');
+    }
+    if (fatura.status === StatusFatura.EM_DISPUTA) {
+      // Dar baixa aqui apagaria a disputa da tela e o caso sumiria — que é o
+      // oposto do que o status existe para fazer.
+      throw new ConflictException(
+        'Fatura em disputa não recebe baixa manual: resolva o chargeback primeiro',
+      );
+    }
 
     const pagaEm = dto.pagaEm ? new Date(dto.pagaEm) : new Date();
     if (Number.isNaN(pagaEm.getTime())) {
@@ -480,6 +536,13 @@ export class AssinaturaFaturasService {
       formaPagamento: dto.formaPagamento ?? null,
       ...(dto.observacao !== undefined ? { observacao: dto.observacao || null } : {}),
     });
+
+    // **A baixa local já aconteceu.** O espelho no gateway vem depois e não pode
+    // desfazê-la: dinheiro que entrou não fica refém de uma API fora do ar. Se
+    // falhar, a fatura fica marcada como dessincronizada e a conciliação
+    // resolve. Por isso `espelharBaixa` engole o próprio erro.
+    const entidade = await this.repo.findOne({ where: { id } });
+    if (entidade) await this.cobrancas.espelharBaixa(entidade);
 
     return this.obter(id);
   }
@@ -494,12 +557,40 @@ export class AssinaturaFaturasService {
       throw new ConflictException('Esta fatura já está cancelada');
     }
 
+    // Aqui a ordem é a **inversa** da baixa: cancela no gateway primeiro e, se
+    // isso falhar, o cancelamento local não acontece. Cancelar só do nosso lado
+    // deixaria uma cobrança viva que o cliente pode pagar por engano — e aí ele
+    // paga uma fatura que para nós não existe mais.
+    const entidade = await this.repo.findOne({ where: { id } });
+    if (entidade) await this.cobrancas.cancelarCobranca(entidade);
+
     await this.repo.update(id, {
       status: StatusFatura.CANCELADA,
       ...(dto.motivo ? { observacao: dto.motivo } : {}),
     });
 
     return this.obter(id);
+  }
+
+  /**
+   * A fatura reduzida ao que a tela de pendências precisa.
+   *
+   * Não devolve a linha inteira de propósito: ali não se opera a fatura, e
+   * mandar o objeto completo (com chave de idempotência e status bruto do
+   * gateway) espalharia coluna interna por mais uma tela.
+   */
+  resumirParaPendencia(fatura: AssinaturaFatura) {
+    return {
+      id: fatura.id,
+      competencia: fatura.competencia,
+      vencimento: fatura.vencimento,
+      valor: fatura.valor,
+      status: fatura.status,
+      cobrancaStatus: fatura.cobrancaStatus,
+      cobrancaErro: fatura.cobrancaErro,
+      sacadoNome:
+        fatura.tenant?.nome ?? fatura.administradora?.nome ?? fatura.itens?.[0]?.condominioNome ?? '—',
+    };
   }
 
   // ------------------------------------------------------------------ auxiliar
@@ -533,6 +624,6 @@ export class AssinaturaFaturasService {
           nome: fatura.tenant?.nome ?? fatura.itens?.[0]?.condominioNome ?? 'Condomínio removido',
         };
 
-    return Object.assign(fatura, { sacado });
+    return Object.assign(fatura, { sacado, pagamento: situacaoDePagamento(fatura) });
   }
 }

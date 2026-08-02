@@ -9,6 +9,7 @@ import {
   Tenant,
 } from '../../database/entities';
 import { ModoAssinatura } from '../../database/entities/assinatura-condicao.entity';
+import { TipoClienteAssinatura } from '../../database/entities/assinatura-faixa.entity';
 import {
   CondicaoEspecial,
   CondominioNaConta,
@@ -65,9 +66,19 @@ export class AssinaturasService {
 
   // ------------------------------------------------------------ tabela de preços
 
-  /** Tabela de preços da plataforma, em ordem. */
-  async faixas(): Promise<FaixaPreco[]> {
-    const faixas = await this.faixaRepo.find({ order: { ordem: 'ASC' } });
+  /**
+   * Tabela de preços de um tipo de cliente, em ordem.
+   *
+   * São duas tabelas: a do condomínio que paga sozinho (faixas de volume) e a
+   * da administradora (preço de atacado pela carteira). Quem escolhe qual é o
+   * **vínculo do cliente**, nunca a tela — por isso o tipo é parâmetro e não
+   * tem valor padrão.
+   */
+  async faixas(tipo: TipoClienteAssinatura): Promise<FaixaPreco[]> {
+    const faixas = await this.faixaRepo.find({
+      where: { tipoCliente: tipo },
+      order: { ordem: 'ASC' },
+    });
     return faixas.map((f) => ({
       ateQuantidade: f.ateQuantidade,
       precoApartamento: f.precoApartamento,
@@ -76,22 +87,29 @@ export class AssinaturasService {
   }
 
   /**
-   * Substitui a tabela de preços inteira, numa transação.
+   * Substitui a tabela de preços de **um tipo**, numa transação.
+   *
+   * O `delete` é filtrado pelo tipo: trocar a tabela do condomínio não pode
+   * apagar a da administradora, que é o que aconteceria se a limpeza continuasse
+   * varrendo a tabela inteira.
    *
    * Não mexe em fatura já emitida: o valor cobrado é fotografia gravada na
    * própria fatura. Vale a partir da próxima geração.
    */
-  async definirFaixas(dto: DefinirFaixasDto): Promise<FaixaPreco[]> {
+  async definirFaixas(
+    tipo: TipoClienteAssinatura,
+    dto: DefinirFaixasDto,
+  ): Promise<FaixaPreco[]> {
     this.validarFaixas(dto.faixas);
 
     await this.dataSource.transaction(async (manager) => {
-      // A tabela é pequena e a ordem é única: trocar por completo é mais
-      // simples (e mais fácil de conferir) que casar linha a linha.
-      // `delete({})` é recusado pelo TypeORM (critério vazio) — daí o builder.
-      await manager.createQueryBuilder().delete().from(AssinaturaFaixa).execute();
+      // A tabela é pequena e a ordem é única dentro do tipo: trocar por completo
+      // é mais simples (e mais fácil de conferir) que casar linha a linha.
+      await manager.delete(AssinaturaFaixa, { tipoCliente: tipo });
       await manager.insert(
         AssinaturaFaixa,
         dto.faixas.map((f, i) => ({
+          tipoCliente: tipo,
           ateQuantidade: f.ateQuantidade ?? null,
           precoApartamento: f.precoApartamento,
           ordem: i + 1,
@@ -99,7 +117,7 @@ export class AssinaturasService {
       );
     });
 
-    return this.faixas();
+    return this.faixas(tipo);
   }
 
   /**
@@ -137,8 +155,12 @@ export class AssinaturasService {
    * de carteira não aparece sozinho — ele está dentro da fatura da carteira.
    */
   async listarPrevias(): Promise<PreviaAssinatura[]> {
-    const [faixas, diretos, administradoras] = await Promise.all([
-      this.faixas(),
+    // As duas tabelas são carregadas de uma vez: a prévia percorre clientes dos
+    // dois tipos, e buscar a tabela dentro do laço seria uma consulta por
+    // cliente para ler quatro linhas de configuração.
+    const [faixasCondominio, faixasAdministradora, diretos, administradoras] = await Promise.all([
+      this.faixas(TipoClienteAssinatura.CONDOMINIO),
+      this.faixas(TipoClienteAssinatura.ADMINISTRADORA),
       this.tenantRepo.find({
         where: { ativo: true, administradoraId: IsNull() },
         order: { nome: 'ASC' },
@@ -149,10 +171,20 @@ export class AssinaturasService {
     const previas: PreviaAssinatura[] = [];
 
     for (const tenant of diretos) {
-      previas.push(await this.montarPrevia({ tipo: 'condominio', id: tenant.id, nome: tenant.nome }, faixas));
+      previas.push(
+        await this.montarPrevia(
+          { tipo: 'condominio', id: tenant.id, nome: tenant.nome },
+          faixasCondominio,
+        ),
+      );
     }
     for (const adm of administradoras) {
-      previas.push(await this.montarPrevia({ tipo: 'administradora', id: adm.id, nome: adm.nome }, faixas));
+      previas.push(
+        await this.montarPrevia(
+          { tipo: 'administradora', id: adm.id, nome: adm.nome },
+          faixasAdministradora,
+        ),
+      );
     }
 
     return previas;
@@ -162,14 +194,20 @@ export class AssinaturasService {
   async previaDoCondominio(tenantId: string): Promise<PreviaAssinatura> {
     const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
     if (!tenant) throw new NotFoundException('Condomínio não encontrado');
-    return this.montarPrevia({ tipo: 'condominio', id: tenant.id, nome: tenant.nome }, await this.faixas());
+    return this.montarPrevia(
+      { tipo: 'condominio', id: tenant.id, nome: tenant.nome },
+      await this.faixas(TipoClienteAssinatura.CONDOMINIO),
+    );
   }
 
   /** Prévia de uma administradora, somando a carteira inteira. */
   async previaDaAdministradora(administradoraId: string): Promise<PreviaAssinatura> {
     const adm = await this.administradoraRepo.findOne({ where: { id: administradoraId } });
     if (!adm) throw new NotFoundException('Administradora não encontrada');
-    return this.montarPrevia({ tipo: 'administradora', id: adm.id, nome: adm.nome }, await this.faixas());
+    return this.montarPrevia(
+      { tipo: 'administradora', id: adm.id, nome: adm.nome },
+      await this.faixas(TipoClienteAssinatura.ADMINISTRADORA),
+    );
   }
 
   /**

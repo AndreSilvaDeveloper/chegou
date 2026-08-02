@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAtualizacaoAutomatica } from './hooks/use-atualizacao';
+import { AvisoAtualizacao } from './components/AvisoAtualizacao';
+import { FaixaBloqueio } from './components/assinatura/FaixaBloqueio';
 
 // Lazy loading all pages
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -31,10 +33,21 @@ const SuperAdminEtiquetas = React.lazy(() => import('./pages/SuperAdminEtiquetas
 export default function App() {
   // Fica de olho em deploy novo e recarrega sozinho em momento seguro.
   // Aqui em cima porque vale também para a tela de login.
-  useAtualizacaoAutomatica();
+  const atualizacao = useAtualizacaoAutomatica();
 
   return (
-    <Suspense fallback={<div className="flex h-dvh items-center justify-center text-muted-foreground">Carregando...</div>}>
+    <>
+      <AvisoAtualizacao
+        aberto={atualizacao.temVersaoNova}
+        aplicar={atualizacao.aplicar}
+        dispensar={atualizacao.dispensar}
+      />
+      {/* Assinatura em atraso: o 402 de qualquer escrita vira esta faixa. Fica
+          aqui em cima porque o bloqueio atinge todas as telas, e no TOPO (não no
+          rodapé como o aviso de versão) porque ele interrompe o trabalho em vez
+          de só informar. */}
+      <FaixaBloqueio />
+      <Suspense fallback={<div className="flex h-dvh items-center justify-center text-muted-foreground">Carregando...</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
         {/* Autocadastro de morador via QR: público, fora do Layout e sem login.
@@ -78,6 +91,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/encomendas" replace />} />
       </Routes>
-    </Suspense>
+      </Suspense>
+    </>
   );
 }

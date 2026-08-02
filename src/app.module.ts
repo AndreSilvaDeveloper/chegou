@@ -1,7 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard, RolesGuard, TenantModuleGuard, TenantScopeGuard } from './common/guards';
+import {
+  AcessoAssinaturaGuard,
+  JwtAuthGuard,
+  RolesGuard,
+  TenantModuleGuard,
+  TenantScopeGuard,
+} from './common/guards';
 import { envValidationSchema } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { QueuesModule } from './queues/queues.module';
@@ -75,6 +81,10 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
     { provide: APP_GUARD, useClass: TenantScopeGuard },
     // Depois do escopo: bloqueia módulos opcionais não contratados (@RequiresModule)
     { provide: APP_GUARD, useClass: TenantModuleGuard },
+    // Depois do escopo também: 402 na ESCRITA para quem está com a assinatura
+    // em atraso. Leitura nunca é bloqueada, e toda dúvida libera (fail-open).
+    // Nasce inerte: só age com PAYMENT_BLOQUEIO_ATIVO=true.
+    { provide: APP_GUARD, useClass: AcessoAssinaturaGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

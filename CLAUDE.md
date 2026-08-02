@@ -190,6 +190,10 @@ chegou/
 | `assinatura_condicoes` | opcional | Preço especial de um condomínio **ou** de uma administradora |
 | `assinatura_faturas` | opcional | Fatura mensal da assinatura (condomínio **ou** administradora) |
 | `assinatura_fatura_itens` | opcional | Composição da fatura, um item por condomínio |
+| `assinatura_clientes_gateway` | opcional | Vínculo do cliente com o `customer` do gateway de pagamento |
+| `assinatura_webhook_eventos` | — | Eventos de pagamento recebidos do gateway (dedup por `evento_id`) |
+| `assinatura_politica_acesso` | — | Política de bloqueio por inadimplência (linha única) |
+| `assinatura_cupom_cliente` | opcional | Atribuição de cupom de desconto a um cliente |
 | `notificacoes` | ✅ | Fila unificada de disparos (encomenda, cobrança, aviso) |
 | `whatsapp_messages` | permite NULL | Histórico de mensagens (in/out) |
 | `audit_log` | permite NULL | Log de auditoria de ações |
@@ -226,6 +230,13 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Gestão de qualquer condomínio (`/admin/tenants/:id/...`) | ✅ | — | — | — |
 | Módulos contratados e plano do condomínio | ✅ | — | — | — |
 | Assinatura: tabela de preços, preço especial, gerar e dar baixa em fatura | ✅ | — | — | — |
+| Assinatura: cliente no gateway de pagamento (pendências e sincronizar) | ✅ | — | — | — |
+| Assinatura: emitir e reemitir cobrança da fatura | ✅ | — | — | — |
+| Assinatura: conciliar cobranças e ver pendências de cobrança | ✅ | — | — | — |
+| Assinatura: política de bloqueio por inadimplência | ✅ | — | — | — |
+| Assinatura: cupons de desconto (criar, desativar, atribuir a cliente) | ✅ | — | — | — |
+| Webhook de pagamento (`POST /webhooks/pagamentos`) | *público, validado por token do gateway* ||||
+| Assinatura própria: abrir o link de pagamento da fatura | — | ✅ | ✅⁴ | — |
 | Assinatura de um condomínio: preço especial e dia de vencimento dele | ✅ | ⁶ | — | — |
 | Banco de amostras de etiqueta (calibrar a leitura por foto) | ✅ | — | — | — |
 | Ler etiqueta por foto ao registrar encomenda | — | — | ✅ | ✅ |
@@ -330,6 +341,7 @@ naquela pasta.
 | OpenWA | [src/modules/openwa](src/modules/openwa/CLAUDE.md) | Sessão não-oficial por condomínio (QR, status) |
 | Relatórios | [src/modules/relatorios](src/modules/relatorios/CLAUDE.md) | Consultas agregadas para as telas de relatório |
 | Assinaturas | [src/modules/assinaturas](src/modules/assinaturas/CLAUDE.md) | O que o cliente paga pelo Chegou (por apartamento, em faixas) |
+| Pagamentos | [src/modules/pagamentos](src/modules/pagamentos/CLAUDE.md) | O gateway de cobrança (Payment API/Asaas): cliente, cobrança e acesso |
 | Storage | [src/modules/storage](src/modules/storage/CLAUDE.md) | Upload de fotos e contratos (S3/MinIO/R2) |
 | Common | [src/common](src/common/CLAUDE.md) | Guards, decorators, escopo de tenant e auditoria |
 | Frontend | [web/src](web/src/CLAUDE.md) | Páginas, componentes, hooks e client da API |
@@ -352,6 +364,12 @@ A documentação é dividida em duas camadas, e cada uma tem um dono claro:
 | Doc | O que é |
 |---|---|
 | [Landing + painel no mesmo domínio](docs/plano-landing-monorepo.md) | A landing entra como app próprio (`landing/`) e o painel passa a viver sob `/app/`. Inclui o porquê de **não** migrar para Next.js |
+
+### Entregue, mas vale ler
+
+| Doc | Por que ainda importa |
+|---|---|
+| [Cobrança pela Payment API](docs/plano-cobranca-gateway.md) | As **seis fases estão no código**. O documento continua valendo como registro das decisões e do que mudou na implementação — inclusive o que foi feito **diferente** do combinado, e por quê. A regra viva mora em [Assinaturas](src/modules/assinaturas/CLAUDE.md) e [Pagamentos](src/modules/pagamentos/CLAUDE.md) |
 
 **Por que `CLAUDE.md` e não `README.md`**: arquivos `CLAUDE.md` em subpastas são
 carregados automaticamente no contexto quando se trabalha naquela pasta. Na
@@ -650,6 +668,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 |---|---|---|
 | `assertRefDoTenant()` | `src/common/tenant-scope/tenant-ref.ts` | Validar que um id do corpo é do condomínio da request |
 | `@TelefoneE164()` | `src/common/telefone.ts` | Campo de telefone: aceita `(32) 99999-9999`, grava E.164 |
+| `@DocumentoBrasileiro()` | `src/common/documento.ts` | Campo de CPF/CNPJ: tira a máscara e confere os dígitos verificadores |
 | `@TenantId()` | `src/common/decorators` | Condomínio da request, já validado |
 | `@TenantScope()` | `src/common/decorators` | Igual, mas aceita "sem condomínio" (`null`) |
 | `@AdministradoraId()` | `src/common/decorators` | Carteira do usuário logado |
@@ -657,6 +676,8 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `TenantConfigService` | `src/common/tenant-config` | Ler `config_json` do condomínio com cache |
 | `FormDialog` | `web/src/components/ui/form-dialog.tsx` | Casca de formulário em diálogo (rolagem, empilhamento, salvando) |
 | `PhoneInput` | `web/src/components/ui/phone-input.tsx` | Telefone mascarado `(32) 99999-9999` → E.164 |
+| `DocumentoInput` | `web/src/components/ui/documento-input.tsx` | CPF/CNPJ mascarado enquanto se digita → só dígitos para a API |
+| `formatarDocumento()` | `web/src/lib/documento.ts` | CPF/CNPJ legível nas listagens |
 | `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
 | `Combobox` | `web/src/components/ui/combobox.tsx` | Campo com sugestões que **aceita valor fora da lista** (transportadora) |
 | `TRANSPORTADORAS` | `web/src/lib/transportadoras.ts` | Transportadoras do Brasil + o tipo que amarra o leitor de código à lista |
@@ -805,6 +826,9 @@ passaria a acontecer no meio do que o porteiro estiver digitando.
 30. **NUNCA** pedir `+55` ao usuário — telefone se digita `(32) 99999-9999`.
     No DTO, `@TelefoneE164()`; na tela, `PhoneInput`; na listagem,
     `formatarTelefone()`. O banco guarda **sempre** E.164
+30.1. **NUNCA** pedir "só os números" num campo de CPF/CNPJ — a máscara é da
+    tela. No DTO, `@DocumentoBrasileiro()`; na tela, `DocumentoInput`; na
+    listagem, `formatarDocumento()`. O banco guarda **sempre** só dígitos
 
 ### Documentação viva
 31. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
@@ -867,6 +891,11 @@ Veja `.env.example` para lista completa. As mais críticas:
 | `WORKER_ENABLED` | `false` numa réplica que só atende HTTP |
 | `OCR_BASE_URL` | Serviço de OCR de etiquetas (vazio = leitura desligada) |
 | `OCR_TIMEOUT_MS` | Timeout de cada leitura de imagem (padrão 30000) |
+| `PAYMENT_API_BASE_URL` | Gateway de cobrança da assinatura (vazio = cobrança desligada) |
+| `PAYMENT_API_COMPANY_ID` | `X-Company-Id` — somos uma company só lá dentro |
+| `PAYMENT_API_EMAIL` / `PAYMENT_API_PASSWORD` | Usuário de integração, criado no painel do gateway |
+| `PAYMENT_WEBHOOK_TOKEN` | Segredo do nosso webhook de pagamento (vazio = a rota recusa tudo) |
+| `PAYMENT_BLOQUEIO_ATIVO` | Bloqueio por inadimplência. **Nasce `false`** — é o freio de mão |
 
 > Não existe número remetente global: **o número é o da sessão do condomínio** no
 > OpenWA. Também não há variável de provedor — o gateway é um só.

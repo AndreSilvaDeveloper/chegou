@@ -30,3 +30,7 @@ export { AssinaturaFaixa } from './assinatura-faixa.entity';
 export { AssinaturaCondicao } from './assinatura-condicao.entity';
 export { AssinaturaFatura } from './assinatura-fatura.entity';
 export { AssinaturaFaturaItem } from './assinatura-fatura-item.entity';
+export { AssinaturaClienteGateway } from './assinatura-cliente-gateway.entity';
+export { AssinaturaWebhookEvento } from './assinatura-webhook-evento.entity';
+export { AssinaturaPoliticaAcesso } from './assinatura-politica-acesso.entity';
+export { AssinaturaCupomCliente } from './assinatura-cupom-cliente.entity';

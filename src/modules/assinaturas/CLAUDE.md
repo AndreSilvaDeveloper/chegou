@@ -3,10 +3,21 @@
 O que o **cliente paga pelo Chegou** — não confundir com o módulo Vagas, que
 cobra o morador pelo aluguel de vaga. Aqui a plataforma cobra quem usa o sistema.
 
-> **Estado: fase 4, primeira metade.** Dados, cálculo, rotas do superadmin, a
-> visão do cliente (com tela dos dois lados) e o aviso de vencimento no painel.
-> Falta a segunda metade: aviso por WhatsApp (depende de uma sessão da
-> plataforma) e gateway de pagamento.
+> **Estado: completo.** Dados, cálculo, rotas do superadmin, visão do cliente,
+> aviso de vencimento no painel — e o gateway de pagamento inteiro, das faixas
+> por tipo ao cupom (fases 1 a 6 do
+> [plano](../../../docs/plano-cobranca-gateway.md)).
+>
+> ⚠️ **O bloqueio nasce desligado** (`PAYMENT_BLOQUEIO_ATIVO=false`). A ordem
+> para ligar está no [módulo Pagamentos](../pagamentos/CLAUDE.md).
+>
+> **Falta**: o aviso de vencimento por WhatsApp, que depende de uma sessão da
+> plataforma.
+>
+> A regra que atravessa tudo: **a fatura continua nossa, o gateway só cobra** —
+> sem `subscriptions`, com cobrança avulsa por fatura e correlação por
+> `externalReference`. Mexeu no cálculo ou no status da fatura? Confira no plano
+> se a mudança não contradiz o combinado.
 
 ## Rotas e perfis
 
@@ -35,13 +46,22 @@ rota.
 
 | Rota | O que faz |
 |---|---|
-| `GET /faixas` · `PUT /faixas` | Lê e substitui a tabela de preços (lista completa) |
+| `GET /faixas?tipo=` · `PUT /faixas?tipo=` | Lê e substitui a tabela de preços **de um tipo de cliente** (lista completa). O `tipo` é obrigatório |
 | `GET /previas` | Quanto entra se o mês fechar hoje, cliente a cliente |
 | `GET /previas/condominio/:id` · `/administradora/:id` | A conta de um cliente |
 | `GET /condominios/:tenantId` | A aba "Assinatura" de um condomínio, inteira (ver abaixo) |
 | `PATCH /condominios/:tenantId/vencimento` | Dia negociado com aquele condomínio (`null` volta ao padrão) |
 | `GET /condicoes` · `POST /condicoes` | Preço especial: histórico e negociação nova |
 | `POST /condicoes/:id/encerrar` | Cliente volta para a tabela da plataforma |
+| `POST /faturas/:id/emitir-cobranca` | Emite agora (caminho de conserto; o normal é a fila) |
+| `POST /cobrancas/reemitir` | Reenfileira tudo que ficou sem cobrança |
+| `POST /cobrancas/conciliar` | Confere agora contra o gateway (a rotina já roda de hora em hora) |
+| `GET /cobrancas/pendencias` | Fatura sem cobrança há 24h e baixa não confirmada |
+| `GET /politica-acesso` · `PUT /politica-acesso` | A política de bloqueio por inadimplência |
+| `GET /cupons` · `POST /cupons` · `POST /cupons/:id/desativar` · `/reativar` | Cupons (**proxy** da Payment API) |
+| `GET /cupons/atribuicoes` · `POST /cupons/atribuir` · `/remover` | Quem usa qual cupom (esta parte é nossa) |
+| `GET /clientes/pendencias` | Quem hoje **não** poderia ser cobrado, e por quê |
+| `POST /clientes/:tipo/:id/sincronizar` | Cria/atualiza o cliente no gateway de pagamento |
 | `GET /resumo` | Cards: faturado, recebido, em aberto, vencido |
 | `GET /faturas` · `GET /faturas/:id` | Faturas emitidas, com a composição |
 | `POST /faturas/gerar` | Emite as faturas da competência (idempotente) |
@@ -55,6 +75,8 @@ rota.
 | `GET /minha-administradora/assinatura/faturas/:id` | admin | Uma fatura da carteira |
 | `GET /assinatura` | sindico | A conta do condomínio + o histórico + o `aviso` |
 | `GET /assinatura/faturas/:id` | sindico | Uma fatura do condomínio |
+| `GET /assinatura/faturas/:id/pagamento` | sindico | Link e estado da cobrança — **não emite nada** |
+| `GET /minha-administradora/assinatura/faturas/:id/pagamento` | admin | Idem, para a carteira |
 | `GET /minha-administradora/condominios/:tenantId/assinatura` | admin | A conta de **um condomínio da carteira**, em leitura |
 
 **O id do cliente nunca vem da URL**: da administradora sai de
@@ -119,14 +141,32 @@ apartamentos — **não é escalonado por trecho**:
 
 ```
 120 apartamentos → faixa de R$ 3,49 → 120 × 3,49 = R$ 418,80
-              (e não 50 × 3,99 + 70 × 3,49 = R$ 443,80)
+             (e não 100 × 3,99 + 20 × 3,49 = R$ 468,80)
 ```
 
-Tabela inicial (migration 024, editável): 3,99 até 50 · 3,49 de 51 a 200 ·
-2,99 acima de 200.
+### São **duas** tabelas, uma por tipo de cliente
+
+`assinatura_faixas.tipo_cliente` separa quem paga sozinho de quem paga pela
+carteira (migration 028):
+
+| `tipo_cliente` | Tabela | Para quem |
+|---|---|---|
+| `condominio` | 3,99 até 100 · 3,49 de 101 a 200 · 2,99 acima de 200 | condomínio direto (`administradora_id IS NULL`) |
+| `administradora` | 1,99, faixa única sem teto | a carteira inteira |
+
+**Quem escolhe a tabela é o vínculo do cliente, nunca a tela.** Por isso
+`faixas(tipo)` não tem valor padrão e a rota exige o parâmetro: um padrão
+silencioso faria a tela abrir mostrando os preços do outro tipo — e editar dali
+substituiria a tabela errada.
+
+A administradora ficou com **faixa única** porque o preço de atacado já é o
+desconto; o modelo continua sendo faixa (e não uma coluna de preço solta) para
+ela poder escalonar por volume um dia, sem migration de estrutura.
 
 **Desconto por volume vale para a carteira**: três condomínios de 40 unidades
-somam 120 e todos pagam 3,49, mesmo cada um sozinho estando na faixa de 3,99.
+somam 120 na conta da administradora. Com a tabela própria dela isso não muda
+mais o preço unitário, mas a soma continua sendo a base da contagem — é o que
+faria diferença no dia em que a tabela da administradora tiver mais de uma faixa.
 
 ### Preço especial
 
@@ -158,10 +198,14 @@ que um desconto foi concedido.
 
 | Tabela | Papel |
 |---|---|
-| `assinatura_faixas` | Tabela de preços da plataforma |
+| `assinatura_faixas` | Tabela de preços da plataforma, **uma por `tipo_cliente`** (índice único `(tipo_cliente, ordem)`) |
 | `assinatura_condicoes` | Preço especial de um cliente (tenant XOR administradora) |
 | `assinatura_faturas` | Fatura mensal (tenant XOR administradora) |
 | `assinatura_fatura_itens` | Um item por condomínio — a composição do valor |
+| `assinatura_clientes_gateway` | Vínculo com o `customer` do gateway (tenant XOR administradora) |
+| `assinatura_politica_acesso` | Política de bloqueio (linha única, espelho do que foi ao gateway) |
+| `assinatura_cupom_cliente` | Atribuição de cupom a um cliente (um em aberto por cliente) |
+| `assinatura_webhook_eventos` | Eventos de pagamento recebidos — o índice único em `evento_id` é o que impede baixa dupla |
 
 > **`assinatura_faturas.tenant_id` é NULLABLE de propósito** — terceira exceção
 > deliberada do projeto, junto de `audit_log` e `whatsapp_messages`. A fatura da
@@ -223,10 +267,300 @@ Dia maior que o mês (31 em fevereiro) é encaixado no último dia pela mesma
 
 ### Trocar a tabela de preços
 
-`PUT /faixas` substitui a tabela **inteira** (não é incremental) numa transação.
-A última faixa precisa ficar sem teto e os tetos precisam crescer — sem faixa
-aberta no topo, um cliente maior que a tabela cairia num preço por acaso. Nada
-disso toca fatura emitida.
+`PUT /faixas?tipo=` substitui a tabela **daquele tipo** por inteiro (não é
+incremental) numa transação. A última faixa precisa ficar sem teto e os tetos
+precisam crescer — sem faixa aberta no topo, um cliente maior que a tabela cairia
+num preço por acaso. Nada disso toca fatura emitida.
+
+> **A limpeza é filtrada pelo tipo.** Enquanto havia uma tabela só, o `delete`
+> varria `assinatura_faixas` inteira. Com duas tabelas, esse mesmo `delete`
+> apagaria a do outro tipo a cada edição — e o próximo cliente daquele tipo
+> cairia em `TabelaDePrecosVaziaError` no fechamento do mês.
+
+## O cliente no gateway de pagamento
+
+Quem paga vira um `customer` na Payment API — e só quem paga: **condomínio de
+carteira não vira cliente do gateway**, porque não é cobrado. Recusar isso é do
+`AssinaturaClientesService`, e não do módulo Pagamentos: lá ele seria criado sem
+reclamação, e o resultado seria um cliente existindo no Asaas que nunca recebe
+cobrança — sujeira que só aparece meses depois, na conciliação.
+
+A divisão com [Pagamentos](../pagamentos/CLAUDE.md): **lá se sabe falar com a
+API, aqui se sabe quem é o cliente**. Este módulo monta o `ClienteParaGateway`
+(nome, documento, contato, endereço) e entrega pronto.
+
+> **O conjunto de clientes de `pendencias()` é o mesmo de `listarPrevias()`**:
+> condomínio ativo e direto, mais administradora ativa. Se as duas seleções
+> divergirem, aparece cliente faturado que nunca foi sincronizado — a pior
+> combinação, porque a fatura existe e a cobrança não. Mexeu numa, confira a
+> outra.
+
+A avaliação de pendência é de **cadastro**, sem chamar o gateway: a tela precisa
+abrir justamente quando a API de pagamento está fora do ar. O que depende de
+rede é só o botão de sincronizar.
+
+| Motivo | Onde se conserta |
+|---|---|
+| `sem_documento` · `documento_invalido` | No cadastro do cliente |
+| `nunca_sincronizado` · `erro_sync` | No botão Sincronizar |
+| Documento trocado depois de sincronizado | Cliente novo no gateway — documento não se altera lá |
+
+## A fatura virando cobrança
+
+**Gerar a fatura e emitir a cobrança são passos separados**, e isso não é
+organização de código: a geração mensal é local e não pode depender de rede. Se
+o gateway estiver fora no dia 1º, as faturas nascem do mesmo jeito e a emissão
+fica na fila. Misturar os dois é como se perde um mês de faturamento por um
+timeout.
+
+```
+gerar faturas (local) → cobranca_status = 'pendente'
+                              │ fila BullMQ (cobranca-emissao)
+                              ▼
+              POST /charges/undefined  ──erro──► 'erro' + motivo na tela
+                              │
+                              ▼
+              'emitida' + invoice_url  ◄── o cliente paga no link
+```
+
+### Idempotência em três camadas
+
+Cobrar duas vezes é o pior defeito possível aqui, então há três travas e **as
+três são necessárias**:
+
+| Camada | O que segura |
+|---|---|
+| `jobId` do BullMQ | Enfileirar a mesma fatura duas vezes |
+| `cobranca_status IN ('pendente','erro','desligada')` | Emitir uma fatura já emitida |
+| `cobranca_idempotency_key` **persistida** | O retry depois de um timeout |
+
+A chave é gravada **antes** do POST. Gerar e mandar sem gravar perderia a chave
+num crash entre as duas coisas, e o retry criaria outra — que é exatamente como
+se cobra o cliente duas vezes. Tem teste dedicado.
+
+### Baixa e cancelamento têm ordens **opostas**
+
+Não é inconsistência: é o risco de cada lado.
+
+| Ação | Ordem | Se o gateway falhar |
+|---|---|---|
+| **Baixa manual** | local **primeiro**, gateway depois | A baixa vale assim mesmo; a fatura fica `cobranca_dessincronizada` e a conciliação resolve. **Dinheiro que entrou não fica refém de API fora do ar** |
+| **Cancelar** | gateway **primeiro**, local depois | O cancelamento local **não acontece**. Cancelar só do nosso lado deixaria uma cobrança viva que o cliente pode pagar por engano |
+
+### Dois status novos de fatura
+
+`estornada` e `em_disputa` (migration 031) chegam do gateway, nunca de ação
+nossa. Nenhum dos dois entra em `valorFaturado` — somar dinheiro devolvido ou em
+disputa faria a receita do mês mentir. `atualizarVencidas()` não os alcança
+porque filtra por `status = 'aberta'`, e uma fatura em disputa virando "vencida"
+pelo calendário reabriria como dívida algo que está sendo contestado.
+
+Baixa manual é recusada nos dois: em `estornada` o dinheiro voltou; em
+`em_disputa` a baixa apagaria a disputa da tela, que é o oposto do que o status
+existe para fazer.
+
+### O que o cliente vê (`situacao-pagamento.ts`)
+
+O cliente **não** vê `cobranca_status`, status bruto do gateway nem chave de
+idempotência. Ele vê uma resposta só: **dá para pagar agora, e por onde?**
+
+| Situação | Quando |
+|---|---|
+| `pagavel` | Emitida, com link, e a fatura ainda espera pagamento |
+| `preparando` | Cobrança na fila (ou ambiente sem gateway) — **não é erro** |
+| `sem_pendencia` | Paga, cancelada ou estornada |
+| `indisponivel` | Erro na emissão, emitida sem link, **ou em disputa** |
+
+Duas decisões que o teste guarda:
+
+1. **"Já está resolvida?" vem antes de "tem link?"** O `invoiceUrl` continua
+   gravado depois da baixa; invertendo a ordem, a tela mostraria "Pagar" numa
+   fatura paga — convidando o cliente a pagar duas vezes.
+2. **Disputa não oferece pagamento.** O link continua vivo no gateway, mas pagar
+   no meio de um chargeback é como se paga duas vezes: se a disputa for resolvida
+   a nosso favor, o valor volta e o cliente terá pago o mesmo mês duas vezes.
+
+O bloco vem junto de **cada fatura** (campo `pagamento`) para o botão existir na
+lista sem uma requisição por linha. A rota `/faturas/:id/pagamento` existe para
+o caso da fatura recém-gerada, cuja emissão ainda está na fila — as duas leem o
+mesmo `situacaoDePagamento()`, então não têm como divergir.
+
+## O dinheiro chegando: webhook e conciliação
+
+Duas vias, e a segunda existe porque **nenhuma integração de dinheiro pode
+depender só de evento**.
+
+### 1. Webhook (`POST /webhooks/pagamentos`)
+
+`@Public()` — quem chama é outro sistema, sem JWT nosso. O que substitui a
+autenticação é o `PAYMENT_WEBHOOK_TOKEN`, conferido com `timingSafeEqual`.
+
+> **Sem o token configurado, a rota recusa tudo.** Um endpoint público que altera
+> estado de fatura não pode ficar aberto porque alguém esqueceu de preencher uma
+> variável de ambiente.
+
+Quatro disciplinas no processamento:
+
+1. **Gravar primeiro, processar depois.** Webhook que processa em linha é
+   webhook que o remetente considera falho por timeout — e reenvia, multiplicando
+   o trabalho justamente quando o sistema está lento.
+2. **Deduplicar pelo id do evento**, com o **índice único do banco** e não com
+   uma consulta antes do insert: duas entregas simultâneas passariam as duas pela
+   consulta e as duas dariam baixa. A corrida só se resolve no `INSERT`.
+3. **Fora de ordem é normal** — `RECEIVED` pode chegar antes de `CONFIRMED`. A
+   comparação é por **precedência**, nunca por ordem de chegada.
+4. **Fatura desconhecida não é erro.** Pode ser cobrança de outro sistema na
+   mesma company: registra e ignora.
+
+Corpo ilegível também responde 200 e fica guardado: devolver erro faria o
+remetente reenviar para sempre um evento que repetição nenhuma conserta.
+
+> O controller mora **aqui**, e não em Pagamentos como o plano previa: Assinaturas
+> já importa Pagamentos, então um controller lá que precisasse do serviço de
+> fatura fecharia um ciclo entre os módulos. O que importava foi preservado — o
+> conhecimento do formato do gateway continua em `pagamentos/webhook-payload.ts`.
+
+### 2. Conciliação (`ConciliacaoService`), de hora em hora
+
+Relê no gateway o estado de **toda cobrança não terminal** e aplica o que
+encontrar, registrando no `audit_log` com o antes e o depois.
+
+**Ela substitui o "pull de eventos" que o plano previa**, e por dois motivos que
+só apareceram implementando:
+
+1. `GET /webhooks/events` devolve o **evento** (`processedResourceId`,
+   `processingSummary` em texto livre), não o **estado da cobrança**. Saber o
+   status exigiria um `GET /charges/{id}` de qualquer forma.
+2. Reler a cobrança é **estritamente mais confiável** que reprocessar um log de
+   eventos: lê a verdade de agora, sem depender de nenhum evento ter sido
+   registrado do lado de lá.
+
+Roda de hora em hora (não uma vez por dia) para cobrir a mesma latência que o
+pull cobriria. O volume permite: são as faturas não terminais, uma por cliente
+por mês.
+
+O agendamento é **repeatable do BullMQ**, não `@Cron`: o repeatable é coordenado
+pelo Redis, então duas réplicas produzem **uma** execução por hora. Com um cron
+em processo, cada réplica consultaria o gateway pelas mesmas faturas.
+
+**Divergência de valor é alarme, nunca correção automática.** A fatura é a fonte
+da verdade do que o cliente deve; um valor diferente do outro lado indica regra
+aplicada lá que a nossa conta não conhece, e ajustar em silêncio esconderia
+exatamente o que precisa ser visto.
+
+**`paga` não é estado terminal.** Parece e não é: estorno e chargeback chegam
+depois da baixa, e é justamente o caso em que perder o webhook custa caro — o
+cliente aparece adimplente com o dinheiro já devolvido.
+
+## Cupom de desconto
+
+O cupom vive no gateway ([Pagamentos](../pagamentos/CLAUDE.md)); aqui fica a
+**atribuição** (`assinatura_cupom_cliente`: quem usa qual) e o que a fatura
+registra dele.
+
+### A armadilha que o desenho inteiro evita
+
+**O desconto não pode nascer na cobrança.** Mandar só o `couponCode` e deixar a
+API descontar faria a fatura dizer R$ 418,80 e a cobrança cobrar R$ 376,92 —
+três coisas quebrariam de uma vez: o cliente veria na tela um número que não é o
+que paga, o `resumo()` reportaria faturado maior que recebido **todo mês**, e a
+conciliação acusaria divergência de valor. Um alarme falso mensal é a maneira
+mais rápida de ninguém mais olhar para os alarmes.
+
+A ordem tem três passos, e nenhum pode ser pulado:
+
+```
+1. validar  → discountAmount, finalValue
+2. gravar na fatura: cupom_codigo, cupom_desconto, valor = finalValue
+3. cobrar   → value = valor SEM o cupom + couponCode
+              confere: charge.value == fatura.valor?
+```
+
+> **Mandamos o valor bruto + o código.** Mandar o valor já descontado *e* o
+> código aplica o desconto **duas vezes**. Tem teste dedicado.
+
+### Por que na emissão, e não na geração
+
+Validar cupom é chamada de rede, e **a geração mensal não pode depender de
+rede**. A fatura nasce pelo valor cheio; o cupom entra na emissão, que já é a
+fila com retry. Isso é permitido porque ali ela ainda está em
+`cobranca_status = 'pendente'` — nunca foi cobrada. Fatura **emitida** continua
+sendo fotografia intocável.
+
+Consequência visível: entre gerar e emitir, a tela do superadmin mostra o valor
+cheio. É honesto — o desconto ainda não foi confirmado por ninguém.
+
+### Os três desfechos que não são o caminho feliz
+
+| Situação | O que acontece |
+|---|---|
+| Valor da cobrança ≠ valor da fatura | **Não emite.** Cancela a cobrança (o cliente poderia pagar um valor errado) e vira pendência |
+| 422 na cobrança (cupom expirou entre validar e cobrar) | Recalcula **sem** o cupom e emite, com registro no `audit_log`. Chave de idempotência **nova**: a anterior está associada à tentativa recusada |
+| Cupom zera a fatura | **Não vira cobrança** — o gateway não emite R$ 0,00. A fatura nasce `paga` com o motivo, e o histórico mostra o mês coberto em vez de um buraco |
+
+### Cortesia total não é cupom
+
+`PERCENTAGE` é limitado a 90% pelo gateway. Para isentar um cliente por
+completo, o lugar é **preço especial com `valor_fixo = 0`** — e aí a regra que já
+existe ("fatura de R$ 0,00 não nasce") resolve sozinha.
+
+### `aplicar_ate` é o freio do nosso lado
+
+O limite de uso é do gateway (`maxUsesPerCustomer` — e como cada fatura é uma
+cobrança, **3 são três meses de desconto**). Mas "este cliente para de receber em
+junho" é decisão comercial nossa, e mora na atribuição.
+
+**Um cupom em aberto por cliente** (índice parcial), como `assinatura_condicoes`:
+dois ativos exigiriam uma regra de desempate que ninguém lembraria seis meses
+depois.
+
+## Bloqueio por inadimplência
+
+**Trava a escrita, leitura livre.** `GET` passa sempre; `POST`/`PATCH`/`PUT`/
+`DELETE` respondem **402** com motivo, valor em aberto e o link de pagamento.
+
+Quem sabe quem paga por uma request é este módulo — `AcessoAssinaturaImpl`
+implementa o contrato que o guard global declara em `common/guards`. **A
+inversão existe para `common/` não depender de um módulo de domínio**: aberta
+essa porta, o próximo guard importaria Encomendas e o seguinte, Vagas.
+
+A administradora é resolvida pelo **vínculo do usuário**, não pelo condomínio do
+header: ela opera dentro de um condomínio da carteira, mas quem deve é ela. Já o
+síndico e o porteiro dependem do condomínio — e se ele for de carteira, quem
+paga é a administradora dele (`responsavelPeloCondominio()`).
+
+### O que **nunca** é bloqueado
+
+| | Por quê |
+|---|---|
+| `GET`/`HEAD`/`OPTIONS` | Leitura nunca trava |
+| `/auth/*` | Login precisa funcionar: é onde ele descobre o bloqueio |
+| `/assinatura*` e `/minha-administradora/assinatura*` | **É a saída** — onde está o link para pagar |
+| `/health`, `/webhooks/*` | Monitoração e outros sistemas |
+| superadmin | A plataforma não se bloqueia |
+| Qualquer falha | Fail-open (ver abaixo) |
+
+> A lista de isentas é o que impede o bloqueio de virar armadilha. Sem
+> `/assinatura`, o cliente bloqueado não conseguiria abrir a tela onde está o
+> link — e o único caminho de saída seria ligar para o suporte.
+
+### A decisão consciente sobre a portaria
+
+Com a escrita travada, **registrar encomenda também para** (`POST /encomendas`).
+A portaria para, e quem sente primeiro é o morador, que não deve nada. Isso foi
+aceito de olhos abertos (§ 9.2 do plano), com três amortecedores prontos:
+
+1. `dias_tolerancia` na política (padrão **5**);
+2. `max_faturas_vencidas` (padrão **1**);
+3. a constante `ISENTAS` no guard — **uma linha** libera a portaria se um dia
+   isso doer demais.
+
+### O desbloqueio é imediato
+
+Toda baixa (webhook, conciliação ou manual) limpa o cache de acesso do cliente.
+Na baixa manual isso acontece **antes** de falar com o gateway e mesmo com ele
+fora: cinco minutos olhando uma tela travada depois de ter pago é a pior
+experiência que este sistema pode oferecer.
 
 ## Aviso de vencimento
 
@@ -316,10 +650,16 @@ npm run assinatura:previa    # imprime o que cada cliente pagaria hoje
 
 | Onde | O que cobre |
 |---|---|
-| `calculadora-assinatura.spec.ts` | Fronteiras de faixa (50/51/200/201), carteira somada, os três modos, desconto, arredondamento |
+| `calculadora-assinatura.spec.ts` | Fronteiras de faixa (100/101/200/201), o preço único da administradora, carteira somada, os três modos, desconto, arredondamento |
 | `datas.spec.ts` | Vencimento no mês seguinte, dia 31 em mês curto, ano bissexto, véspera, distância entre datas |
 | `aviso-vencimento.spec.ts` | A régua do aviso: 3 dias, no dia, atraso, qual fatura entra em destaque, total em aberto |
-| `test/assinaturas.e2e-spec.ts` | O SQL: quem é o sacado, quais apartamentos contam, condição vigente vs. vencida, geração idempotente e baixa |
+| `assinatura-cobrancas.service.spec.ts` | **A mesma `Idempotency-Key` no retry** (o teste que impede cobrança dupla); a chave gravada antes do POST; baixa que sobrevive ao gateway fora; cancelamento que **não** sobrevive |
+| `webhook-pagamento.service.spec.ts` | **Evento repetido não dá baixa duas vezes**; `PENDING` atrasado não desfaz baixa; fatura desconhecida não quebra; status de origem duvidosa consulta o gateway |
+| `conciliacao.service.spec.ts` | Alcança a baixa que o webhook perdeu; divergência de valor é alarme e não correção; `paga` continua sendo conferida |
+| `test/webhook-pagamentos.e2e-spec.ts` | Por HTTP: a rota é pública, o token é conferido, e a dedup é do **índice único** |
+| `cupom-fatura.service.spec.ts` | **Toda dúvida cobra o valor cheio**; `aplicar_ate` como freio; usa o `finalValue` deles |
+| `situacao-pagamento.spec.ts` | A régua do que o cliente vê: paga com link não oferece "Pagar"; disputa também não; `pendente` é "preparando", não erro |
+| `test/assinaturas.e2e-spec.ts` | O SQL: quem é o sacado, quais apartamentos contam, condição vigente vs. vencida, geração idempotente, baixa, que **trocar a tabela de um tipo não apaga a do outro** e que **a fatura nasce com a cobrança desligada** |
 | `test/assinaturas-cliente.e2e-spec.ts` | O acesso, por HTTP: quem vê a própria conta, quem toma 404/403 tentando ver a de outro, e para quem o `aviso` chega |
 | `test/multitenant.e2e-spec.ts` | A rota com `:tenantId` no path: a administradora lê a assinatura de um condomínio da carteira e toma 404 no de outra |
 
@@ -332,9 +672,13 @@ npm run assinatura:previa    # imprime o que cada cliente pagaria hoje
 - [ ] Mexeu no cálculo → rode os três arquivos de teste acima. Fronteira de
       faixa é o que mais dói errado em produção.
 - [ ] Mudou a tabela de preços → **não** mexa em fatura já emitida; o valor dela
-      é fotografia.
+      é fotografia. E lembre que são **duas** tabelas: toda leitura, escrita e
+      limpeza de `assinatura_faixas` anda com o `tipo_cliente` junto.
 - [ ] Campo novo na fatura → lembre que ela precisa se explicar sozinha daqui a
       um ano, sem depender das tabelas de configuração de hoje.
+- [ ] Mexeu na seleção de clientes de `listarPrevias()` → mexa também em
+      `pendencias()`. Cliente faturado que nunca foi sincronizado é fatura sem
+      cobrança.
 - [ ] Rota nova → superadmin em `/admin/assinaturas`; administradora em
       `/minha-administradora/...` (a carteira vem de `@AdministradoraId()`,
       nunca da URL — se houver `:tenantId` no path, confira com
@@ -343,9 +687,19 @@ npm run assinatura:previa    # imprime o que cada cliente pagaria hoje
 - [ ] Campo novo na aba do condomínio → ele entra em `ContaDoCondominio` (uma
       resposta só) e precisa fazer sentido **nos dois casos**: condomínio direto
       (tem `conta` e `faturas`) e de carteira (tem `participacoes`).
-- [ ] Status novo de fatura → reveja `resumo()` (cancelada fica fora dos totais),
-      `atualizarVencidas()`, o `EM_ABERTO` de `aviso-vencimento.ts` e
+- [ ] Status novo de fatura → reveja `resumo()` (`FORA_DOS_TOTAIS`),
+      `atualizarVencidas()`, o `EM_ABERTO` de `aviso-vencimento.ts`,
+      `situacaoDePagamento()`, as guardas de `pagar()`/`cancelar()`, o mapa em
+      `pagamentos/status-cobranca.ts` (incluindo a **precedência**) e
       `STATUS_FATURA_META` no front.
+- [ ] Mexeu na emissão → as três camadas de idempotência continuam de pé? A
+      chave ainda é gravada **antes** do POST?
+- [ ] Mexeu no webhook → a dedup continua sendo o **índice único** (não uma
+      consulta antes do insert), e a ordem continua sendo por **precedência**?
+      `webhook-pagamento.service.spec.ts` cobre os dois.
+- [ ] Campo novo no evento do gateway → some em `webhook-payload.ts`, com um
+      caso no spec. Nunca faça o parser exigir um formato: o payload bruto fica
+      gravado justamente porque o envelope pode mudar sem aviso.
 - [ ] Mexeu na régua do aviso → `aviso-vencimento.spec.ts` cobre as fronteiras
       sem banco; o e2e só prova que o aviso chega ao dono certo. **Não use
       `CURRENT_DATE` no e2e**: o Postgres roda em UTC e o produto conta os dias

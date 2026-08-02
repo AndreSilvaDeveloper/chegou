@@ -7,12 +7,20 @@ import {
   faixaPara,
 } from './calculadora-assinatura';
 
-/** A tabela acordada: 3,99 até 50 · 3,49 de 51 a 200 · 2,99 acima de 200. */
+/**
+ * A tabela do CONDOMÍNIO: 3,99 até 100 · 3,49 de 101 a 200 · 2,99 acima de 200.
+ *
+ * É a tabela de quem paga sozinho. A administradora tem a dela (`TABELA_ADM`),
+ * e o que escolhe uma ou outra é o vínculo do cliente — nunca a tela.
+ */
 const TABELA: FaixaPreco[] = [
-  { ateQuantidade: 50, precoApartamento: 3.99, ordem: 1 },
+  { ateQuantidade: 100, precoApartamento: 3.99, ordem: 1 },
   { ateQuantidade: 200, precoApartamento: 3.49, ordem: 2 },
   { ateQuantidade: null, precoApartamento: 2.99, ordem: 3 },
 ];
+
+/** A tabela da ADMINISTRADORA: preço de atacado, faixa única sem teto. */
+const TABELA_ADM: FaixaPreco[] = [{ ateQuantidade: null, precoApartamento: 1.99, ordem: 1 }];
 
 const condominio = (nome: string, apartamentos: number, id = nome): CondominioNaConta => ({
   tenantId: id,
@@ -33,14 +41,25 @@ const somaDosItens = (itens: { subtotal: number }[]): number =>
 describe('faixaPara — fronteiras da tabela', () => {
   it.each([
     [1, 3.99],
-    [50, 3.99], // último da primeira faixa
-    [51, 3.49], // primeiro da segunda
+    [100, 3.99], // último da primeira faixa
+    [101, 3.49], // primeiro da segunda
     [200, 3.49], // último da segunda
     [201, 2.99], // primeiro da terceira
     [5000, 2.99],
   ])('%i apartamentos → R$ %s por apartamento', (quantidade, preco) => {
     expect(faixaPara(TABELA, quantidade).precoApartamento).toBe(preco);
   });
+
+  it.each([
+    [1, 1.99],
+    [500, 1.99],
+    [10_000, 1.99],
+  ])(
+    'administradora com %i apartamentos → R$ %s por apartamento (faixa única)',
+    (quantidade, preco) => {
+      expect(faixaPara(TABELA_ADM, quantidade).precoApartamento).toBe(preco);
+    },
+  );
 
   it('condomínio sem apartamento cai na primeira faixa', () => {
     expect(faixaPara(TABELA, 0).precoApartamento).toBe(3.99);
@@ -84,7 +103,35 @@ describe('calcularAssinatura — condomínio direto', () => {
   });
 });
 
-describe('calcularAssinatura — carteira da administradora', () => {
+describe('calcularAssinatura — a tabela da administradora', () => {
+  it('cobra o preço de atacado sobre a carteira somada', () => {
+    const carteira = [condominio('A', 40), condominio('B', 70), condominio('C', 95)];
+    const r = calcularAssinatura({ condominios: carteira, faixas: TABELA_ADM });
+
+    // 205 × 1,99 = 407,95 — bem abaixo dos 613,95 que os três pagariam
+    // separados na tabela de condomínio, que é o ponto do preço de carteira.
+    expect(r.quantidadeApartamentos).toBe(205);
+    expect(r.precoAplicado).toBe(1.99);
+    expect(r.valor).toBe(407.95);
+    expect(somaDosItens(r.itens)).toBe(r.valor);
+  });
+
+  it('faixa única não muda de preço por tamanho', () => {
+    const pequena = calcularAssinatura({ condominios: [condominio('A', 10)], faixas: TABELA_ADM });
+    const grande = calcularAssinatura({ condominios: [condominio('B', 3000)], faixas: TABELA_ADM });
+    expect(pequena.precoAplicado).toBe(grande.precoAplicado);
+  });
+});
+
+/**
+ * A regra de somar a carteira para achar a faixa.
+ *
+ * Os casos usam a tabela do CONDOMÍNIO de propósito: é a que tem faixas, então é
+ * nela que dá para provar que a soma é o que decide o preço. A regra vale para
+ * qualquer tabela com mais de uma faixa — inclusive se a administradora um dia
+ * passar a escalonar.
+ */
+describe('calcularAssinatura — a soma da carteira é que escolhe a faixa', () => {
   it('soma os condomínios para achar a faixa (desconto por volume)', () => {
     const carteira = [condominio('A', 40), condominio('B', 40), condominio('C', 40)];
     const r = calcularAssinatura({ condominios: carteira, faixas: TABELA });
@@ -153,14 +200,14 @@ describe('calcularAssinatura — preço especial', () => {
 
   it('desconto percentual entra depois, sobre qualquer modo', () => {
     const r = calcularAssinatura({
-      condominios: [condominio('Aurora', 100)],
+      condominios: [condominio('Aurora', 150)],
       faixas: TABELA,
       condicao: { modo: ModoAssinatura.TABELA, descontoPercentual: 10 },
     });
 
-    expect(r.valorBruto).toBe(349); // 100 × 3,49
-    expect(r.desconto).toBe(34.9);
-    expect(r.valor).toBe(314.1);
+    expect(r.valorBruto).toBe(523.5); // 150 × 3,49
+    expect(r.desconto).toBe(52.35);
+    expect(r.valor).toBe(471.15);
   });
 
   it('desconto de 100% zera sem ficar negativo', () => {

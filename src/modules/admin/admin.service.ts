@@ -68,7 +68,7 @@ export class AdminService {
           administradoraId,
           nome: dto.nome,
           slug: dto.slug,
-          cnpj: dto.cnpj ?? null,
+          documento: dto.documento ?? null,
           cidade: dto.cidade ?? null,
           estado: dto.estado ?? null,
           plano: 'basico',
@@ -94,7 +94,7 @@ export class AdminService {
       return await this.tenantRepo.findOneOrFail({ where: { id: tenant.id } });
     } catch (err) {
       if (err instanceof QueryFailedError && (err as any).code === PG_UNIQUE_VIOLATION) {
-        throw new ConflictException('Slug, CNPJ ou e-mail do síndico já em uso');
+        throw new ConflictException('Slug, documento ou e-mail do síndico já em uso');
       }
       throw err;
     }
@@ -105,7 +105,7 @@ export class AdminService {
     if (!tenant) throw new NotFoundException('Condomínio não encontrado');
     if (dto.nome !== undefined) tenant.nome = dto.nome;
     if (dto.slug !== undefined) tenant.slug = dto.slug;
-    if (dto.cnpj !== undefined) tenant.cnpj = dto.cnpj || null;
+    if (dto.documento !== undefined) tenant.documento = dto.documento || null;
     if (dto.cidade !== undefined) tenant.cidade = dto.cidade || null;
     if (dto.estado !== undefined) tenant.estado = dto.estado || null;
     if (dto.plano !== undefined) tenant.plano = dto.plano;
@@ -134,7 +134,7 @@ export class AdminService {
       return salvo;
     } catch (err) {
       if (err instanceof QueryFailedError && (err as { code?: string }).code === PG_UNIQUE_VIOLATION) {
-        throw new ConflictException('Slug ou CNPJ já em uso por outro condomínio');
+        throw new ConflictException('Slug ou documento já em uso por outro condomínio');
       }
       throw err;
     }

@@ -4,6 +4,16 @@ import { BullModule } from '@nestjs/bullmq';
 
 export const QUEUE_NOTIFICATION_DISPATCH = 'notification-dispatch';
 
+/**
+ * Emissão de cobrança da assinatura.
+ *
+ * Fila própria, e não a de notificação, porque o ritmo das duas é oposto: a de
+ * WhatsApp é deliberadamente lenta (regras anti-bloqueio, um envio por
+ * condomínio de cada vez), e esta quer terminar o lote do dia 1º o quanto antes.
+ * Compartilhar a fila faria a emissão herdar a lentidão que protege o WhatsApp.
+ */
+export const QUEUE_COBRANCA_EMISSAO = 'cobranca-emissao';
+
 @Global()
 @Module({
   imports: [
@@ -23,6 +33,7 @@ export const QUEUE_NOTIFICATION_DISPATCH = 'notification-dispatch';
       }),
     }),
     BullModule.registerQueue({ name: QUEUE_NOTIFICATION_DISPATCH }),
+    BullModule.registerQueue({ name: QUEUE_COBRANCA_EMISSAO }),
   ],
   exports: [BullModule],
 })

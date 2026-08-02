@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { toast } from 'sonner';
@@ -50,15 +50,28 @@ function momentoSeguro(): boolean {
  * 1. quando o usuário troca de tela (o que ele estava vendo já foi descartado);
  * 2. quando o app está ocioso e sem nada digitado.
  *
- * Enquanto espera, um aviso oferece "Atualizar agora" para quem não quiser
- * esperar. Vale para o navegador e para o PWA instalado — os dois usam o mesmo
- * service worker. Em dev não há service worker, então o hook fica inerte.
+ * Enquanto espera, o `AvisoAtualizacao` oferece "Atualizar agora" para quem não
+ * quiser esperar. Vale para o navegador e para o PWA instalado — os dois usam o
+ * mesmo service worker. Em dev não há service worker, então o hook fica inerte.
+ *
+ * **O hook não desenha nada**: devolve o estado e as duas ações. O aviso era um
+ * toast de duração infinita, e toast é passageiro por definição — quem paga
+ * essa conta é o layout (o X do Sonner caía por cima do título) e o tema (o
+ * botão de ação vinha com a cor da biblioteca, não a nossa).
  */
-export function useAtualizacaoAutomatica() {
+export function useAtualizacaoAutomatica(): {
+  /** Há build novo pronto e o usuário ainda não dispensou o aviso. */
+  temVersaoNova: boolean;
+  /** Recarrega agora, ativando o service worker novo. */
+  aplicar: () => void;
+  /** Esconde o aviso. A atualização continua valendo e entra sozinha depois. */
+  dispensar: () => void;
+} {
   const { pathname } = useLocation();
   const ultimaInteracao = useRef(Date.now());
   const rotaNaDeteccao = useRef<string | null>(null);
   const aplicando = useRef(false);
+  const [dispensado, setDispensado] = useState(false);
 
   const {
     needRefresh: [temVersaoNova],
@@ -114,29 +127,22 @@ export function useAtualizacaoAutomatica() {
     };
   }, []);
 
+  const aplicar = useCallback(() => {
+    if (aplicando.current) return;
+    aplicando.current = true;
+    // `true` = ativa o service worker novo e recarrega a página sozinho.
+    void updateServiceWorker?.(true);
+  }, [updateServiceWorker]);
+
   useEffect(() => {
     if (!temVersaoNova) {
       rotaNaDeteccao.current = null;
       return;
     }
 
-    const aplicar = () => {
-      if (aplicando.current) return;
-      aplicando.current = true;
-      toast.dismiss('versao-nova');
-      // `true` = ativa o service worker novo e recarrega a página sozinho.
-      void updateServiceWorker?.(true);
-    };
-
-    // Primeira vez que vemos a versão nova: guarda a rota e oferece o atalho.
+    // Primeira vez que vemos a versão nova: guarda a rota em que ela apareceu.
     if (rotaNaDeteccao.current === null) {
       rotaNaDeteccao.current = pathname;
-      toast('Nova versão disponível', {
-        id: 'versao-nova',
-        description: 'Será aplicada assim que você terminar o que está fazendo.',
-        duration: Infinity,
-        action: { label: 'Atualizar agora', onClick: aplicar },
-      });
     } else if (rotaNaDeteccao.current !== pathname) {
       // Trocou de tela: a anterior já foi embora, recarregar não custa nada.
       aplicar();
@@ -150,5 +156,14 @@ export function useAtualizacaoAutomatica() {
     }, INTERVALO_APLICACAO_MS);
 
     return () => window.clearInterval(timer);
-  }, [temVersaoNova, pathname, updateServiceWorker]);
+  }, [temVersaoNova, pathname, aplicar]);
+
+  return {
+    temVersaoNova: temVersaoNova && !dispensado,
+    aplicar,
+    // Dispensar esconde o aviso, não cancela a atualização: ela continua
+    // entrando sozinha no próximo momento seguro. É por isso que o texto do
+    // aviso diz o que vai acontecer, em vez de sugerir uma escolha que não há.
+    dispensar: () => setDispensado(true),
+  };
 }

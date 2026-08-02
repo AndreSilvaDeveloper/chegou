@@ -16,7 +16,17 @@ o que o anterior deixou pronto:
    `req.tenantScope`.
 4. **`TenantModuleGuard`** — bloqueia módulo opcional (`@RequiresModule`) que o
    condomínio não contratou. Lê o escopo do passo 3.
-5. **`ThrottlerGuard`** — limite de requisições.
+5. **`AcessoAssinaturaGuard`** — **402** na escrita para quem está com a
+   assinatura em atraso. Também lê o escopo do passo 3. Leitura nunca é
+   bloqueada, e toda dúvida libera (fail-open). Nasce inerte: só age com
+   `PAYMENT_BLOQUEIO_ATIVO=true`.
+6. **`ThrottlerGuard`** — limite de requisições.
+
+> **O guard de assinatura não importa o módulo Assinaturas.** Ele declara um
+> contrato aqui (`guards/acesso-assinatura.service.ts`, classe abstrata que
+> serve de token) e o módulo de domínio o implementa. Sem essa inversão,
+> `common/` passaria a depender de um módulo de domínio — e essa é a dependência
+> que, uma vez aberta, atrai as outras: o próximo guard importaria Encomendas.
 
 ## Escopo do condomínio (`tenant-scope/`)
 

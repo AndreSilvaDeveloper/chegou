@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { DocumentoInput } from '@/components/ui/documento-input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -27,7 +28,7 @@ export function SuperAdminAdministradoras() {
   const [novaAberta, setNovaAberta] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [nome, setNome] = useState('');
-  const [cnpj, setCnpj] = useState('');
+  const [documento, setDocumento] = useState('');
   const queryClient = useQueryClient();
 
   const listaQuery = useQuery({
@@ -39,14 +40,16 @@ export function SuperAdminAdministradoras() {
     mutationFn: () =>
       api.post<AdministradoraComResumo>('/admin/administradoras', {
         nome: nome.trim(),
-        cnpj: cnpj.replace(/\D/g, '') || undefined,
+        // O campo já entrega só dígitos; vazio some do corpo em vez de virar
+        // string vazia, que o validador de documento reprovaria.
+        documento: documento || undefined,
       }),
     onSuccess: () => {
       toast.success('Administradora cadastrada.');
       queryClient.invalidateQueries({ queryKey: ['administradoras'] });
       setNovaAberta(false);
       setNome('');
-      setCnpj('');
+      setDocumento('');
     },
     onError: (err: unknown) => {
       toast.error(mensagemErro(err, 'Não foi possível cadastrar'));
@@ -152,15 +155,11 @@ export function SuperAdminAdministradoras() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="adm-cnpj">
-                CNPJ
-              </Label>
-              <Input
-                id="adm-cnpj"
-                value={cnpj}
-                onChange={(e) => setCnpj(e.target.value)}
-                placeholder="Somente números"
-                inputMode="numeric"
+              <Label htmlFor="adm-documento">CPF ou CNPJ</Label>
+              <DocumentoInput
+                id="adm-documento"
+                value={documento}
+                onChange={setDocumento}
               />
             </div>
 

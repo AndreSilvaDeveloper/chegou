@@ -6,6 +6,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DocumentoInput } from '@/components/ui/documento-input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -18,7 +19,7 @@ interface TenantRow {
   id: string;
   nome: string;
   slug: string;
-  cnpj: string | null;
+  documento: string | null;
   cidade: string | null;
   estado: string | null;
   plano: string;
@@ -34,7 +35,7 @@ export function SuperAdmin() {
   
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    nome: '', slug: '', cnpj: '', cidade: '', estado: '',
+    nome: '', slug: '', documento: '', cidade: '', estado: '',
     sindicoNome: '', sindicoEmail: '', sindicoSenha: '',
   });
   const [saving, setSaving] = useState(false);
@@ -63,7 +64,7 @@ export function SuperAdmin() {
       await api.post('/admin/tenants', {
         nome: form.nome,
         slug: form.slug,
-        cnpj: form.cnpj || undefined,
+        documento: form.documento || undefined,
         cidade: form.cidade || undefined,
         estado: form.estado || undefined,
         sindicoNome: form.sindicoNome,
@@ -71,7 +72,7 @@ export function SuperAdmin() {
         sindicoSenha: form.sindicoSenha,
       });
       setShowForm(false);
-      setForm({ nome: '', slug: '', cnpj: '', cidade: '', estado: '', sindicoNome: '', sindicoEmail: '', sindicoSenha: '' });
+      setForm({ nome: '', slug: '', documento: '', cidade: '', estado: '', sindicoNome: '', sindicoEmail: '', sindicoSenha: '' });
       toast.success('Condomínio criado com sucesso!');
       load();
     } catch (err) {
@@ -250,8 +251,8 @@ export function SuperAdmin() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ (Opcional)</Label>
-                  <Input id="cnpj" className="font-mono txt-corpo" placeholder="Apenas números" value={form.cnpj} onChange={e => setForm({...form, cnpj: e.target.value.replace(/\D/g,'')})} maxLength={14} />
+                  <Label htmlFor="documento">CPF ou CNPJ (opcional)</Label>
+                  <DocumentoInput id="documento" value={form.documento} onChange={documento => setForm({...form, documento})} />
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2">

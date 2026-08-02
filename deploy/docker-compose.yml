@@ -131,6 +131,17 @@ services:
       # Leitura de etiqueta (serviço `ocr` acima). Vazio = desligado.
       OCR_BASE_URL: ${OCR_BASE_URL:-http://ocr:8000}
       OCR_TIMEOUT_MS: ${OCR_TIMEOUT_MS:-30000}
+      # Cobrança da assinatura (Payment API). Vazio = cobrança desligada: as
+      # faturas continuam nascendo e sendo calculadas, só não viram cobrança.
+      PAYMENT_API_BASE_URL: ${PAYMENT_API_BASE_URL:-}
+      PAYMENT_API_COMPANY_ID: ${PAYMENT_API_COMPANY_ID:-}
+      PAYMENT_API_EMAIL: ${PAYMENT_API_EMAIL:-}
+      PAYMENT_API_PASSWORD: ${PAYMENT_API_PASSWORD:-}
+      PAYMENT_API_TIMEOUT_MS: ${PAYMENT_API_TIMEOUT_MS:-15000}
+      # Segredo do webhook de pagamento. Vazio = a rota recusa tudo.
+      PAYMENT_WEBHOOK_TOKEN: ${PAYMENT_WEBHOOK_TOKEN:-}
+      # Bloqueio por inadimplência. Mantenha `false` até rodar um ciclo real.
+      PAYMENT_BLOQUEIO_ATIVO: ${PAYMENT_BLOQUEIO_ATIVO:-false}
       # Seed do superadmin (usado por: docker compose exec api node scripts/seed-prod.js)
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@portaria.app}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}

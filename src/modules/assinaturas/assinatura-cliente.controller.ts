@@ -27,6 +27,15 @@ export class MinhaAdministradoraAssinaturaController {
   ) {
     return this.faturas.obterDaAdministradora(administradoraId, id);
   }
+
+  /** O link de pagamento e o estado dele. Ver a nota no controller do síndico. */
+  @Get('faturas/:id/pagamento')
+  async pagamento(
+    @AdministradoraId() administradoraId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return (await this.faturas.obterDaAdministradora(administradoraId, id)).pagamento;
+  }
 }
 
 /**
@@ -81,5 +90,21 @@ export class AssinaturaCondominioController {
   @Get('faturas/:id')
   obterFatura(@TenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.faturas.obterDoTenant(tenantId, id);
+  }
+
+  /**
+   * O link de pagamento e o estado dele — **não emite nada**.
+   *
+   * O cliente não opera cobrança; ele paga o que foi emitido. Esta rota existe
+   * para o caso da fatura recém-gerada, cuja emissão ainda está na fila: a tela
+   * consulta de novo em vez de mostrar um botão que não funciona.
+   *
+   * A situação já vem junto de cada fatura (campo `pagamento`) para o botão
+   * "Pagar" existir na lista sem uma requisição por linha. As duas leem o mesmo
+   * `situacaoDePagamento()`, então não têm como divergir.
+   */
+  @Get('faturas/:id/pagamento')
+  async pagamento(@TenantId() tenantId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return (await this.faturas.obterDoTenant(tenantId, id)).pagamento;
   }
 }
