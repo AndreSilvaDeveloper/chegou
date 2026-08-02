@@ -11,6 +11,45 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.30.2 — 2026-08-01
+
+### Adicionado
+- **`PAYMENT_API_KEY` — autenticação por API Key, e ela é o caminho principal.**
+  Com a chave preenchida, **o ciclo de autenticação some**: nada de login,
+  refresh com rotação, trava entre réplicas ou token em Redis. Uma chamada HTTP
+  por operação, e menos peças no caminho de uma integração de dinheiro.
+  - O usuário de integração (JWT) continua aceito e vira **reserva**. Basta uma
+    das duas credenciais para a integração ficar configurada.
+  - **A referência da Payment API se contradiz** sobre quais endpoints aceitam
+    API Key: a tabela-resumo lista `/access-policy` e `access-status` como JWT, e
+    a seção de cada endpoint diz "JWT ou API Key". Em vez de escolher uma versão
+    e torcer, o cliente descobre na prática — 401/403 com a chave, havendo
+    credenciais, ele repete com JWT e registra um aviso nomeando o caminho. A
+    lista de exceções sai do log, não de um documento que discorda de si mesmo.
+  - O fallback acontece **uma vez** por chamada: 403 no JWT também não vira laço.
+
+### Corrigido
+- **`Payment API HTTP 405 (POST /auth/login)`** — o erro que motivou tudo isto.
+  Com API Key não há mais chamada a `/auth/login`, mas a causa provável valia ser
+  tratada: **`fetch` segue redirecionamento e, num 301/302, troca POST por GET**
+  (é o que a especificação manda). Uma base em `http://` num host que redireciona
+  para `https://` transforma `POST /auth/login` em `GET` — e o endpoint responde
+  405, que não conta essa história.
+  - A mensagem de erro agora nomeia o redirect e a **URL final**. Sem essa pista,
+    o caminho até descobrir passa por conferir rota, versão da API e credencial —
+    tudo que está certo.
+- **Base com o prefixo junto.** `PAYMENT_API_BASE_URL=https://host/api/v1`
+  produzia `/api/v1/api/v1/...` — um 404 que parece problema de rota e é de
+  configuração. O sufixo `/api` ou `/api/v1` passou a ser removido da base;
+  copiar a URL do Swagger com o prefixo é o engano mais natural aqui.
+
+### Testes
+- `payment-api.client.spec.ts` ganhou 9 casos: a chave dispensa o login, o
+  fallback para JWT no 403, o laço que não acontece, a normalização da base e a
+  pista de redirecionamento na mensagem.
+
+---
+
 ## 0.30.1 — 2026-08-01
 
 ### Corrigido

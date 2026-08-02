@@ -893,7 +893,8 @@ Veja `.env.example` para lista completa. As mais críticas:
 | `OCR_TIMEOUT_MS` | Timeout de cada leitura de imagem (padrão 30000) |
 | `PAYMENT_API_BASE_URL` | Gateway de cobrança da assinatura (vazio = cobrança desligada) |
 | `PAYMENT_API_COMPANY_ID` | `X-Company-Id` — somos uma company só lá dentro |
-| `PAYMENT_API_EMAIL` / `PAYMENT_API_PASSWORD` | Usuário de integração, criado no painel do gateway |
+| `PAYMENT_API_KEY` | Chave do gateway (`X-API-Key`) — o caminho principal de autenticação |
+| `PAYMENT_API_EMAIL` / `PAYMENT_API_PASSWORD` | Usuário de integração (JWT), reserva para endpoints exclusivos de JWT |
 | `PAYMENT_WEBHOOK_TOKEN` | Segredo do nosso webhook de pagamento (vazio = a rota recusa tudo) |
 | `PAYMENT_BLOQUEIO_ATIVO` | Bloqueio por inadimplência. **Nasce `false`** — é o freio de mão |
 

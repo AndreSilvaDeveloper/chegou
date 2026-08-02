@@ -50,36 +50,64 @@ não tem dono do outro lado.
 |---|---|
 | `PAYMENT_API_BASE_URL` | **Vazio = cobrança desligada** |
 | `PAYMENT_API_COMPANY_ID` | O `X-Company-Id` (somos uma company só) |
-| `PAYMENT_API_EMAIL` / `_PASSWORD` | Usuário de integração, criado **no painel deles** |
+| `PAYMENT_API_KEY` | **Caminho principal**: chave sistema-a-sistema (`X-API-Key`) |
+| `PAYMENT_API_EMAIL` / `_PASSWORD` | Usuário de integração (JWT), criado **no painel deles**. Reserva |
 | `PAYMENT_API_TIMEOUT_MS` | Timeout de cada chamada (padrão 15000) |
 
 Mesma disciplina do `OPENWA_BASE_URL`: dev e teste rodam sem gateway. A fatura
 continua sendo gerada e calculada; só a cobrança não sai, e a tela **diz isso**
 em vez de listar todo mundo como erro. Nada de mock silencioso.
 
-O usuário de integração precisa ser **`COMPANY_ADMIN`**, não `COMPANY_OPERATOR`:
-estorno, `received-in-cash` e escrita de cupom exigem admin. Não existe
-`ROLE_SYSTEM` para nós.
+Basta **uma** das duas credenciais para a integração ficar configurada. Se for
+o usuário de integração, ele precisa ser **`COMPANY_ADMIN`**, não
+`COMPANY_OPERATOR`: estorno, `received-in-cash` e escrita de cupom exigem admin.
 
-## Autenticação — e por que o login é a rede de segurança
+## Autenticação — API Key primeiro, JWT como reserva
 
-As rotas de cobrança exigem **JWT**, não API Key. O par de tokens (access 24h,
-refresh 7d) vive no **Redis**, em `pay:tokens`, compartilhado por todas as
-réplicas.
+| Variável | Papel |
+|---|---|
+| `PAYMENT_API_KEY` | **Caminho principal.** Header `X-API-Key: pk_...`, criada no painel deles |
+| `PAYMENT_API_EMAIL` / `_PASSWORD` | Usuário `COMPANY_ADMIN` (JWT). Reserva |
 
-Três decisões que não são detalhe:
+Com a chave configurada, **o ciclo de autenticação some**: nada de login,
+refresh com rotação, trava entre réplicas ou token em Redis. Uma chamada HTTP por
+operação — e menos peças no caminho de uma integração de dinheiro é menos coisa
+para falhar às três da manhã.
 
-1. **O par vive no Redis, não em memória.** Cada réplica logando por conta
-   própria multiplicaria sessões.
-2. **O refresh rotaciona** — devolve um par novo e invalida o anterior. Duas
-   réplicas renovando na mesma janela derrubariam uma à outra, daí a trava
-   `pay:auth:lock`.
-3. **Refresh que falha cai para login.** Temos as credenciais em env, então
-   rotação perdida nunca é beco sem saída. Sem esse degrau, uma corrida infeliz
-   deixaria a integração fora do ar até alguém reiniciar o processo.
+### Por que o JWT continua aqui
+
+**A referência deles se contradiz** sobre quais endpoints aceitam API Key: a
+tabela-resumo do fim lista `/access-policy` e `access-status` como **JWT**, e a
+seção de cada endpoint diz "JWT ou API Key".
+
+Em vez de escolher uma das versões e torcer, o cliente **descobre na prática**:
+401/403 com API Key, havendo credenciais, ele repete com JWT e registra um aviso
+nomeando o caminho. A lista de exceções sai do log, não de um documento que
+discorda de si mesmo.
+
+O fallback acontece **uma vez** por chamada — 403 no JWT também não vira laço.
+
+### Quando o JWT é usado
+
+Só sem `PAYMENT_API_KEY`, ou no fallback acima. Nesse caminho valem as três
+regras de sempre: o par de tokens vive no **Redis** (réplica não multiplica
+sessão), o refresh **rotaciona** (daí a trava `pay:auth:lock`), e **refresh que
+falha cai para login** — temos as credenciais, então rotação perdida nunca é beco
+sem saída.
 
 `expiresIn` vem em **milissegundos** (86400000 = 24h). Tratar como segundos
 guardaria o token por 24 mil dias, e o primeiro sinal seria um 401 em produção.
+
+### Dois enganos de configuração que o cliente resolve sozinho
+
+- **Base com o prefixo junto.** `https://host/api/v1` produziria
+  `/api/v1/api/v1/...` — um 404 que parece problema de rota e é de
+  configuração. O sufixo `/api` ou `/api/v1` é removido da base.
+- **Redirecionamento.** `fetch` segue redirect e, num 301/302, **troca POST por
+  GET** (é o que a especificação manda). Uma base em `http://` num host que
+  redireciona para `https://` transforma `POST /auth/login` em `GET` — e o
+  endpoint responde **405**, que não conta essa história. A mensagem de erro
+  agora nomeia o redirect e a URL final.
 
 ## Retry — o que insiste e o que não
 

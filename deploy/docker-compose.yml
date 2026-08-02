@@ -135,6 +135,7 @@ services:
       # faturas continuam nascendo e sendo calculadas, só não viram cobrança.
       PAYMENT_API_BASE_URL: ${PAYMENT_API_BASE_URL:-}
       PAYMENT_API_COMPANY_ID: ${PAYMENT_API_COMPANY_ID:-}
+      PAYMENT_API_KEY: ${PAYMENT_API_KEY:-}
       PAYMENT_API_EMAIL: ${PAYMENT_API_EMAIL:-}
       PAYMENT_API_PASSWORD: ${PAYMENT_API_PASSWORD:-}
       PAYMENT_API_TIMEOUT_MS: ${PAYMENT_API_TIMEOUT_MS:-15000}

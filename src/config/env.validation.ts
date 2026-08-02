@@ -55,8 +55,15 @@ export const envValidationSchema = Joi.object({
   PAYMENT_API_BASE_URL: Joi.string().uri().allow('').optional(),
   // `X-Company-Id` — somos UMA company lá dentro, fixa.
   PAYMENT_API_COMPANY_ID: Joi.string().allow('').optional(),
-  // Usuário de integração criado no painel da Payment API, papel COMPANY_ADMIN
-  // (OPERATOR não pode estornar nem dar received-in-cash, que a fase 3 usa).
+  // **Caminho principal**: a chave sistema-a-sistema deles (`pk_...`, header
+  // `X-API-Key`), criada no painel. Dispensa login, refresh com rotação e a
+  // trava entre réplicas — menos peças no caminho de uma integração de dinheiro.
+  PAYMENT_API_KEY: Joi.string().allow('').optional(),
+  // Usuário de integração (JWT), papel COMPANY_ADMIN. Continua aceito e é a
+  // **reserva**: a referência deles lista `/access-policy` como exclusivo de
+  // JWT na tabela-resumo, e como "JWT ou API Key" na seção do endpoint. Com os
+  // dois configurados, o cliente cai para o JWT sozinho quando a chave é
+  // recusada — e registra qual endpoint foi.
   PAYMENT_API_EMAIL: Joi.string().allow('').optional(),
   PAYMENT_API_PASSWORD: Joi.string().allow('').optional(),
   // Timeout de cada chamada. Existe pelo mesmo motivo do OpenWA: chamada

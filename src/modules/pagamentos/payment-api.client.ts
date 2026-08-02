@@ -59,6 +59,8 @@ interface OpcoesReq {
   idempotencyKey?: string;
   /** Uso interno: impede que o retry pós-401 vire laço. */
   jaRenovou?: boolean;
+  /** Uso interno: força JWT num endpoint que recusou a API Key. */
+  usarJwt?: boolean;
 }
 
 function safeJson(text: string): unknown {
@@ -94,6 +96,7 @@ export class PaymentApiClient {
   private readonly logger = new Logger(PaymentApiClient.name);
   private readonly baseUrl: string;
   private readonly companyId: string;
+  private readonly apiKey: string;
   private readonly email: string;
   private readonly password: string;
   private readonly timeoutMs: number;
@@ -106,16 +109,33 @@ export class PaymentApiClient {
     private readonly config: ConfigService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {
-    this.baseUrl = (this.config.get<string>('PAYMENT_API_BASE_URL') ?? '').replace(/\/+$/, '');
+    this.baseUrl = this.normalizarBase(this.config.get<string>('PAYMENT_API_BASE_URL') ?? '');
     this.companyId = this.config.get<string>('PAYMENT_API_COMPANY_ID') ?? '';
+    this.apiKey = this.config.get<string>('PAYMENT_API_KEY') ?? '';
     this.email = this.config.get<string>('PAYMENT_API_EMAIL') ?? '';
     this.password = this.config.get<string>('PAYMENT_API_PASSWORD') ?? '';
     this.timeoutMs = this.config.get<number>('PAYMENT_API_TIMEOUT_MS', 15_000);
   }
 
-  /** true quando dá para conversar com o gateway (URL, company e credenciais). */
+  /**
+   * Tira o `/api/v1` (ou `/api`) do fim da base.
+   *
+   * O cliente monta `{base}/api/v1{path}`, então uma base que já traga o prefixo
+   * produziria `/api/v1/api/v1/...` — um 404 que parece problema de rota e é de
+   * configuração. Copiar a URL do Swagger com o prefixo junto é o erro mais
+   * natural do mundo aqui.
+   */
+  private normalizarBase(bruta: string): string {
+    return bruta.trim().replace(/\/+$/, '').replace(/\/api(\/v\d+)?$/, '');
+  }
+
+  /** true quando dá para conversar com o gateway (URL, company e alguma credencial). */
   get configured(): boolean {
-    return Boolean(this.baseUrl && this.companyId && this.email && this.password);
+    return Boolean(this.baseUrl && this.companyId && (this.apiKey || this.temCredenciais));
+  }
+
+  private get temCredenciais(): boolean {
+    return Boolean(this.email && this.password);
   }
 
   // ------------------------------------------------------------------ chamadas
@@ -147,7 +167,7 @@ export class PaymentApiClient {
     if (!this.configured) {
       throw new PaymentApiError(
         0,
-        'Cobrança desligada: defina PAYMENT_API_BASE_URL, PAYMENT_API_COMPANY_ID e as credenciais',
+        'Cobrança desligada: defina PAYMENT_API_BASE_URL, PAYMENT_API_COMPANY_ID e PAYMENT_API_KEY (ou o usuário de integração)',
       );
     }
     this.conferirCircuito();
@@ -162,10 +182,27 @@ export class PaymentApiClient {
       } catch (err) {
         const erro = err as PaymentApiError;
 
+        // **Endpoint que a API Key não alcança.** A referência deles diz uma
+        // coisa na tabela-resumo e outra na seção do endpoint, então descobrimos
+        // aqui: 401/403 com API Key e credenciais disponíveis → repete com JWT.
+        // O aviso nomeia o caminho, para a lista de exceções sair do log em vez
+        // de sair de um documento que se contradiz.
+        const usandoApiKey = Boolean(this.apiKey) && !opcoes.usarJwt;
+        if (
+          (erro.status === 401 || erro.status === 403) &&
+          usandoApiKey &&
+          this.temCredenciais
+        ) {
+          this.logger.warn(
+            `${method} ${path} recusou a API Key (${erro.status}); repetindo com o usuário de integração`,
+          );
+          return this.req<T>(method, path, { ...opcoes, usarJwt: true });
+        }
+
         // 401 depois de um token que julgávamos bom: renova UMA vez e repete.
         // Duas seria laço — 401 com token recém-emitido é configuração errada
         // (credencial trocada, company sem permissão), e insistir só esconde.
-        if (erro.status === 401 && !opcoes.jaRenovou) {
+        if (erro.status === 401 && !opcoes.jaRenovou && !usandoApiKey) {
           await this.descartarTokens();
           return this.req<T>(method, path, { ...opcoes, jaRenovou: true });
         }
@@ -190,14 +227,12 @@ export class PaymentApiClient {
   }
 
   private async chamar<T>(method: string, path: string, opcoes: OpcoesReq): Promise<T> {
-    const token = await this.accessToken();
-
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}/api/v1${path}`, {
         method,
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(await this.cabecalhoDeAuth(opcoes)),
           'X-Company-Id': this.companyId,
           ...(opcoes.idempotencyKey ? { 'Idempotency-Key': opcoes.idempotencyKey } : {}),
           ...(opcoes.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
@@ -222,10 +257,30 @@ export class PaymentApiClient {
       const msg = Array.isArray(bruto)
         ? bruto.join(', ')
         : (bruto ?? `Payment API HTTP ${res.status} (${method} ${path})`);
-      throw new PaymentApiError(res.status, String(msg), data);
+      throw new PaymentApiError(res.status, `${msg}${this.pistaDeRedirect(res, method)}`, data);
     }
 
     return data as T;
+  }
+
+  /**
+   * A explicação de um erro que parece de rota e é de configuração.
+   *
+   * **`fetch` segue redirecionamento e, num 301/302, troca POST por GET** (é o
+   * que a especificação manda). Então uma base em `http://` num servidor que
+   * redireciona para `https://` transforma `POST /auth/login` em
+   * `GET /auth/login` — e o endpoint responde **405**, que não diz nada sobre a
+   * causa real.
+   *
+   * Sem esta pista, o caminho até descobrir isso passa por conferir rota,
+   * versão da API e credencial — tudo que está certo.
+   */
+  private pistaDeRedirect(res: Response, method: string): string {
+    if (!res.redirected) return '';
+    return (
+      ` — a chamada foi REDIRECIONADA para ${res.url}. Num redirecionamento, ${method} vira GET;` +
+      ' confira se PAYMENT_API_BASE_URL usa https e o host definitivo.'
+    );
   }
 
   private erroDeRede(err: unknown, method: string, path: string): PaymentApiError {
@@ -240,6 +295,25 @@ export class PaymentApiClient {
   }
 
   // ------------------------------------------------------------ autenticação
+
+  /**
+   * Como esta chamada se identifica.
+   *
+   * **A API Key é o caminho principal quando existe.** Ela é o mecanismo
+   * sistema-a-sistema da Payment API e evita o ciclo inteiro de login, refresh
+   * com rotação e trava entre réplicas — menos peças no caminho de uma
+   * integração de dinheiro é menos coisa para falhar às três da manhã.
+   *
+   * O JWT continua aqui porque **a referência deles se contradiz** sobre quais
+   * endpoints aceitam API Key: a tabela-resumo lista `/access-policy` e
+   * `access-status` como JWT, e a seção de cada endpoint diz "JWT ou API Key".
+   * Em vez de escolher uma das duas versões e torcer, o cliente descobre na
+   * prática: ver `req()`, que cai para JWT num 401/403 de API Key.
+   */
+  private async cabecalhoDeAuth(opcoes: OpcoesReq): Promise<Record<string, string>> {
+    if (this.apiKey && !opcoes.usarJwt) return { 'X-API-Key': this.apiKey };
+    return { Authorization: `Bearer ${await this.accessToken()}` };
+  }
 
   /**
    * Access token válido, do Redis ou recém-emitido.

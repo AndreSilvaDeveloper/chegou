@@ -305,4 +305,101 @@ describe('PaymentApiClient', () => {
       expect(headers['Idempotency-Key']).toBeUndefined();
     });
   });
+
+  describe('API Key', () => {
+    const comChave = { PAYMENT_API_KEY: 'pk_teste' };
+
+    it('**usa X-API-Key e NÃO faz login** — sem token, sem refresh, sem trava', async () => {
+      const client = criar(comChave);
+      fetchMock.mockResolvedValueOnce(resposta(200, { id: 1 }));
+
+      await client.get('/customers/1');
+
+      // Uma chamada só: o ciclo inteiro de autenticação some.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+      expect(headers['X-API-Key']).toBe('pk_teste');
+      expect(headers.Authorization).toBeUndefined();
+      expect(headers['X-Company-Id']).toBe('7');
+    });
+
+    it('só a chave já configura a integração — credenciais viram opcionais', () => {
+      const client = criar({ ...comChave, PAYMENT_API_EMAIL: '', PAYMENT_API_PASSWORD: '' });
+      expect(client.configured).toBe(true);
+    });
+
+    it('**403 na chave cai para o JWT** — é assim que se descobre endpoint exclusivo de JWT', async () => {
+      // A referência deles se contradiz sobre /access-policy: a tabela-resumo diz
+      // JWT, a seção do endpoint diz JWT ou API Key. Em vez de escolher uma das
+      // versões e torcer, o cliente descobre na prática.
+      const client = criar(comChave);
+      fetchMock
+        .mockResolvedValueOnce(resposta(403, { message: 'forbidden' }))
+        .mockResolvedValueOnce(resposta(200, LOGIN_OK))
+        .mockResolvedValueOnce(resposta(200, { ok: true }));
+
+      await expect(client.get('/access-policy')).resolves.toEqual({ ok: true });
+
+      const ultimo = fetchMock.mock.calls[2][1].headers as Record<string, string>;
+      expect(ultimo.Authorization).toBe('Bearer access-1');
+      expect(ultimo['X-API-Key']).toBeUndefined();
+    });
+
+    it('sem credenciais, o 403 sobe — não há para onde cair', async () => {
+      const client = criar({ ...comChave, PAYMENT_API_EMAIL: '', PAYMENT_API_PASSWORD: '' });
+      fetchMock.mockResolvedValue(resposta(403, { message: 'forbidden' }));
+
+      await expect(client.get('/access-policy')).rejects.toMatchObject({ status: 403 });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('o fallback acontece UMA vez — 403 no JWT também não vira laço', async () => {
+      const client = criar(comChave);
+      fetchMock
+        .mockResolvedValueOnce(resposta(403, {}))
+        .mockResolvedValueOnce(resposta(200, LOGIN_OK))
+        .mockResolvedValueOnce(resposta(403, {}));
+
+      await expect(client.get('/access-policy')).rejects.toMatchObject({ status: 403 });
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('base URL', () => {
+    it.each([
+      'https://pay.example.com/api/v1',
+      'https://pay.example.com/api',
+      'https://pay.example.com/',
+    ])('normaliza %s para não duplicar o prefixo', async (base) => {
+      const client = criar({ PAYMENT_API_KEY: 'pk_teste', PAYMENT_API_BASE_URL: base });
+      fetchMock.mockResolvedValueOnce(resposta(200, {}));
+
+      await client.get('/customers');
+
+      // Copiar a URL do Swagger com o prefixo junto é o erro mais natural aqui,
+      // e produziria /api/v1/api/v1/... — um 404 que parece problema de rota.
+      expect(fetchMock.mock.calls[0][0]).toBe('https://pay.example.com/api/v1/customers');
+    });
+  });
+
+  describe('diagnóstico', () => {
+    it('**redirecionamento entra na mensagem de erro**', async () => {
+      // fetch segue o redirect e, num 301/302, troca POST por GET — então uma
+      // base em http:// num host que redireciona para https vira 405 num
+      // endpoint que só aceita POST. O 405 sozinho não conta essa história.
+      const client = criar({ PAYMENT_API_KEY: 'pk_teste' });
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 405,
+        redirected: true,
+        url: 'https://pay.example.com/api/v1/customers',
+        text: async () => '',
+      } as Response);
+
+      const erro = await client.post('/customers', {}).catch((e: PaymentApiError) => e);
+
+      expect((erro as PaymentApiError).message).toMatch(/REDIRECIONADA/);
+      expect((erro as PaymentApiError).message).toMatch(/POST vira GET/);
+    });
+  });
 });
