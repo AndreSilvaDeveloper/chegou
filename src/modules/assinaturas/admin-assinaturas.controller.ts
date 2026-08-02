@@ -315,10 +315,7 @@ export class AdminAssinaturasController {
    * ambiguidade só apareceu na hora de implementar.
    */
   @Post('clientes/:tipo/:id/sincronizar')
-  sincronizarCliente(
-    @Param() params: SincronizarClienteParams,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
-    return this.clientes.sincronizar(params.tipo, id);
+  sincronizarCliente(@Param() params: SincronizarClienteParams) {
+    return this.clientes.sincronizar(params.tipo, params.id);
   }
 }

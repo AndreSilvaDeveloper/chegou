@@ -11,6 +11,42 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.30.1 — 2026-08-01
+
+### Corrigido
+- **"property id should not exist" ao sincronizar cliente com o gateway.** A
+  rota `POST /admin/assinaturas/clientes/:tipo/:id/sincronizar` usava `@Param()`
+  **sem chave**, que entrega o objeto inteiro de params (`{ tipo, id }`), e o DTO
+  só declarava `tipo`. Com `forbidNonWhitelisted: true` no `ValidationPipe`
+  global, o `id` virava campo proibido — e o 400 não dizia nada sobre a causa.
+  - O DTO passou a declarar os **dois** params, com `@IsUUID` no id. Efeito
+    colateral bom: id inválido agora responde "id do cliente inválido" em vez da
+    mensagem genérica do `ParseUUIDPipe`.
+  - Era o único `@Param()` sem chave do projeto.
+- **Teste que falhava sozinho entre 21h e meia-noite.** `assinaturas.e2e-spec.ts`
+  montava as datas das condições com `CURRENT_DATE` do Postgres (que roda em
+  **UTC** no container), enquanto o produto conta os dias em **São Paulo**
+  (`hojeISO()`). Das 21h à meia-noite os dois discordam em um dia, e a condição
+  "vencida ontem" ainda valia para o app — o teste de `condição vencida não vale
+  mais` quebrava.
+  - As datas agora saem de `hojeISO()`. A mesma armadilha já estava documentada
+    em `assinaturas-cliente.e2e-spec.ts`; este arquivo não seguia.
+  - **A regra de produção estava certa** — quem estava errado era o fixture.
+
+### Adicionado
+- `test/assinatura-clientes.e2e-spec.ts`: a rota de sincronizar por HTTP, com o
+  **mesmo `ValidationPipe` do `main.ts`**. É o ponto do arquivo — um e2e que
+  monta a aplicação sem ele passa por cima de toda validação de DTO, e foi
+  assim que este defeito chegou ao servidor: 201 no teste, 400 em produção.
+- **As variáveis `PAYMENT_*` no `deploy/`.** Elas existiam na validação de env e
+  no `.env.example` da raiz, mas **não** em `deploy/docker-compose.yml` nem em
+  `deploy/.env.example` — em produção o container nunca as receberia, e a
+  cobrança ficaria desligada em silêncio (porque "vazio = desligado" é o
+  comportamento correto). Agora as sete estão lá, com a URL do webhook
+  documentada ao lado do token.
+
+---
+
 ## 0.30.0 — 2026-08-01
 
 Fase 6 — a última do [plano de cobrança pela Payment API](docs/plano-cobranca-gateway.md).

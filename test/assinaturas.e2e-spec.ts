@@ -6,6 +6,7 @@ import { AssinaturaFaturasService } from '../src/modules/assinaturas/assinatura-
 import { AssinaturasService } from '../src/modules/assinaturas/assinaturas.service';
 import { AssinaturaCobrancasService } from '../src/modules/assinaturas/assinatura-cobrancas.service';
 import { TipoClienteAssinatura } from '../src/database/entities/assinatura-faixa.entity';
+import { hojeISO } from '../src/modules/assinaturas/datas';
 
 /**
  * Assinatura: a conta que o cliente paga.
@@ -24,6 +25,26 @@ import { TipoClienteAssinatura } from '../src/database/entities/assinatura-faixa
  * de valor aqui embaixo depende de qual das duas o cliente usa — é justamente o
  * que este arquivo existe para provar.
  */
+
+/**
+ * Data no fuso do **produto**, nunca `CURRENT_DATE`.
+ *
+ * O Postgres do container roda em UTC e o Chegou conta os dias em São Paulo:
+ * das 21h à meia-noite os dois discordam em um dia. Uma condição inserida com
+ * `CURRENT_DATE - 1` como `vigente_ate` seria "ontem" para o banco e **hoje**
+ * para `hojeISO()` — e o teste de "condição vencida" falharia sozinho, todas as
+ * noites, numa janela de três horas.
+ *
+ * Foi exatamente o que aconteceu. A mesma armadilha já estava documentada em
+ * `assinaturas-cliente.e2e-spec.ts`; este arquivo não seguia.
+ */
+function diasAtras(dias: number): string {
+  const [ano, mes, dia] = hojeISO().split('-').map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1, dia));
+  d.setUTCDate(d.getUTCDate() - dias);
+  return d.toISOString().slice(0, 10);
+}
+
 describe('Assinaturas — cálculo sobre o banco (e2e)', () => {
   let app: INestApplication;
   let ds: DataSource;
@@ -160,8 +181,8 @@ describe('Assinaturas — cálculo sobre o banco (e2e)', () => {
   it('preço especial em vigor substitui a tabela', async () => {
     await ds.query(
       `INSERT INTO assinatura_condicoes (administradora_id, modo, preco_apartamento, vigente_de, observacao)
-       VALUES ($1, 'preco_apartamento', 2.00, CURRENT_DATE - 1, 'e2e')`,
-      [administradoraId],
+       VALUES ($1, 'preco_apartamento', 2.00, $2, 'e2e')`,
+      [administradoraId, diasAtras(1)],
     );
 
     const previa = await service.previaDaAdministradora(administradoraId);
@@ -175,8 +196,8 @@ describe('Assinaturas — cálculo sobre o banco (e2e)', () => {
   it('condição vencida não vale mais', async () => {
     await ds.query(
       `INSERT INTO assinatura_condicoes (administradora_id, modo, preco_apartamento, vigente_de, vigente_ate, observacao)
-       VALUES ($1, 'preco_apartamento', 1.00, CURRENT_DATE - 30, CURRENT_DATE - 1, 'e2e vencida')`,
-      [administradoraId],
+       VALUES ($1, 'preco_apartamento', 1.00, $2, $3, 'e2e vencida')`,
+      [administradoraId, diasAtras(30), diasAtras(1)],
     );
 
     const previa = await service.previaDaAdministradora(administradoraId);

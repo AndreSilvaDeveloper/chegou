@@ -1,6 +1,6 @@
 {
   "name": "portaria-condominio",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "description": "SaaS multi-tenant para gestão de encomendas em portaria de condomínio",
   "private": true,
   "license": "UNLICENSED",
