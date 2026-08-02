@@ -33,6 +33,23 @@
 /* A caixa dá uma volta ao passar o mouse na marca. */
 .marca__selo img { transition: transform .6s cubic-bezier(.4,0,.2,1); }
 .marca:hover .marca__selo img { transform: rotate(360deg); }
+/* NO CELULAR FICA SÓ O SÍMBOLO.
+
+   Com o botão "Entrar" visível em qualquer largura, a linha do topo passou a
+   ter quatro peças: marca, hambúrguer, tema e o botão. Em 375px o `.wrap`
+   deixa 335px úteis, e a soma dava 393 — a palavra da marca (164px) é a única
+   que sai sem custo real, porque o `<a class="marca">` já carrega
+   `aria-label="CONDO avisa — início"`: quem usa leitor de tela continua
+   ouvindo o nome inteiro.
+
+   Depois do corte: símbolo 36 + hambúrguer 44 + tema 44 + botão 93 + 3 gaps de
+   16 = 265px. Sobra folga até ~305px de tela. */
+.marca__nome, .marca__sufixo { display: none; }
+@media (min-width: 640px) {
+  .marca__nome { display: inline; }
+  .marca__sufixo { display: inline; }
+}
+
 .marca__nome { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.04em; }
 .marca__sufixo {
   font-family: var(--mono);

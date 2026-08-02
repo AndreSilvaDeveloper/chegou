@@ -181,5 +181,11 @@
 }
 .icone-btn:hover { background: var(--bloco); color: var(--tinta); }
 
-.topo .btn { display: none; }
-@media (min-width: 640px) { .topo .btn { display: inline-flex; } }
+/* O botão do topo aparece em QUALQUER largura — inclusive 375px.
+
+   Ele ficava escondido abaixo de 640px, e a regra estava certa para o rótulo
+   antigo: "Quero ver funcionando" espremia a marca contra o hambúrguer num
+   celular estreito. Com "Entrar" o texto cabe, e esconder deixou de fazer
+   sentido — é a porta de quem JÁ é cliente, e o celular é justamente onde o
+   porteiro abre o sistema. (O `display: inline-flex` já vem de `Botao.css`;
+   aqui só não se desliga mais nada.) */

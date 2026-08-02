@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { PularParaConteudo, Topo } from '@/components/layout/Topo';
+import { RedirecionaAppInstalado } from '@/components/layout/RedirecionaAppInstalado';
 import { Rodape } from '@/components/layout/Rodape';
 import { Hero } from '@/components/hero/Hero';
 import { Problema } from '@/components/secoes/Problema';
@@ -28,6 +29,9 @@ import { ChamadaFinal } from '@/components/secoes/ChamadaFinal';
 export default function Pagina(): ReactElement {
   return (
     <>
+      {/* Não desenha nada: só manda para o painel quem abriu pelo atalho do app
+          instalado. Fica no topo por ser a primeira decisão da página. */}
+      <RedirecionaAppInstalado />
       <PularParaConteudo />
       <Topo />
 
