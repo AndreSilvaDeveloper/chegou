@@ -122,6 +122,45 @@ no hero, na chamada final e no rodapé. O que mudou é que a barra fixa agora
 serve quem **já é cliente**, em vez de repetir um CTA que a página faz três
 vezes. É o único link da landing que sai para o painel.
 
+**E ele aparece no celular** — antes `.topo .btn` era `display: none` abaixo de
+640px. A regra estava certa para o rótulo antigo ("Quero ver funcionando" não
+cabia), mas o celular é justamente onde o porteiro abre o sistema.
+
+Para caber foi preciso abrir espaço: **no celular a marca fica só com o
+símbolo**, sem a palavra. A conta em 375px não fechava — o `.wrap` deixa 335px
+úteis e a linha somava 393 (marca 164 + hambúrguer 44 + tema 44 + botão 93 +
+3 gaps de 16). Sem a palavra: 265px, com folga até ~305px de tela. O nome não
+se perde para leitor de tela, porque o `<a class="marca">` já carrega
+`aria-label="CONDO avisa — início"`.
+
+### O atalho do app instalado agora cai no painel, não no marketing
+
+Quem instalou o PWA antes da landing tem um ícone na tela do celular apontando
+para o `start_url` antigo — a **raiz** do domínio, que hoje é o site de vendas.
+O painel mudou para `/app/`, mas o atalho já gravado no aparelho não se
+atualiza sozinho.
+
+`RedirecionaAppInstalado` resolve sem pedir nada ao usuário: se a página foi
+aberta em janela de app (`display-mode: standalone | fullscreen | minimal-ui`,
+mais `navigator.standalone` para o iOS, que nunca implementou `display-mode`),
+manda para `/app/login`. Detalhes que não são óbvios:
+
+- **Só app instalado.** Aba de navegador — visitante, buscador, agente de IA —
+  continua vendo a landing. Crawler nunca roda em `standalone`, então o SEO não
+  muda. Verificado ao vivo: em aba normal `display-mode: browser` é o único
+  verdadeiro e o redirect não dispara.
+- **`location.replace`, não `href`**: a landing não entra no histórico. Com
+  `href`, o "voltar" do aparelho traria o usuário de volta e o redirect
+  dispararia de novo, prendendo ele num pingue-pongue.
+- **Vai para `/app/login` mesmo**, não para `/app/`: quem já tem sessão é
+  desviado sozinho pelo painel (`if (getToken()) return <Navigate to="/encomendas" />`
+  em `web/src/pages/Login.tsx`), então o mesmo destino serve aos dois casos.
+
+> ⚠️ Isto **não** substitui reinstalar o PWA para quem ainda tem o service
+> worker antigo no escopo `/`: naquele caso o SW serve o painel em cache e a
+> landing nem chega a carregar, então este código não roda. Os dois problemas
+> são distintos e a correção do SW continua pendente.
+
 ## 0.31.1 — 2026-08-02
 
 **A landing prometia três coisas que o produto não entrega mais.** Correção de
