@@ -11,6 +11,28 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.30.3 — 2026-08-01
+
+### Corrigido
+- **Erro da Payment API agora diz a URL completa que foi chamada.** Antes a
+  mensagem trazia só o caminho (`POST /customers`), e um 405 mandava investigar
+  rota, versão da API e credencial — quando a causa costuma ser a base apontando
+  para outro lugar. A URL sai da **mesma função** que monta a chamada, então não
+  há como as duas divergirem e mandarem alguém investigar uma URL que nunca
+  existiu.
+- **Duas pistas automáticas**, para os erros que não se explicam sozinhos:
+  - **405**: diz que o caminho existe mas não aceita o método, e manda conferir
+    se a base é a **raiz** da Payment API (sem `/api`, sem `/api/v1`) e se algum
+    proxy à frente não está barrando o método.
+  - **Resposta em HTML**: denuncia que `PAYMENT_API_BASE_URL` aponta para uma
+    página, não para a API — corpo começando em `<` é o sinal.
+
+### Testes
+- Mais 3 casos em `payment-api.client.spec.ts`: a URL na mensagem, a explicação
+  do 405 e a detecção de HTML.
+
+---
+
 ## 0.30.2 — 2026-08-01
 
 ### Adicionado

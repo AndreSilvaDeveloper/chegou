@@ -204,9 +204,10 @@ describe('PaymentApiClient', () => {
       const client = criar();
       comLoginE(resposta(400, { message: 'Documento já cadastrado' }));
 
+      // A mensagem do gateway vem primeiro; a URL entra depois, como contexto.
       await expect(client.post('/customers', {})).rejects.toMatchObject({
         status: 400,
-        message: 'Documento já cadastrado',
+        message: expect.stringContaining('Documento já cadastrado'),
       });
       expect(fetchMock).toHaveBeenCalledTimes(2); // login + 1
     });
@@ -400,6 +401,46 @@ describe('PaymentApiClient', () => {
 
       expect((erro as PaymentApiError).message).toMatch(/REDIRECIONADA/);
       expect((erro as PaymentApiError).message).toMatch(/POST vira GET/);
+    });
+  });
+
+  describe('mensagem de erro', () => {
+    it('**mostra a URL completa que foi chamada**', async () => {
+      const client = criar({ PAYMENT_API_KEY: 'pk_teste' });
+      fetchMock.mockResolvedValueOnce(resposta(405, null));
+
+      const erro = await client.post('/customers', {}).catch((e: PaymentApiError) => e);
+
+      // Sem a URL, um 405 manda investigar rota, versão e credencial — e o
+      // problema costuma ser a base apontando para outro lugar.
+      expect((erro as PaymentApiError).message).toContain(
+        'https://pay.example.com/api/v1/customers',
+      );
+    });
+
+    it('405 explica que o caminho não aceita o método', async () => {
+      const client = criar({ PAYMENT_API_KEY: 'pk_teste' });
+      fetchMock.mockResolvedValueOnce(resposta(405, null));
+
+      const erro = await client.post('/customers', {}).catch((e: PaymentApiError) => e);
+
+      expect((erro as PaymentApiError).message).toMatch(/não aceita POST/);
+      expect((erro as PaymentApiError).message).toMatch(/RAIZ da Payment API/);
+    });
+
+    it('**resposta em HTML denuncia base apontando para uma página**', async () => {
+      const client = criar({ PAYMENT_API_KEY: 'pk_teste' });
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        redirected: false,
+        url: 'https://pay.example.com/api/v1/customers',
+        text: async () => '<!doctype html><html><body>Not found</body></html>',
+      } as Response);
+
+      const erro = await client.get('/customers').catch((e: PaymentApiError) => e);
+
+      expect((erro as PaymentApiError).message).toMatch(/HTML, não JSON/);
     });
   });
 });

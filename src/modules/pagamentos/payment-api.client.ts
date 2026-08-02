@@ -118,6 +118,17 @@ export class PaymentApiClient {
   }
 
   /**
+   * A URL completa de um caminho.
+   *
+   * Uma função só, usada na chamada **e** na mensagem de erro: assim o que a
+   * mensagem mostra é literalmente o que foi chamado, sem risco de as duas
+   * divergirem e mandarem alguém investigar uma URL que nunca existiu.
+   */
+  private url(path: string): string {
+    return `${this.baseUrl}/api/v1${path}`;
+  }
+
+  /**
    * Tira o `/api/v1` (ou `/api`) do fim da base.
    *
    * O cliente monta `{base}/api/v1{path}`, então uma base que já traga o prefixo
@@ -229,7 +240,7 @@ export class PaymentApiClient {
   private async chamar<T>(method: string, path: string, opcoes: OpcoesReq): Promise<T> {
     let res: Response;
     try {
-      res = await fetch(`${this.baseUrl}/api/v1${path}`, {
+      res = await fetch(this.url(path), {
         method,
         headers: {
           ...(await this.cabecalhoDeAuth(opcoes)),
@@ -256,8 +267,12 @@ export class PaymentApiClient {
       const bruto = corpo?.message ?? corpo?.error;
       const msg = Array.isArray(bruto)
         ? bruto.join(', ')
-        : (bruto ?? `Payment API HTTP ${res.status} (${method} ${path})`);
-      throw new PaymentApiError(res.status, `${msg}${this.pistaDeRedirect(res, method)}`, data);
+        : (bruto ?? `Payment API HTTP ${res.status}`);
+      throw new PaymentApiError(
+        res.status,
+        `${msg} — ${method} ${this.url(path)}${this.pistaDeResposta(res, method, text)}`,
+        data,
+      );
     }
 
     return data as T;
@@ -283,15 +298,45 @@ export class PaymentApiClient {
     );
   }
 
+  /**
+   * O que o erro não conta sozinho.
+   *
+   * Um 4xx da Payment API vem com JSON explicando. Um 4xx **de outra coisa** —
+   * proxy, SPA, host errado — vem com HTML ou vazio, e aí o status sozinho
+   * manda investigar o lugar errado. Os dois casos abaixo já custaram tempo
+   * nesta integração:
+   *
+   * - **405 em POST**: o caminho existe mas não aceita o método. Quase sempre a
+   *   base aponta para algo que não é a raiz da API (um front, um proxy).
+   * - **HTML na resposta**: não é a API respondendo, é uma página.
+   */
+  private pistaDeResposta(res: Response, method: string, corpo: string): string {
+    const redirect = this.pistaDeRedirect(res, method);
+    if (redirect) return redirect;
+
+    const pistas: string[] = [];
+    if (corpo.trimStart().startsWith('<')) {
+      pistas.push(
+        'a resposta veio em HTML, não JSON — PAYMENT_API_BASE_URL parece apontar para uma página, não para a API',
+      );
+    }
+    if (res.status === 405) {
+      pistas.push(
+        `o caminho existe mas não aceita ${method}; confira se a base é a RAIZ da Payment API (sem /api, sem /api/v1) e se um proxy à frente não está barrando ${method}`,
+      );
+    }
+    return pistas.length ? ` — ${pistas.join('; ')}` : '';
+  }
+
   private erroDeRede(err: unknown, method: string, path: string): PaymentApiError {
     const nome = (err as Error).name;
     if (nome === 'TimeoutError' || nome === 'AbortError') {
       return new PaymentApiError(
         0,
-        `Payment API não respondeu em ${this.timeoutMs}ms (${method} ${path})`,
+        `Payment API não respondeu em ${this.timeoutMs}ms — ${method} ${this.url(path)}`,
       );
     }
-    return new PaymentApiError(0, `Falha de rede na Payment API: ${(err as Error).message}`);
+    return new PaymentApiError(0, `Falha de rede na Payment API (${method} ${this.url(path)}): ${(err as Error).message}`);
   }
 
   // ------------------------------------------------------------ autenticação
@@ -380,7 +425,7 @@ export class PaymentApiClient {
   private async semAutenticacao<T>(path: string, body: unknown): Promise<T> {
     let res: Response;
     try {
-      res = await fetch(`${this.baseUrl}/api/v1${path}`, {
+      res = await fetch(this.url(path), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
