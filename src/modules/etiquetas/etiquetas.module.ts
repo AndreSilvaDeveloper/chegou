@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { EtiquetaAmostra } from '../../database/entities';
+import { EtiquetaAmostra, Tenant } from '../../database/entities';
 import { ApartamentosModule } from '../apartamentos/apartamentos.module';
 import { MoradoresModule } from '../moradores/moradores.module';
 import { StorageModule } from '../storage/storage.module';
@@ -22,7 +22,9 @@ import { OcrService } from './ocr.service';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EtiquetaAmostra]),
+    // `Tenant` entra porque a leitura ancora a zona de destino no endereço
+    // cadastrado do condomínio (ver `leitura.service.ts`).
+    TypeOrmModule.forFeature([EtiquetaAmostra, Tenant]),
     StorageModule,
     ApartamentosModule,
     MoradoresModule,

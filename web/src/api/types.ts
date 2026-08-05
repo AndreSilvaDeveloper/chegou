@@ -975,10 +975,18 @@ export interface LinhaOcr {
  */
 export interface CamposEtiqueta {
   destinatario: string | null;
+  /** Logradouro e número da rua, sem complemento. */
+  endereco: string | null;
+  /** O complemento como a etiqueta escreveu: `Sala 710`, `2009`, `Apto 302 Bloco B`. */
+  complemento: string | null;
   bloco: string | null;
   /** Apartamento, sala ou casa. */
   numero: string | null;
   andar: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  /** Sigla de duas letras. */
+  uf: string | null;
   transportadora: string | null;
   codigoRastreio: string | null;
   cep: string | null;
@@ -986,9 +994,14 @@ export interface CamposEtiqueta {
 
 export const CAMPOS_ETIQUETA = [
   'destinatario',
+  'endereco',
+  'complemento',
   'bloco',
   'numero',
   'andar',
+  'bairro',
+  'cidade',
+  'uf',
   'transportadora',
   'codigoRastreio',
   'cep',
@@ -998,9 +1011,14 @@ export type CampoEtiqueta = (typeof CAMPOS_ETIQUETA)[number];
 
 export const ROTULO_CAMPO_ETIQUETA: Record<CampoEtiqueta, string> = {
   destinatario: 'Destinatário',
+  endereco: 'Endereço',
+  complemento: 'Complemento',
   bloco: 'Bloco',
   numero: 'Unidade',
   andar: 'Andar',
+  bairro: 'Bairro',
+  cidade: 'Cidade',
+  uf: 'UF',
   transportadora: 'Transportadora',
   codigoRastreio: 'Rastreio',
   cep: 'CEP',
@@ -1072,4 +1090,10 @@ export interface LeituraEtiqueta {
   moradorNome: string | null;
   /** Linhas que o OCR conseguiu ler. `0` explica um resultado vazio. */
   linhasLidas: number;
+  /**
+   * Campos preenchidos que o parser não conseguiu ancorar numa zona de destino.
+   * Vieram de uma varredura da etiqueta inteira e podem ser do remetente — é
+   * onde o porteiro precisa olhar duas vezes.
+   */
+  camposFracos: CampoEtiqueta[];
 }

@@ -32,7 +32,9 @@ import { cn } from '@/lib/utils';
 import { mensagemErro } from '@/lib/erros';
 
 const VAZIO: CamposEtiqueta = {
-  destinatario: null, bloco: null, numero: null, andar: null,
+  destinatario: null, endereco: null, complemento: null,
+  bloco: null, numero: null, andar: null,
+  bairro: null, cidade: null, uf: null,
   transportadora: null, codigoRastreio: null, cep: null,
 };
 

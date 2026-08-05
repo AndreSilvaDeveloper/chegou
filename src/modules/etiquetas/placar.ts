@@ -3,9 +3,14 @@ import { normalizar } from './parser/texto';
 
 export const CAMPOS_ETIQUETA = [
   'destinatario',
+  'endereco',
+  'complemento',
   'bloco',
   'numero',
   'andar',
+  'bairro',
+  'cidade',
+  'uf',
   'transportadora',
   'codigoRastreio',
   'cep',

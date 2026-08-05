@@ -147,6 +147,24 @@ export function pareceLogistica(linha: string): boolean {
 }
 
 /**
+ * Tira da linha o que vem entre parênteses.
+ *
+ * O Mercado Livre imprime o apelido da conta logo depois do nome, na mesma
+ * linha: `Ester de Lemos Guimarães (TXGRUPPI)`, `Hergisson Pereira da Costa` /
+ * `(SHEILARAKAUSKAS)`. Como a validação de nome é palavra a palavra, o
+ * parêntese reprovava a linha inteira, o destinatário vinha `null` e — sem
+ * rótulo de destinatário nessas etiquetas — a varredura global devolvia o nome
+ * do REMETENTE impresso no alto. Nome trocado, e ninguém confere campo que já
+ * veio preenchido.
+ *
+ * O apelido é descartado de propósito: quem casa com o cadastro do condomínio é
+ * o nome civil.
+ */
+export function semApelido(linha: string): string {
+  return linha.replace(/\([^)]*\)?/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
  * Heurística de "isto parece nome de pessoa".
  *
  * Conservadora de propósito: preencher o destinatário errado é pior que
@@ -154,17 +172,28 @@ export function pareceLogistica(linha: string): boolean {
  * um nome trocado.
  */
 export function pareceNomeDePessoa(linha: string): boolean {
-  const n = normalizar(linha);
-  if (n.length < 6 || n.length > 60) return false;
-  if (/\d/.test(n)) return false;
-  if (pareceEndereco(linha) || pareceLogistica(linha)) return false;
+  return nomeDePessoa(linha) !== null;
+}
+
+/**
+ * O nome de pessoa contido na linha, na forma canônica — ou `null`.
+ *
+ * Devolve o valor em vez de só um booleano porque quem chama precisa do nome
+ * **limpo**: é ele que vai comparar com o cadastro de moradores, e o apelido
+ * entre parênteses não casa com nada.
+ */
+export function nomeDePessoa(linha: string): string | null {
+  const n = semApelido(normalizar(linha));
+  if (n.length < 6 || n.length > 60) return null;
+  if (/\d/.test(n)) return null;
+  if (pareceEndereco(n) || pareceLogistica(n)) return null;
 
   // Vírgula de "SOBRENOME, NOME" não descaracteriza um nome — ela é justamente
   // como parte das etiquetas imprime o destinatário.
   const palavras = n.replace(/,/g, ' ').split(' ').filter((p) => p.length > 1);
-  if (palavras.length < 2 || palavras.length > 7) return false;
+  if (palavras.length < 2 || palavras.length > 7) return null;
 
   // Só letras e os separadores que aparecem em nome composto. O ponto final é
   // aceito por causa da inicial abreviada, comuníssima: `MARIA A. SILVA`.
-  return palavras.every((p) => /^[A-Z][A-Z'-]*\.?$/.test(p));
+  return palavras.every((p) => /^[A-Z][A-Z'-]*\.?$/.test(p)) ? n : null;
 }

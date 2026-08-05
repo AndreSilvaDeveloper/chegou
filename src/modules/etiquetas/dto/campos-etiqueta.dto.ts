@@ -17,6 +17,16 @@ export class CamposEtiquetaDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
+  endereco?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  complemento?: string | null;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(20)
   bloco?: string | null;
 
@@ -29,6 +39,21 @@ export class CamposEtiquetaDto {
   @IsString()
   @MaxLength(10)
   andar?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  bairro?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  cidade?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  uf?: string | null;
 
   @IsOptional()
   @IsString()

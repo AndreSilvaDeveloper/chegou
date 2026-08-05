@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { Apartamento, CamposEtiqueta } from '../../database/entities';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Tenant, type Apartamento, type CamposEtiqueta } from '../../database/entities';
 import { ApartamentosService } from '../apartamentos/apartamentos.service';
 import { MoradoresService } from '../moradores/moradores.service';
-import { extrairCampos } from './parser/etiqueta-parser';
+import { extrairComDiagnostico } from './parser/etiqueta-parser';
 import { normalizar } from './parser/texto';
+import type { Condominio } from './parser/zonas';
 import { OcrService } from './ocr.service';
 
 export interface LeituraEtiqueta {
@@ -19,6 +22,13 @@ export interface LeituraEtiqueta {
   moradorNome: string | null;
   /** Quantas linhas o OCR conseguiu ler — 0 explica um resultado vazio. */
   linhasLidas: number;
+  /**
+   * Campos que o parser preencheu sem conseguir ancorá-los numa zona de
+   * destino: vieram de uma varredura da etiqueta inteira e podem ser do
+   * remetente. A tela marca esses de outro jeito — o porteiro não confere o que
+   * já veio preenchido, então precisa saber onde olhar duas vezes.
+   */
+  camposFracos: (keyof CamposEtiqueta)[];
 }
 
 /**
@@ -37,14 +47,19 @@ export class LeituraEtiquetaService {
     private readonly ocr: OcrService,
     private readonly apartamentos: ApartamentosService,
     private readonly moradores: MoradoresService,
+    @InjectRepository(Tenant) private readonly tenants: Repository<Tenant>,
   ) {}
 
   async ler(
     tenantId: string,
     file: { buffer: Buffer; mimetype: string; originalname: string },
   ): Promise<LeituraEtiqueta> {
-    const { linhas } = await this.ocr.ler(file);
-    const campos = extrairCampos(linhas);
+    const [{ linhas }, condominio] = await Promise.all([
+      this.ocr.ler(file),
+      this.enderecoDoCondominio(tenantId),
+    ]);
+
+    const { campos, camposFracos, zonas } = extrairComDiagnostico(linhas, { condominio });
 
     const apartamento = await this.resolverApartamento(tenantId, campos);
     const morador = apartamento
@@ -52,7 +67,9 @@ export class LeituraEtiquetaService {
       : null;
 
     this.logger.log(
-      `Etiqueta lida: ${linhas.length} linhas, unidade ${apartamento?.identificador ?? '—'}`,
+      `Etiqueta lida: ${linhas.length} linhas, ${zonas.length} zonas ` +
+        `(${zonas.map((z) => z.zona).join('/')}), unidade ${apartamento?.identificador ?? '—'}` +
+        (camposFracos.length ? `, fracos: ${camposFracos.join(',')}` : ''),
     );
 
     return {
@@ -61,7 +78,35 @@ export class LeituraEtiquetaService {
       moradorId: morador?.id ?? null,
       moradorNome: morador?.nome ?? null,
       linhasLidas: linhas.length,
+      camposFracos,
     };
+  }
+
+  /**
+   * O endereço do próprio condomínio — o sinal mais forte que existe nesta
+   * etiqueta, e o que o parser não tinha como saber sozinho.
+   *
+   * Uma etiqueta de marketplace traz de dois a quatro endereços completos: o do
+   * destino, o do remetente, o de devolução e às vezes o do centro de
+   * distribuição. Todos com CEP, todos plausíveis. O CEP do prédio aparece em
+   * **um** deles, e é o cadastro que o conhece.
+   *
+   * Falha de leitura aqui não pode derrubar a leitura da etiqueta: sem o
+   * condomínio o parser volta a decidir só pelos rótulos impressos, que é como
+   * ele funcionava antes.
+   */
+  private async enderecoDoCondominio(tenantId: string): Promise<Condominio | undefined> {
+    try {
+      const tenant = await this.tenants.findOne({
+        where: { id: tenantId },
+        select: { id: true, cep: true, endereco: true },
+      });
+      if (!tenant?.cep && !tenant?.endereco) return undefined;
+      return { cep: tenant.cep, endereco: tenant.endereco };
+    } catch (err) {
+      this.logger.warn(`Não foi possível ler o endereço do condomínio: ${err}`);
+      return undefined;
+    }
   }
 
   /**
@@ -134,7 +179,11 @@ export class LeituraEtiquetaService {
    * Parecido não basta: "Ana Silva" e "Ana Souza" moram no mesmo prédio, e
    * escolher a errada manda a notificação para o celular errado.
    */
-  private async resolverMorador(tenantId: string, apartamentoId: string, destinatario: string | null) {
+  private async resolverMorador(
+    tenantId: string,
+    apartamentoId: string,
+    destinatario: string | null,
+  ) {
     const nomeLido = destinatario?.trim();
     if (!nomeLido) return null;
 
@@ -144,7 +193,10 @@ export class LeituraEtiquetaService {
     const lido = tokensDeNome(nomeLido);
     if (!lido.length) return null;
 
-    const daLista = moradores.map((m) => ({ morador: m, tokens: tokensDeNome(m.nome) }));
+    const daLista = moradores.map((m) => ({
+      morador: m,
+      tokens: tokensDeNome(m.nome),
+    }));
 
     // 1. Nome idêntico depois de normalizar. `MARIA SOUZA.` e `MARIA DE SOUZA`
     //    chegam aqui como a mesma coisa — antes a pontuação e a preposição
@@ -176,9 +228,7 @@ export class LeituraEtiquetaService {
     //    `MARIA A` casaria com meio condomínio.
     if (lido[lido.length - 1].length >= 3) {
       const porPrefixo = daLista.filter(
-        (c) =>
-          c.tokens.length >= lido.length &&
-          lido.every((t, i) => c.tokens[i]?.startsWith(t)),
+        (c) => c.tokens.length >= lido.length && lido.every((t, i) => c.tokens[i]?.startsWith(t)),
       );
       if (porPrefixo.length === 1) return porPrefixo[0].morador;
     }

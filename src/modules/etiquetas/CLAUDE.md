@@ -17,25 +17,59 @@ sempre preenche e pede confirmação.
 ## As três peças
 
 ```
-câmera ──▶ prepararFoto() ──▶ serviço OCR (container `ocr`) ──▶ linhas de texto
+câmera ──▶ prepararFoto() ──▶ serviço OCR (container `ocr`) ──▶ linhas + caixas
            (reduz no celular)                                        │
                                                                      ▼
-                                                       parser/ (regex, TypeScript)
+                                                              parser/ (TypeScript)
                                                                      │
                                                                      ▼
-                                     CamposEtiqueta {destinatario, bloco, ...}
+                                     CamposEtiqueta {destinatario, endereco, ...}
+                                     + confiança por campo
 ```
 
 | Peça | Onde | Papel |
 |---|---|---|
 | Preparo da foto | `web/src/lib/imagem.ts` | Reduz, recomprime e mede nitidez **antes** de subir |
-| Serviço OCR | `ocr/` (Python, container à parte) | Imagem → linhas de texto. Não interpreta nada |
+| Serviço OCR | `ocr/` (Python, container à parte) | Imagem → linhas de texto **com caixa**. Não interpreta nada |
 | `OcrService` | `ocr.service.ts` | Cliente HTTP do serviço acima |
 | Parser | `parser/` | Linhas → campos. **É o que muda toda semana** |
 | Banco de amostras | `admin-etiquetas.*` | Mede o parser contra etiquetas reais |
 
 A separação entre OCR e parser é deliberada: trocar uma regex não pode
 significar rebuildar a imagem do serviço de OCR.
+
+## O pipeline do parser (v3)
+
+Até a v2 o parser fazia `linhas.map(l => l.texto).join(' \n ')` e rodava regex
+sobre o blob. A caixa de cada linha — que o `ocr/app.py` calcula, o XY-cut ordena
+e o Postgres guarda em `ocr_linhas` — **nunca era lida**. Uma etiqueta de
+marketplace tem de dois a quatro endereços completos e até três nomes de pessoa;
+sobre um blob, a primeira ocorrência de cada regex vence, e a primeira costuma
+ser a do remetente, que todas as transportadoras imprimem no alto.
+
+```
+prepararLinhas()   geometria.ts  normaliza e devolve posição a cada linha
+       ↓
+agruparBlocos()    geometria.ts  junta o que a etiqueta imprimiu junto
+       ↓                          (vão vertical, coluna, rótulo de zona)
+zonear()           zonas.ts      destino | remetente | devolucao | logistica
+       ↓
+zonaDeDestino()    zonas.ts      a zona certa, unindo blocos vizinhos empatados
+       ↓
+extrairEndereco()  endereco.ts   endereço, complemento, bairro, cidade, UF
+extrairDestino()   endereco.ts   bloco, unidade, andar
+       ↓
+confiança          etiqueta-parser.ts   min(nitidez do OCR, certeza da zona)
+```
+
+| Arquivo | Papel |
+|---|---|
+| `padroes.ts` | `ESPACO`/`SEP`/`NUMERAL` e os marcadores de zona |
+| `texto.ts` | Normalização e os predicados (`nomeDePessoa`, `pareceEmpresa`, …) |
+| `geometria.ts` | Caixa → blocos |
+| `zonas.ts` | Bloco → significado |
+| `endereco.ts` | Zona → endereço, complemento e unidade |
+| `etiqueta-parser.ts` | Orquestra, e é o único que o resto do sistema importa |
 
 ## Rotas e perfis
 
@@ -50,9 +84,14 @@ leitura foi definida como ferramenta de quem está na portaria. Para liberar:
 `@Roles` em `etiquetas.controller.ts` **e** `podeLerEtiqueta` em
 `web/src/pages/NovaEncomenda.tsx` — os dois, senão ela vê o botão e toma 403.
 
-Devolve `{ campos, apartamento, moradorId, moradorNome, linhasLidas }`. Tudo é
-**sugestão**: a tela preenche o que veio, preserva o que o porteiro já digitou e
-só grava depois da revisão.
+Devolve `{ campos, apartamento, moradorId, moradorNome, linhasLidas,
+camposFracos }`. Tudo é **sugestão**: a tela preenche o que veio, preserva o que
+o porteiro já digitou e só grava depois da revisão.
+
+`camposFracos` são os campos que o parser preencheu **sem** conseguir ancorá-los
+numa zona de destino — vieram de uma varredura da etiqueta inteira e podem ser do
+remetente. O selo "lido" diz que o campo veio do OCR; `camposFracos` diz em quais
+deles olhar duas vezes.
 
 ### Banco de amostras
 
@@ -161,6 +200,57 @@ blob, esse zero vencia o `APTO 51` verdadeiro impresso mais abaixo. Campo
 preenchido com valor errado é o pior desfecho do módulo: ninguém confere o que
 já veio preenchido. `ESPACO` (`[^\S\n]*`) é espaço que não atravessa a quebra.
 
+**A quebra de linha só é desfeita dentro da zona de destino.** A regra acima tem
+um custo, e ele apareceu em etiqueta real da Shopee:
+
+```
+Avenida Barão do Rio Branco, 2288, Sala
+1205 ed solar do progress, Juiz de Fora,
+```
+
+A palavra-chave termina uma linha e o número começa a seguinte — o endereço é uma
+frase só, quebrada pela largura do papel. `Bloco.textoCorrido` desfaz a quebra, e
+existe **só** para bloco de zona `destino`. Fora dali a quebra é fronteira de
+verdade e continua valendo: é o que separa `CASA` do telefone `1234-5678` da
+linha de baixo e `AVENIDA BRASIL 1500 BL` do `12` da seguinte. Tem teste para as
+três situações.
+
+**O CEP do condomínio decide a zona.** `leitura.service.ts` passa
+`tenants.cep`/`tenants.endereco` ao parser. O bloco que traz o CEP do prédio
+impresso **é** o bloco de destino, com certeza 0,98 — nenhuma heurística chega
+perto. Os outros CEPs da etiqueta (remetente, devolução, centro de distribuição)
+são de outra cidade, sempre. Sem o condomínio cadastrado o parser volta a decidir
+só pelos rótulos impressos, que é como ele funcionava antes: a âncora melhora, não
+é pré-requisito.
+
+**Só palavra-chave promove uma parte do endereço a complemento.** Etiqueta da
+Shopee imprime `Avenida Barão do Rio Branco 2288, 2288, Solar do progresso sala
+1502` — o número da rua sai duas vezes. Aceitar "parte com dígito depois do
+logradouro" devolvia `2288` no lugar da sala.
+
+**Número puro só é unidade vindo do campo `Complemento`.** `Complemento: 2009` é
+a porta, e não há palavra-chave nenhuma dizendo isso: quem diz é o rótulo do
+campo. É por isso que `destinoDoComplemento()` existe separado da varredura de
+texto — lá, aceitar um número solto seria pegar peso, quantidade ou nota fiscal.
+
+**Apelido entre parênteses sai do nome.** O Mercado Livre imprime
+`Ester de Lemos Guimarães (TXGRUPPI)`. Como a validação de nome é palavra a
+palavra, o parêntese reprovava a linha inteira, o destinatário vinha `null` e a
+varredura global devolvia o remetente. Quem casa com o cadastro é o nome civil.
+
+**Blocos de destino só se unem quando empatam em certeza.** Um endereço de
+entrega às vezes cai em dois blocos (`Endereço:` num, `Complemento:` no outro) e
+precisa ser lido junto. Mas quando o CEP do condomínio marca um bloco com 0,98 e
+o do remetente fica em 0,72 por ter um `Endereço:` impresso, unir desfaria
+justamente a distinção que acabou de ser feita. União também **derruba** a
+certeza em 20%: se dois blocos disputaram o destino, a resposta é menos certa do
+que qualquer um deles isolado sugeria — e é essa queda que faz os campos saírem
+em `camposFracos` em vez de saírem como fato.
+
+**Unidade seguida de hífen e dígito é telefone.** `CASA` + `1234-5678` dava
+`numero = 1234`. Porta com hífen seguido de **letra** existe (`302-B`) e continua
+passando; com dígito, não existe.
+
 **Marcador de linha se testa como palavra inteira, nunca com `includes`.**
 `includes('CHAVE')` reprova "Maria Chaves Souza", `'PRACA'` reprova "Ana
 Cristina Praça" e `'TOTAL'` reprova "Roberto Total Nunes" — nomes de moradores
@@ -239,11 +329,17 @@ pode carregar um objeto postado nos Correios; quem manda é o que está escrito.
 - [ ] Regex nova no parser → use `ESPACO`/`SEP`, nunca `\s`. Veja a primeira
       entrada de "Decisões e armadilhas".
 - [ ] Amostra real quebrou o parser → traga o caso para
-      `parser/etiqueta-parser.spec.ts` **antes** de consertar a regex.
+      `parser/etiqueta-real.spec.ts` (com geometria, que é como o caso real
+      chega) **antes** de consertar a regex. O `etiqueta-parser.spec.ts` é para
+      caso escrito à mão, sem posição.
+- [ ] Campo saindo do bloco errado → o problema quase sempre é de **zona**, não
+      de regex. `extrairComDiagnostico()` devolve `zonas`, e é por onde começar.
 - [ ] Transportadora nova → `parser/transportadoras.ts`, e olhe o primo no front
       (`web/src/pages/NovaEncomenda.tsx`), que roda sobre QR/código de barras.
 - [ ] Campo novo em `CamposEtiqueta` → entidade, `CAMPOS_ETIQUETA` (back e
-      front), DTO do gabarito e a tela de conferência. O placar se ajusta sozinho.
+      front), `ROTULO_CAMPO_ETIQUETA`, DTO do gabarito, `normalizarGabarito()` e
+      o `VAZIO` de `SuperAdminEtiquetas.tsx`. **Não precisa de migration**:
+      `extraido` e `gabarito` são `jsonb`. O placar se ajusta sozinho.
 - [ ] Trocou versão do `rapidocr-onnxruntime` → confira `_normalizar_saida` em
       `ocr/app.py`. Está travado em 1.4.x: a linha seguinte mudou de nome de
       pacote (`rapidocr`) e de API, e a quebra é silenciosa (zero linhas).

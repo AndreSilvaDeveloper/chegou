@@ -82,7 +82,9 @@ describe('extrairCampos', () => {
 
   it('devolve tudo nulo sem estourar quando o OCR não leu nada', () => {
     expect(extrairDeTexto([])).toEqual({
-      destinatario: null, bloco: null, numero: null, andar: null,
+      destinatario: null, endereco: null, complemento: null,
+      bloco: null, numero: null, andar: null,
+      bairro: null, cidade: null, uf: null,
       transportadora: null, codigoRastreio: null, cep: null,
     });
   });

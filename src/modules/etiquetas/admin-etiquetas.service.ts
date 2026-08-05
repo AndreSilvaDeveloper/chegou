@@ -227,17 +227,22 @@ export class AdminEtiquetasService {
   }
 
   /**
-   * O DTO só materializa o que veio no corpo; o placar precisa das 7 chaves
-   * sempre presentes, senão "campo ausente" e "campo vazio" viram a mesma
-   * coisa e o acerto de "não tem bloco" some da conta.
+   * O DTO só materializa o que veio no corpo; o placar precisa de TODAS as
+   * chaves sempre presentes, senão "campo ausente" e "campo vazio" viram a
+   * mesma coisa e o acerto de "não tem bloco" some da conta.
    */
   private normalizarGabarito(dto: CamposEtiquetaDto): CamposEtiqueta {
     const limpar = (v: string | null | undefined) => v?.trim() || null;
     return {
       destinatario: limpar(dto.destinatario),
+      endereco: limpar(dto.endereco),
+      complemento: limpar(dto.complemento),
       bloco: limpar(dto.bloco),
       numero: limpar(dto.numero),
       andar: limpar(dto.andar),
+      bairro: limpar(dto.bairro),
+      cidade: limpar(dto.cidade),
+      uf: limpar(dto.uf)?.toUpperCase() ?? null,
       transportadora: limpar(dto.transportadora),
       codigoRastreio: limpar(dto.codigoRastreio),
       cep: limpar(dto.cep),

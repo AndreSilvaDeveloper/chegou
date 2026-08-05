@@ -25,10 +25,25 @@ export interface LinhaOcr {
  */
 export interface CamposEtiqueta {
   destinatario: string | null;
+  /** Logradouro e número da rua, sem complemento: `Avenida Barão do Rio Branco 2288`. */
+  endereco: string | null;
+  /**
+   * O complemento como a etiqueta o escreveu: `Sala 710`, `2009`, `Apto 302 Bloco B`.
+   *
+   * É de onde `bloco` e `numero` saem na maioria das etiquetas reais — o campo
+   * `Complemento` é onde o remetente digita a unidade, e ele aceita número puro
+   * (`2009`), sem palavra-chave nenhuma. Guardar o texto lido além do que foi
+   * interpretado é o que permite conferir a interpretação depois.
+   */
+  complemento: string | null;
   bloco: string | null;
   /** Apartamento, sala ou casa — o que identifica a unidade. */
   numero: string | null;
   andar: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  /** Sigla de duas letras. `Minas Gerais` e `MG` chegam aqui como `MG`. */
+  uf: string | null;
   transportadora: string | null;
   codigoRastreio: string | null;
   cep: string | null;
