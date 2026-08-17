@@ -8,6 +8,7 @@ export interface SwitchProps {
   disabled?: boolean;
   className?: string;
   "aria-label"?: string;
+  "aria-describedby"?: string;
 }
 
 const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
@@ -38,4 +39,61 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
 );
 Switch.displayName = "Switch";
 
-export { Switch };
+export interface SwitchFieldProps extends SwitchProps {
+  /** Texto à esquerda — clicar nele também alterna. */
+  label: React.ReactNode;
+  /** Explicação abaixo do texto, quando a escolha tem consequência. */
+  description?: React.ReactNode;
+}
+
+/**
+ * Rótulo à esquerda, interruptor à direita, a linha inteira clicável.
+ *
+ * Irmão do `CheckboxField`: mesma informação, outro gesto. Use quando a escolha
+ * é o **estado de um recurso** ("recebe WhatsApp?", "é o contato principal?") —
+ * o interruptor lê como um ajuste da unidade, e não precisa de moldura em volta
+ * para se separar dos campos acima. Item marcado numa lista continua sendo
+ * `CheckboxField`.
+ *
+ * O `<label>` não envolve o interruptor de propósito: ele é um `button`, e
+ * `button` dentro de `label` (ou de outro `button`) é HTML inválido — por isso
+ * o clique no texto é traduzido aqui, como no `CheckboxField`.
+ */
+function SwitchField({
+  label,
+  description,
+  id,
+  className,
+  disabled,
+  ...props
+}: SwitchFieldProps) {
+  const reactId = React.useId();
+  const inputId = id ?? reactId;
+  const descId = description ? `${inputId}-desc` : undefined;
+
+  return (
+    <div className={cn("flex items-center justify-between gap-4", className)}>
+      <label
+        htmlFor={inputId}
+        onClick={(e) => {
+          e.preventDefault();
+          if (!disabled) props.onCheckedChange(!props.checked);
+        }}
+        className={cn(
+          "flex min-w-0 flex-col gap-0.5 select-none",
+          disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+        )}
+      >
+        <span className="txt-corpo font-medium leading-tight text-foreground">{label}</span>
+        {description && (
+          <span id={descId} className="txt-apoio text-muted-foreground">
+            {description}
+          </span>
+        )}
+      </label>
+      <Switch id={inputId} disabled={disabled} aria-describedby={descId} {...props} />
+    </div>
+  );
+}
+
+export { Switch, SwitchField };

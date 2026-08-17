@@ -31,6 +31,7 @@
 | Telefone | `PhoneInput` (**nunca peça `+55`**) | `ui/phone-input.tsx` |
 | CPF ou CNPJ | `DocumentoInput` (**nunca peça "só os números"**) | `ui/documento-input.tsx` |
 | Sim/não numa linha | `CheckboxField` | `ui/checkbox.tsx` |
+| Ligar/desligar um recurso | `SwitchField` | `ui/switch.tsx` |
 | Aviso passageiro (salvo, erro) | `toast` do Sonner | `ui/sonner.tsx` |
 | Aviso que **fica** na tela, com ação | componente próprio — veja `AvisoAtualizacao` | `components/` |
 | Carregando | `Skeleton` (**nunca** o texto "Carregando…") | `ui/skeleton.tsx` |
@@ -160,6 +161,27 @@ Três níveis de leitura, nesta ordem: **título** (o que identifica) → **subt
 | `to` | o card inteiro vira link (seta + realce no hover). Não use junto com `acoes`: botão dentro de link é armadilha de clique |
 | `campo.enfase` | **um por card** — o dado que a tela existe para mostrar |
 | `campo.largura: 'inteira'` | texto longo; a meia largura corta com reticências, a inteira quebra linha |
+
+### `CheckboxField` e `SwitchField` — a mesma resposta, gestos diferentes
+
+Os dois são "rótulo + explicação + controle", e os dois valem só quando o
+formulário for salvo. O que os separa é o que a resposta **é**:
+
+| | `CheckboxField` | `SwitchField` |
+|---|---|---|
+| Semântica | item marcado numa lista ("aceito os termos", "incluir inativos") | estado de um recurso ("recebe WhatsApp?", "é o contato principal?") |
+| Desenho | caixa à esquerda, texto ao lado | texto à esquerda, interruptor à direita |
+| Onde | filtro, confirmação, opção de importação | ajustes de um cadastro (morador), linha de módulo |
+
+**Nenhum dos dois precisa de moldura.** Dois ajustes seguidos num formulário são
+duas linhas com `space-y-3` — envolvê-los num `bg-muted` os anunciava como um
+bloco à parte do resto do cadastro, que é o que fazia o diálogo do morador
+parecer ter uma caixa dentro da outra.
+
+O `<label>` **não** envolve o controle nos dois: `Checkbox` e `Switch` são
+`button`, e `button` dentro de `label` (ou dentro de outro `button`, como em
+`ModuleToggle`) é HTML inválido. Por isso o clique no texto é traduzido à mão,
+com `htmlFor` + `preventDefault`.
 
 ### `Tabs` e `SegmentedFilter` — a mesma pele, semânticas diferentes
 

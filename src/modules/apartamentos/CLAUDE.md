@@ -90,6 +90,15 @@ A seção de vagas só aparece com `permiteVagas` — hoje: módulo Vagas habili
 **e** perfil síndico/administradora. Na tela do superadmin ela fica oculta
 (as rotas de vaga não existem sob `/admin/tenants/:id/apartamentos`).
 
+**No diálogo, vaga é um botão, não um formulário aberto.** A maior parte das
+unidades é cadastrada sem mexer em vaga, e o bloco com os dois formulários
+prontos (vincular uma livre / criar uma nova) ocupava metade do diálogo para
+quem ia ignorá-lo. O estado de repouso é o que já está vinculado + "Vincular
+vaga"; o formulário só existe depois do clique, e as duas formas viram `Tabs` —
+são conteúdos diferentes, então aba, não `SegmentedFilter`. A aba inicial segue
+o caso do usuário: havendo vaga livre no condomínio abre em "Já cadastrada",
+sem nenhuma abre em "Criar nova" (e o trilho nem aparece).
+
 **A busca da lista é no servidor** (`GET /apartamentos?q=`), com debounce — a
 listagem vem cortada em `LIMITE_LISTAGEM` (50), então filtrar no cliente só
 enxergaria as 50 primeiras (foi o bug de "501 não encontra uma unidade que

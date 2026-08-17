@@ -21,6 +21,8 @@ interface SimpleSelectProps {
   className?: string;
   id?: string;
   disabled?: boolean;
+  /** Para o select que não tem `Label` visível (dentro de uma linha já rotulada). */
+  'aria-label'?: string;
 }
 
 /**
@@ -35,6 +37,7 @@ export function SimpleSelect({
   className,
   id,
   disabled,
+  'aria-label': ariaLabel,
 }: SimpleSelectProps) {
   const selected = options.find((o) => o.value === value);
 
@@ -44,6 +47,7 @@ export function SimpleSelect({
         <button
           id={id}
           type="button"
+          aria-label={ariaLabel}
           className={cn(
             'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-1 txt-corpo ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:ring-2 data-[state=open]:ring-ring',
             className,

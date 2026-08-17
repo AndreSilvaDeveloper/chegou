@@ -128,7 +128,8 @@ linhas precisar e **quem manda na largura da aba é o rótulo dela** (ver
 | Indicador numérico | `StatCard` |
 | Trocar o conteúdo da tela | `Tabs` + `TabsContent` (ver "Controle segmentado") |
 | Filtrar a mesma lista | `SegmentedFilter` (`components/ui/segmented-filter.tsx`) |
-| Escolha de sim/não numa linha | `CheckboxField` (caixa + texto clicável). `Switch` é para liga/desliga que vale na hora |
+| Escolha de sim/não numa linha | `CheckboxField` (caixa + texto clicável) — item marcado numa lista |
+| Ligar/desligar um recurso do cadastro | `SwitchField` (texto à esquerda, interruptor à direita) — **sem moldura em volta** |
 | Select | `SimpleSelect` |
 | Select com lista grande | `SearchSelect` (busca por digitação; use `onSearchChange` para buscar no servidor) |
 | Campo com sugestões, mas que aceita o que for digitado | `Combobox` (ver abaixo) |

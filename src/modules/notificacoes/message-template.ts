@@ -39,9 +39,13 @@ export const TEMPLATES_ENCOMENDA: string[] = [
   [
     '{{saudacao}}, {{nome}}!',
     '',
-    'Sua encomenda acabou de chegar na portaria do {{condominio}} e já está separada para a unidade {{unidade}}.',
+    'Sua encomenda acabou de chegar na portaria do *{{condominio}}* e já está separada para a unidade *{{unidade}}*.',
     '',
-    'Código de retirada: *{{codigo}}*',
+    '📅 Recebida em {{data}} às {{hora}}',
+    '🚚 Transportadora: {{transportadora}}',
+    '📦 Tipo: {{tipo}}',
+    '',
+    '🔑 Código de retirada: *{{codigo}}*',
     '',
     'É só passar na portaria e informar esse código. 😉',
   ].join('\n'),
@@ -49,9 +53,16 @@ export const TEMPLATES_ENCOMENDA: string[] = [
   [
     '{{saudacao}}, {{nome}}, tudo bem?',
     '',
-    'Recebemos uma encomenda para você aqui na portaria — {{transportadora}}, em {{data}} às {{hora}}.',
+    'Recebemos uma encomenda para você aqui na portaria:',
     '',
-    'Para retirar é simples: passe na portaria da unidade {{unidade}} e informe o código *{{codigo}}*.',
+    '• 📅 Recebida em {{data}} às {{hora}}',
+    '• 🚚 Transportadora: {{transportadora}}',
+    '',
+    'Para retirar é simples, passe na portaria e informe o código: *{{codigo}}*.',
+    '',
+    '• 🔑 Código de retirada: {{codigo}}',
+    '',
+    'Obrigado, e até a próxima! 😉'
   ].join('\n'),
 
   [
@@ -59,9 +70,9 @@ export const TEMPLATES_ENCOMENDA: string[] = [
     '',
     'Você tem uma encomenda aguardando retirada na portaria do {{condominio}}.',
     '',
-    '• Unidade: {{unidade}}',
-    '• Recebida: {{data}}, {{hora}}',
-    '• Entregue por: {{transportadora}}',
+    '• Unidade: *{{unidade}}*',
+    '• Recebida: *{{data}}*, *{{hora}}*',
+    '• Entregue por: *{{transportadora}}*',
     '',
     'Código para retirar: *{{codigo}}*',
   ].join('\n'),
@@ -69,7 +80,10 @@ export const TEMPLATES_ENCOMENDA: string[] = [
   [
     '{{saudacao}}, {{nome}}!',
     '',
-    'Uma encomenda para a unidade {{unidade}} foi recebida na portaria do {{condominio}} em {{data}}, às {{hora}}.',
+    'Uma encomenda para a unidade {{unidade}} foi recebida na portaria:',
+    '',
+    '📅 Recebida em {{data}} às {{hora}}',
+    '🚚 Transportadora: {{transportadora}}',
     '',
     'Quando puder, passe na portaria com o código *{{codigo}}* para retirar. Obrigado!',
   ].join('\n'),
@@ -125,7 +139,7 @@ export const TEMPLATES_RETIRADA: string[] = [
     '',
     'A encomenda da unidade {{unidade}} foi retirada na portaria do {{condominio}} em {{data}} às {{hora}}.',
     '',
-    'Obrigado, e até a próxima!',
+    'Obrigado, e até a próxima! ✅',
   ].join('\n'),
 ];
 

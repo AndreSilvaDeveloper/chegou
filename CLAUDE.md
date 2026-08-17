@@ -719,6 +719,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
 | `asset()` | `web/src/lib/asset.ts` | Caminho de arquivo de `web/public/` — **o painel mora em `/app/`**, e `src="/x.png"` à mão cai na landing e dá 404 |
 | `CheckboxField` | `web/src/components/ui/checkbox.tsx` | Caixa de seleção com o texto clicável |
+| `SwitchField` | `web/src/components/ui/switch.tsx` | Liga/desliga de um recurso do cadastro — rótulo à esquerda, interruptor à direita, sem moldura |
 | `rolagem-sem-barra` (utility CSS) | `web/src/styles.css` | Esconde a barra de rolagem sem tirar a rolagem — use com `max-md:` |
 | `PageShell` | `web/src/components/ui/page-shell.tsx` | **Casca de toda tela do painel**: faixa âmbar no celular (título, busca, filtro, voltar), cabeçalho comum no desktop |
 | `ListCard` / `ListCardStack` | `web/src/components/ui/list-card.tsx` | Registro de lista como card no celular (rótulo apagado sobre valor forte) |

@@ -11,6 +11,37 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.32.1 — 2026-08-17
+
+**Dois formulários mais leves: apartamento e morador.**
+
+**Vaga saiu de bloco e virou botão** (`components/apartamentos/VagasDoApartamento.tsx`).
+No cadastro de apartamento a seção de vagas era um sub-card com dois formulários
+já abertos — vincular uma vaga livre e criar uma nova — e ocupava metade do
+diálogo mesmo para quem ia cadastrar a unidade sem mexer em vaga (o caso comum).
+Agora o repouso é uma linha: as vagas já vinculadas + o botão "Vincular vaga". O
+formulário só aparece depois do clique, num bloco chapado, com as duas formas em
+`Tabs` — abrindo em "Já cadastrada" quando o condomínio tem vaga livre e em
+"Criar nova" quando não tem (aí o trilho nem aparece). As vagas vinculadas
+deixaram de ser linhas com botão largo "Desvincular" e viraram chips discretos
+com ação de ícone.
+
+**Morador: os dois sim/não viraram interruptores** (`components/MoradoresManager.tsx`).
+"Morador principal" e "Notificações por WhatsApp" eram dois `<input
+type="checkbox">` escritos à mão dentro de um `bg-muted` — a moldura os
+anunciava como um bloco à parte do cadastro. Agora são duas linhas de
+`SwitchField`, sem moldura.
+
+**`SwitchField`** (`components/ui/switch.tsx`) — peça nova: rótulo e explicação à
+esquerda, interruptor à direita, linha inteira clicável. Irmão do
+`CheckboxField`, com a divisão documentada em `components/ui/CLAUDE.md`: caixa
+para item marcado numa lista, interruptor para estado de um recurso.
+
+**`SimpleSelect` aceita `aria-label`**, para o select que vive numa linha já
+rotulada e não tem `Label` visível.
+
+---
+
 ## 0.32.0 — 2026-08-17
 
 **Cinco versões de cada mensagem, sorteadas por envio, e o ritmo em 90s.** Um

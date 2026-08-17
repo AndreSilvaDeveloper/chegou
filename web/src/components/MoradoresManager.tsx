@@ -6,6 +6,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SwitchField } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus, User, Users, Pencil, Trash2, Loader2, ArrowUpDown, MessageSquare, Star, Upload, QrCode, Building2, Phone } from 'lucide-react';
@@ -489,31 +490,20 @@ export function MoradoresManager({
               <Input id="email" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
             </div>
 
-            <div className="flex flex-col gap-3 pt-2 pb-2 rounded-lg bg-muted/50 p-4">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary" 
-                  checked={form.principal} 
-                  onChange={e => setForm({...form, principal: e.target.checked})} 
-                />
-                <div className="space-y-1">
-                  <p className="txt-corpo font-medium leading-none">Morador principal</p>
-                  <p className="txt-apoio text-muted-foreground">Contato preferencial do apartamento.</p>
-                </div>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary" 
-                  checked={form.receberWhatsapp} 
-                  onChange={e => setForm({...form, receberWhatsapp: e.target.checked})} 
-                />
-                <div className="space-y-1">
-                  <p className="txt-corpo font-medium leading-none">Notificações por WhatsApp</p>
-                  <p className="txt-apoio text-muted-foreground">Receberá mensagens quando encomendas chegarem.</p>
-                </div>
-              </label>
+            {/* Sem moldura em volta: são dois ajustes do morador, não um bloco à parte. */}
+            <div className="space-y-3">
+              <SwitchField
+                label="Morador principal"
+                description="Contato preferencial do apartamento."
+                checked={form.principal}
+                onCheckedChange={(v) => setForm({ ...form, principal: v })}
+              />
+              <SwitchField
+                label="Notificações por WhatsApp"
+                description="Receberá mensagens quando encomendas chegarem."
+                checked={form.receberWhatsapp}
+                onCheckedChange={(v) => setForm({ ...form, receberWhatsapp: v })}
+              />
             </div>
             
             <DialogFooter className="pt-4">
