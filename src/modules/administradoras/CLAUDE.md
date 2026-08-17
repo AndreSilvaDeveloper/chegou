@@ -27,7 +27,7 @@ condomínios da carteira escolhendo um por request.
 | `GET /` | Dados da própria administradora |
 | `GET /condominios` | A carteira |
 | `GET /condominios/:tenantId` | Um condomínio da carteira (404 se for de outra) |
-| `POST /condominios` | Cria condomínio na própria carteira, com o primeiro síndico |
+| `POST /condominios` | Cria condomínio na própria carteira, com o primeiro síndico (mesmo `CriarTenantDto`, mesmo wizard de 3 passos) |
 | `PATCH /condominios/:tenantId` | Cadastro **e** configuração operacional do condomínio |
 | `GET /usuarios` | Acessos da própria administradora |
 

@@ -79,6 +79,17 @@ async function main() {
         administradoraId: administradora.id,
         nome: 'Residencial Bela Vista',
         slug: 'residencial-bela-vista',
+        // Cadastro completo de propósito: é assim que o wizard de criação
+        // entrega um condomínio novo, e o seed serve para ver as telas com o
+        // dado que elas vão receber de verdade.
+        documento: '11222333000181',
+        emailContato: 'contato@belavista.test',
+        telefoneContato: '+5511988887777',
+        cep: '01310100',
+        endereco: 'Avenida Paulista',
+        numero: '1578',
+        complemento: 'Portaria social',
+        bairro: 'Bela Vista',
         cidade: 'São Paulo',
         estado: 'SP',
         plano: 'basico',

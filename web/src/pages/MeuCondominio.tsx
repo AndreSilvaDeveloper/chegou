@@ -43,6 +43,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrocarCondominio } from '@/hooks/use-tenant-config';
+import { enderecoLinha } from '@/lib/endereco';
 import { mensagemErro } from '@/lib/erros';
 
 type Tab =
@@ -246,8 +247,8 @@ export function MeuCondominio() {
             <InfoPill icon={CreditCard} label="Plano" value={condominio.plano || '—'} />
             <InfoPill
               icon={MapPin}
-              label="Localização"
-              value={[condominio.cidade, condominio.estado].filter(Boolean).join(' / ') || '—'}
+              label="Endereço"
+              value={enderecoLinha(condominio) || '—'}
             />
             <InfoPill icon={CalendarDays} label="Criado em" value={criadoEm} />
           </div>

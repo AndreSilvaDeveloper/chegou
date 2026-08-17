@@ -36,6 +36,7 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { enderecoLinha } from '@/lib/endereco';
 import { mensagemErro } from '@/lib/erros';
 
 type Tab = 'dados' | 'config';
@@ -212,8 +213,8 @@ export function ConfiguracoesCondominio() {
               <InfoPill icon={CreditCard} label="Plano" value={condominio.plano || '—'} />
               <InfoPill
                 icon={MapPin}
-                label="Localização"
-                value={[condominio.cidade, condominio.estado].filter(Boolean).join(' / ') || '—'}
+                label="Endereço"
+                value={enderecoLinha(condominio) || '—'}
               />
               <InfoPill icon={CalendarDays} label="Criado em" value={criadoEm} />
             </div>

@@ -11,6 +11,61 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.34.0 — 2026-08-17
+
+**Cadastro de condomínio em três passos, e o slug some do formulário.**
+
+**O wizard** (`components/condominio/CondominioWizard.tsx`): informações gerais →
+endereço → síndico responsável. **Um componente para as duas telas** — o
+superadmin (`/admin`) e a administradora (`/meus-condominios`) criam pelo mesmo
+DTO, e copiado o formulário divergiria na primeira vez que um campo entrasse só
+de um lado. São treze campos de três assuntos diferentes: numa coluna só, no
+celular, o erro de validação aparecia longe do campo que o causou.
+
+O botão "Continuar" **nunca fica apagado sem explicação** — `pendencia(passo)`
+devolve em texto o que falta. E o submit revalida os três passos, porque dá para
+chegar ao passo 3 e voltar para apagar um campo.
+
+**O slug é gerado no servidor** (`src/common/slug.ts` + `AdminService.slugUnico`)
+e não aparece mais em tela nenhuma. Ele é o nome da sessão do condomínio no
+gateway de WhatsApp, então não se troca depois de criado — e quem sabe se ele
+está livre é o banco, não o navegador. `baseDeSlug()` tira acento, número e
+caractere especial do nome; havendo colisão, entra um sufixo de **letras** (o
+slug inteiro segue sem números). Antes o campo era digitado nas duas telas, cada
+uma com a sua cópia da mesma função de sugestão.
+
+Duas armadilhas resolvidas aí:
+
+- **O acento precisa ser descartado, não virar separador.** `normalize('NFD')`
+  sozinho fazia "Condomínio" produzir `condomi-nio`. Não aparecia em "José" nem
+  "Ipê", onde o acento está na última letra e o hífen extra é aparado na ponta —
+  o teste (`src/common/slug.spec.ts`) foi quem pegou.
+- **O retry olha a constraint, não só o código do erro.** `23505` cobre slug,
+  documento e e-mail do síndico; sem conferir `tenants_slug_key`, um CNPJ
+  repetido trocaria o slug à toa e devolveria o mesmo erro de novo.
+
+**Cadastro obrigatório na criação**: nome, CNPJ (ou CPF), e-mail e telefone do
+condomínio; CEP, logradouro, número, cidade e UF; nome, e-mail, senha e telefone
+do síndico. Complemento e bairro seguem livres — nem todo endereço tem os dois.
+
+**E o que virou consequência:** o superadmin passou a *exigir* e-mail e telefone
+do condomínio no cadastro e não tinha onde corrigi-los depois. Os dois campos
+entraram no `AtualizarTenantDto` e na aba "Dados gerais" de
+`/admin/condominios/:id` — exigir na criação sem oferecer na edição deixaria o
+conserto de um erro de digitação para o banco.
+
+**Onde as informações novas aparecem:** o InfoPill "Localização" das três telas
+de condomínio virou "Endereço" e mostra a linha inteira (`enderecoLinha()` em
+`lib/endereco.ts`); as listagens seguem com cidade/UF (`municipioLinha()`), que é
+o que cabe numa coluna. O telefone do síndico entra em `users.telefone`, que as
+telas de acesso já mostravam.
+
+Fixture de e2e centralizada em `test/helpers/condominio.ts` — com CNPJ de
+dígitos verificadores calculados, já que o documento agora é obrigatório e
+único.
+
+---
+
 ## 0.33.0 — 2026-08-17
 
 **Endereço completo do condomínio, com preenchimento pelo CEP.**

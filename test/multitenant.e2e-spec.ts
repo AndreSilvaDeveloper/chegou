@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { corpoCondominio } from './helpers/condominio';
 
 /**
  * Prova de isolamento do multitenant.
@@ -59,13 +60,15 @@ describe('Multitenant (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/api/admin/administradoras/${administradoraId}/condominios`)
       .set('Authorization', `Bearer ${superToken}`)
-      .send({
-        nome: `E2E ${apelido} ${sufixo}`,
-        slug: `e2e-${apelido.toLowerCase()}-${sufixo}`,
-        sindicoNome: `Síndico ${apelido}`,
-        sindicoEmail: `sindico-${apelido.toLowerCase()}-${sufixo}@e2e.test`,
-        sindicoSenha: SENHA,
-      });
+      .send(
+        corpoCondominio({
+          nome: `E2E ${apelido} ${sufixo}`,
+          slug: `e2e-${apelido.toLowerCase()}-${sufixo}`,
+          sindicoNome: `Síndico ${apelido}`,
+          sindicoEmail: `sindico-${apelido.toLowerCase()}-${sufixo}@e2e.test`,
+          sindicoSenha: SENHA,
+        }),
+      );
     expect(res.status).toBe(201);
     criados.tenants.push(res.body.id);
     return res.body.id;
@@ -179,13 +182,15 @@ describe('Multitenant (e2e)', () => {
       const criar = await http
         .post('/api/minha-administradora/condominios')
         .set('Authorization', `Bearer ${adminAToken}`)
-        .send({
-          nome: `E2E A3 ${sufixo}`,
-          slug: `e2e-a3-${sufixo}`,
-          sindicoNome: 'Síndico A3',
-          sindicoEmail: `sindico-a3-${sufixo}@e2e.test`,
-          sindicoSenha: SENHA,
-        });
+        .send(
+          corpoCondominio({
+            nome: `E2E A3 ${sufixo}`,
+            slug: `e2e-a3-${sufixo}`,
+            sindicoNome: 'Síndico A3',
+            sindicoEmail: `sindico-a3-${sufixo}@e2e.test`,
+            sindicoSenha: SENHA,
+          }),
+        );
       expect(criar.status).toBe(201);
       criados.tenants.push(criar.body.id);
 

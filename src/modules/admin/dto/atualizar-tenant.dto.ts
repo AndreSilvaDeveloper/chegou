@@ -1,6 +1,15 @@
 import { DocumentoBrasileiro } from '../../../common/documento';
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { TelefoneE164 } from '../../../common/telefone';
 import { EnderecoDto } from '../../../common/endereco.dto';
 import { ConfigTenantDto } from './config-tenant.dto';
 
@@ -23,6 +32,18 @@ export class AtualizarTenantDto extends EnderecoDto {
   @IsOptional()
   @DocumentoBrasileiro()
   documento?: string;
+
+  // Contatos do condomínio. Entraram junto com o wizard de criação: o
+  // superadmin passou a EXIGI-LOS no cadastro e não tinha onde corrigi-los
+  // depois — um e-mail digitado errado ali deixaria a cobrança sem destino, e o
+  // conserto seria pelo banco.
+  @IsOptional()
+  @IsEmail({}, { message: 'E-mail de contato inválido' })
+  emailContato?: string;
+
+  @IsOptional()
+  @TelefoneE164()
+  telefoneContato?: string;
 
   @IsOptional()
   @IsString()

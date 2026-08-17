@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { PageShell } from '@/components/ui/page-shell';
@@ -6,14 +6,13 @@ import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DocumentoInput } from '@/components/ui/documento-input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Search, Plus, Building2, MapPin, Users, Power, PowerOff, ArrowUpDown, ArrowRight, Loader2 } from 'lucide-react';
+import { CondominioWizard } from '@/components/condominio/CondominioWizard';
+import { Search, Plus, Building2, MapPin, Users, Power, PowerOff, ArrowUpDown, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { municipioLinha } from '@/lib/endereco';
 
 interface TenantRow {
   id: string;
@@ -34,11 +33,6 @@ export function SuperAdmin() {
   const [search, setSearch] = useState('');
   
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    nome: '', slug: '', documento: '', cidade: '', estado: '',
-    sindicoNome: '', sindicoEmail: '', sindicoSenha: '',
-  });
-  const [saving, setSaving] = useState(false);
 
   const [openToggle, setOpenToggle] = useState(false);
   const [togglingTenant, setTogglingTenant] = useState<TenantRow | null>(null);
@@ -56,31 +50,6 @@ export function SuperAdmin() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await api.post('/admin/tenants', {
-        nome: form.nome,
-        slug: form.slug,
-        documento: form.documento || undefined,
-        cidade: form.cidade || undefined,
-        estado: form.estado || undefined,
-        sindicoNome: form.sindicoNome,
-        sindicoEmail: form.sindicoEmail,
-        sindicoSenha: form.sindicoSenha,
-      });
-      setShowForm(false);
-      setForm({ nome: '', slug: '', documento: '', cidade: '', estado: '', sindicoNome: '', sindicoEmail: '', sindicoSenha: '' });
-      toast.success('Condomínio criado com sucesso!');
-      load();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao criar condomínio');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleToggle = async () => {
     if (!togglingTenant) return;
@@ -139,7 +108,7 @@ export function SuperAdmin() {
         return (
           <div className="flex items-center gap-1.5 txt-corpo">
             <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="truncate max-w-[150px]">{[t.cidade, t.estado].filter(Boolean).join('/')}</span>
+            <span className="truncate max-w-[150px]">{municipioLinha(t)}</span>
           </div>
         );
       },
@@ -221,84 +190,12 @@ export function SuperAdmin() {
         />
       </Card>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Novo Condomínio</DialogTitle>
-            <DialogDescription>
-              Crie um novo ambiente de condomínio e o seu síndico inicial.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={submit} className="space-y-6 pt-2">
-            <div className="space-y-4">
-              <h3 className="txt-subtitulo font-medium text-foreground flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-primary" /> Dados do Condomínio
-              </h3>
-              
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome *</Label>
-                  <Input id="nome" placeholder="Residencial Aurora" value={form.nome} onChange={e => {
-                    const nome = e.target.value;
-                    const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-                    setForm(prev => ({...prev, nome, slug: prev.slug || slug}));
-                  }} autoFocus required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="slug">Slug (URL) *</Label>
-                  <Input id="slug" className="font-mono txt-corpo" placeholder="residencial-aurora" value={form.slug} onChange={e => setForm({...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'')})} required />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="documento">CPF ou CNPJ (opcional)</Label>
-                  <DocumentoInput id="documento" value={form.documento} onChange={documento => setForm({...form, documento})} />
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-2 space-y-2">
-                    <Label htmlFor="cidade">Cidade</Label>
-                    <Input id="cidade" placeholder="São Paulo" value={form.cidade} onChange={e => setForm({...form, cidade: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="estado">UF</Label>
-                    <Input id="estado" className="uppercase" placeholder="SP" value={form.estado} onChange={e => setForm({...form, estado: e.target.value.toUpperCase()})} maxLength={2} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="txt-subtitulo font-medium text-foreground flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" /> Síndico Inicial
-              </h3>
-              
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="sindicoNome">Nome Completo *</Label>
-                  <Input id="sindicoNome" placeholder="Nome do síndico" value={form.sindicoNome} onChange={e => setForm({...form, sindicoNome: e.target.value})} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sindicoEmail">E-mail de Acesso *</Label>
-                  <Input id="sindicoEmail" type="email" placeholder="sindico@exemplo.com" value={form.sindicoEmail} onChange={e => setForm({...form, sindicoEmail: e.target.value})} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sindicoSenha">Senha Inicial *</Label>
-                  <Input id="sindicoSenha" type="password" placeholder="mín. 6 caracteres" value={form.sindicoSenha} onChange={e => setForm({...form, sindicoSenha: e.target.value})} minLength={6} required />
-                </div>
-              </div>
-            </div>
-            
-            <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
-              <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Criar Condomínio
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CondominioWizard
+        open={showForm}
+        onOpenChange={setShowForm}
+        endpoint="/admin/tenants"
+        onCriado={load}
+      />
 
       <ConfirmDialog
         open={openToggle}

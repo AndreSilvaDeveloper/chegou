@@ -706,6 +706,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `@DocumentoBrasileiro()` | `src/common/documento.ts` | Campo de CPF/CNPJ: tira a máscara e confere os dígitos verificadores |
 | `@Cep()` | `src/common/cep.ts` | Campo de CEP: aceita `36010-000`, grava só dígitos |
 | `EnderecoDto` / `aplicarEndereco()` | `src/common/endereco.dto.ts` | Endereço completo do condomínio nos três DTOs que o editam |
+| `baseDeSlug()` / `sufixoAleatorio()` | `src/common/slug.ts` | Slug do condomínio a partir do nome — **nunca digitado pelo usuário** |
 | `@TenantId()` | `src/common/decorators` | Condomínio da request, já validado |
 | `@TenantScope()` | `src/common/decorators` | Igual, mas aceita "sem condomínio" (`null`) |
 | `@AdministradoraId()` | `src/common/decorators` | Carteira do usuário logado |
@@ -716,6 +717,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `DocumentoInput` | `web/src/components/ui/documento-input.tsx` | CPF/CNPJ mascarado enquanto se digita → só dígitos para a API |
 | `CepInput` | `web/src/components/ui/cep-input.tsx` | CEP mascarado `00000-000` → só dígitos para a API |
 | `EnderecoFields` | `web/src/components/condominio/EnderecoFields.tsx` | Endereço completo do condomínio, com preenchimento pelo CEP — as três telas usam este |
+| `CondominioWizard` | `web/src/components/condominio/CondominioWizard.tsx` | Cadastro de condomínio em 3 passos — superadmin e administradora usam o mesmo |
 | `formatarDocumento()` | `web/src/lib/documento.ts` | CPF/CNPJ legível nas listagens |
 | `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
 | `Combobox` | `web/src/components/ui/combobox.tsx` | Campo com sugestões que **aceita valor fora da lista** (transportadora) |
@@ -723,6 +725,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `prepararFoto()` / `capturarQuadro()` | `web/src/lib/imagem.ts` | Reduzir, recomprimir e medir nitidez de foto antes do upload |
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
 | `formatarCep()` | `web/src/lib/cep.ts` | CEP legível nas listagens |
+| `enderecoLinha()` / `municipioLinha()` | `web/src/lib/endereco.ts` | Endereço numa linha (cabeçalho) e só cidade/UF (coluna de tabela) |
 | `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
 | `asset()` | `web/src/lib/asset.ts` | Caminho de arquivo de `web/public/` — **o painel mora em `/app/`**, e `src="/x.png"` à mão cai na landing e dá 404 |
@@ -874,6 +877,9 @@ passaria a acontecer no meio do que o porteiro estiver digitando.
 30.2. **NUNCA** escrever um campo de CEP à mão — no DTO, `@Cep()`; na tela,
     `CepInput`; na listagem, `formatarCep()`. Endereço de condomínio inteiro é
     `EnderecoFields`, que já traz a consulta pelo CEP
+30.3. **NUNCA** pedir o `slug` do condomínio num formulário — ele é gerado no
+    servidor a partir do nome (`baseDeSlug()` + `AdminService.slugUnico`), que é
+    o único lugar que sabe se ele está livre
 
 ### Documentação viva
 31. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,

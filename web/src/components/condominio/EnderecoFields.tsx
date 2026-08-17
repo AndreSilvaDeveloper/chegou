@@ -77,11 +77,21 @@ export function EnderecoFields({
   valor,
   onChange,
   disabled,
+  obrigatorio,
 }: {
   valor: EnderecoForm;
   onChange: (valor: EnderecoForm) => void;
   disabled?: boolean;
+  /**
+   * Marca com `*` os campos que o cadastro exige — no wizard de criação o
+   * endereço é obrigatório, na edição não.
+   *
+   * Complemento e bairro nunca entram: nem todo endereço tem os dois, e exigir
+   * bairro de quem mora em distrito faria a pessoa inventar um.
+   */
+  obrigatorio?: boolean;
 }) {
+  const req = obrigatorio ? ' *' : '';
   const [busca, setBusca] = useState<EstadoBusca>('ocioso');
   const numeroRef = useRef<HTMLInputElement>(null);
   // Guarda o último CEP consultado para não repetir a chamada quando o usuário
@@ -131,7 +141,7 @@ export function EnderecoFields({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor="cond-cep">CEP</Label>
+        <Label htmlFor="cond-cep">{`CEP${req}`}</Label>
         <CepInput
           id="cond-cep"
           value={valor.cep}
@@ -153,7 +163,7 @@ export function EnderecoFields({
       </div>
 
       <div className="space-y-2 sm:col-span-4">
-        <Label htmlFor="cond-endereco">Logradouro</Label>
+        <Label htmlFor="cond-endereco">{`Logradouro${req}`}</Label>
         <Input
           id="cond-endereco"
           placeholder="Rua, avenida, estrada"
@@ -164,7 +174,7 @@ export function EnderecoFields({
       </div>
 
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor="cond-numero">Número</Label>
+        <Label htmlFor="cond-numero">{`Número${req}`}</Label>
         <Input
           id="cond-numero"
           ref={numeroRef}
@@ -197,7 +207,7 @@ export function EnderecoFields({
       </div>
 
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor="cond-cidade">Cidade</Label>
+        <Label htmlFor="cond-cidade">{`Cidade${req}`}</Label>
         <Input
           id="cond-cidade"
           value={valor.cidade}
@@ -207,7 +217,7 @@ export function EnderecoFields({
       </div>
 
       <div className="space-y-2 sm:col-span-1">
-        <Label htmlFor="cond-uf">UF</Label>
+        <Label htmlFor="cond-uf">{`UF${req}`}</Label>
         <Input
           id="cond-uf"
           className="uppercase"

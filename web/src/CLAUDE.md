@@ -108,6 +108,29 @@ chama `GET /cep/:cep`.
 > condomínio que já existe, e sobrescreveria o endereço salvo pelo genérico da
 > base dos Correios.
 
+### O cadastro de condomínio é um wizard, e ele também é compartilhado
+
+`CondominioWizard` (`components/condominio/CondominioWizard.tsx`) atende
+`SuperAdmin` e `MeusCondominios` — mesmo endpoint por trás (`CriarTenantDto`),
+só muda a prop `endpoint`. Três passos: informações gerais, endereço e o
+primeiro síndico.
+
+- **Treze campos de três assuntos não cabem numa coluna só.** No celular, o
+  formulário único virava rolagem sem fim com o erro de validação aparecendo
+  longe do campo que o causou. Cada passo valida o que é dele antes de deixar
+  avançar.
+- **`pendencia(passo)` devolve o que falta, em texto.** O botão "Continuar"
+  nunca fica apagado sem explicação — ele avisa qual campo falta. Formulário em
+  etapas com botão morto é o pior desfecho possível: o usuário não tem como
+  descobrir o que fazer.
+- **O submit revalida os três passos**, não só o último: dá para chegar ao passo
+  3 e voltar para apagar um campo.
+- **O slug não está no formulário.** Ele é gerado no servidor a partir do nome.
+  Antes era um campo visível nas duas telas, cada uma com a sua cópia da mesma
+  função de sugestão — e nenhuma delas podia saber se o slug estava livre.
+- **A trilha de progresso não usa âmbar.** O sinal é do botão de ação, que fica
+  na mesma dobra; quem marca o passo atual é o degrau de tom (regra 24.1).
+
 Na tela da administradora, plano, `ativo` e os módulos aparecem **de leitura**,
 com o motivo. Some-los faria o cliente achar que Vagas não existe e abrir
 chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
@@ -152,6 +175,7 @@ linhas precisar e **quem manda na largura da aba é o rótulo dela** (ver
 | CPF/CNPJ em listagem | `formatarDocumento()` de `@/lib/documento` |
 | CEP | `CepInput` — mascara `00000-000`, entrega só dígitos |
 | Endereço de condomínio (o conjunto todo) | `EnderecoFields` de `@/components/condominio` — já traz a consulta pelo CEP |
+| Endereço numa linha (cabeçalho, card) | `enderecoLinha()` de `@/lib/endereco`; só cidade/UF, `municipioLinha()` |
 | Foto que vai subir para o servidor | `prepararFoto()` de `@/lib/imagem` (ver abaixo) |
 | Erro de request | `toast.error(mensagemErro(err, 'Não foi possível …'))` |
 | Dinheiro, data, competência | `fmtMoeda` / `fmtData` / `fmtCompetencia` de `@/lib/formato` |

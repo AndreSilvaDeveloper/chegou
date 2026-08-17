@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { corpoCondominio } from './helpers/condominio';
 
 /**
  * A assinatura vista pelo cliente — e quem **não** pode vê-la.
@@ -66,13 +67,15 @@ describe('Assinatura — a conta do cliente (e2e)', () => {
     const res = await http
       .post(rota)
       .set('Authorization', `Bearer ${superToken}`)
-      .send({
-        nome: `E2E Assin ${apelido} ${sufixo}`,
-        slug: `e2e-assin-${apelido.toLowerCase()}-${sufixo}`,
-        sindicoNome: `Síndico ${apelido}`,
-        sindicoEmail: `sindico-assin-${apelido.toLowerCase()}-${sufixo}@e2e.test`,
-        sindicoSenha: SENHA,
-      });
+      .send(
+        corpoCondominio({
+          nome: `E2E Assin ${apelido} ${sufixo}`,
+          slug: `e2e-assin-${apelido.toLowerCase()}-${sufixo}`,
+          sindicoNome: `Síndico ${apelido}`,
+          sindicoEmail: `sindico-assin-${apelido.toLowerCase()}-${sufixo}@e2e.test`,
+          sindicoSenha: SENHA,
+        }),
+      );
     expect(res.status).toBe(201);
     criados.tenants.push(res.body.id);
     return res.body.id;

@@ -26,6 +26,7 @@ import { PageShell } from '@/components/ui/page-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DocumentoInput } from '@/components/ui/documento-input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +37,7 @@ import {
   CalendarDays, Users, DoorClosed, Settings2, SlidersHorizontal, Save, Car, Bell,
   Clock, Power, Receipt, MessageCircle,
 } from 'lucide-react';
+import { enderecoLinha } from '@/lib/endereco';
 import { toast } from 'sonner';
 
 type Tab =
@@ -54,7 +56,8 @@ export function SuperAdminTenant() {
   const [tab, setTab] = useState<Tab>('dados');
 
   const [form, setForm] = useState({
-    nome: '', slug: '', documento: '', plano: '', ativo: true,
+    nome: '', slug: '', documento: '', emailContato: '', telefoneContato: '',
+    plano: '', ativo: true,
   });
   const [endereco, setEndereco] = useState<EnderecoForm>(ENDERECO_VAZIO);
   const [config, setConfig] = useState<Required<TenantConfig>>(DEFAULT_CONFIG);
@@ -66,6 +69,7 @@ export function SuperAdminTenant() {
       setTenant(t);
       setForm({
         nome: t.nome, slug: t.slug, documento: t.documento ?? '',
+        emailContato: t.emailContato ?? '', telefoneContato: t.telefoneContato ?? '',
         plano: t.plano, ativo: t.ativo,
       });
       setEndereco(enderecoDoCondominio(t));
@@ -82,6 +86,8 @@ export function SuperAdminTenant() {
         nome: form.nome,
         slug: form.slug,
         documento: form.documento || null,
+        emailContato: form.emailContato.trim() || undefined,
+        telefoneContato: form.telefoneContato || undefined,
         // O endereço vai por inteiro, inclusive campo vazio: o DTO converte
         // vazio em NULL, e é assim que dá para apagar um complemento errado.
         ...enderecoParaApi(endereco),
@@ -183,7 +189,7 @@ export function SuperAdminTenant() {
 
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
             <InfoPill icon={CreditCard} label="Plano" value={tenant.plano || '—'} />
-            <InfoPill icon={MapPin} label="Localização" value={[tenant.cidade, tenant.estado].filter(Boolean).join(' / ') || '—'} />
+            <InfoPill icon={MapPin} label="Endereço" value={enderecoLinha(tenant) || '—'} />
             <InfoPill icon={CalendarDays} label="Criado em" value={criadoEm} />
           </div>
         </div>
@@ -232,6 +238,17 @@ export function SuperAdminTenant() {
                   <div className="space-y-2">
                     <Label htmlFor="plano">Plano da Assinatura</Label>
                     <Input id="plano" value={form.plano} onChange={(e) => setForm({ ...form, plano: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="emailContato">E-mail de contato</Label>
+                    <Input id="emailContato" type="email" value={form.emailContato} onChange={(e) => setForm({ ...form, emailContato: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="telefoneContato">Telefone de contato</Label>
+                    <PhoneInput id="telefoneContato" value={form.telefoneContato} onChange={(e164) => setForm({ ...form, telefoneContato: e164 })} />
                   </div>
                 </div>
 
