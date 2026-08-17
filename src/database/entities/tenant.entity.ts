@@ -13,6 +13,16 @@ import { User } from './user.entity';
 import { Apartamento } from './apartamento.entity';
 import { Morador } from './morador.entity';
 import { Encomenda } from './encomenda.entity';
+import { numericTransformer } from './numeric.transformer';
+
+/**
+ * Quão exata é a coordenada do condomínio.
+ *
+ * `endereco` é a porta; `cep` é a rua certa sem o número; `cidade` é o centro do
+ * município — pode estar a quilômetros. Quem desenha o mapa **precisa** dessa
+ * distinção, senão trata os três alfinetes como se fossem igualmente confiáveis.
+ */
+export type GeoPrecisao = 'endereco' | 'cep' | 'cidade';
 
 @Entity({ name: 'tenants' })
 export class Tenant {
@@ -61,6 +71,22 @@ export class Tenant {
   /** Só dígitos (8). A máscara `00000-000` é da tela. */
   @Column({ type: 'varchar', length: 8, nullable: true })
   cep!: string | null;
+
+  // ---- Coordenadas (mapa da plataforma) ----
+  // Resolvidas **depois** do salvamento, na fila `geocodificacao`. NULL é estado
+  // normal: o endereço acabou de mudar, ou nenhum provedor achou o lugar.
+  @Column({ type: 'numeric', precision: 10, scale: 7, nullable: true, transformer: numericTransformer })
+  latitude!: number | null;
+
+  @Column({ type: 'numeric', precision: 10, scale: 7, nullable: true, transformer: numericTransformer })
+  longitude!: number | null;
+
+  /** De onde veio a coordenada — ver `db/migrations/036_geo_tenant.sql`. */
+  @Column({ name: 'geo_precisao', type: 'varchar', length: 20, nullable: true })
+  geoPrecisao!: GeoPrecisao | null;
+
+  @Column({ name: 'geo_atualizado_em', type: 'timestamptz', nullable: true })
+  geoAtualizadoEm!: Date | null;
 
   @Column({ name: 'telefone_contato', type: 'varchar', length: 20, nullable: true })
   telefoneContato!: string | null;

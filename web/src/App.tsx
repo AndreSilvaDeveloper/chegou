@@ -5,6 +5,19 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAtualizacaoAutomatica } from './hooks/use-atualizacao';
 import { AvisoAtualizacao } from './components/AvisoAtualizacao';
 import { FaixaBloqueio } from './components/assinatura/FaixaBloqueio';
+import { rotaInicial } from './lib/rota-inicial';
+
+/**
+ * Redireciona para a tela inicial do perfil logado.
+ *
+ * Componente, e não `<Navigate to={rotaInicial()} />` escrito direto no
+ * `element`: o `element` de uma `<Route>` é avaliado quando o `App` renderiza, e
+ * o papel precisa ser lido **na hora em que a rota casa** — senão quem entra
+ * numa sessão nova é mandado para a tela do papel de quem estava logado antes.
+ */
+function InicioPorPapel() {
+  return <Navigate to={rotaInicial()} replace />;
+}
 
 // Lazy loading all pages
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -61,7 +74,8 @@ export default function App() {
           {/* A tela de encomendas já morou na raiz. O redirect fica: é o
               `start_url` do PWA já instalado no celular do porteiro, e o
               endereço que quem salvou o atalho continua abrindo. */}
-          <Route path="/" element={<Navigate to="/encomendas" replace />} />
+          {/* A raiz e o catch-all seguem o papel — ver `lib/rota-inicial.ts`. */}
+          <Route path="/" element={<InicioPorPapel />} />
           <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Dashboard /></ProtectedRoute>} />
           <Route path="/encomendas/nova" element={<ProtectedRoute><NovaEncomenda /></ProtectedRoute>} />
           <Route path="/encomendas/:id" element={<ProtectedRoute><DetalheEncomenda /></ProtectedRoute>} />
@@ -94,7 +108,7 @@ export default function App() {
               `/admin/condominios/:id`, os dois com poderes maiores. */}
           <Route path="/configuracoes" element={<ProtectedRoute allowedRoles={['sindico']}><ConfiguracoesCondominio /></ProtectedRoute>} />
         </Route>
-        <Route path="*" element={<Navigate to="/encomendas" replace />} />
+        <Route path="*" element={<InicioPorPapel />} />
       </Routes>
       </Suspense>
     </>

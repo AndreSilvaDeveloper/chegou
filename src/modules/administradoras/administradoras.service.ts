@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { IsNull, QueryFailedError, Repository } from 'typeorm';
 import { Administradora, Tenant, User } from '../../database/entities';
 import { aplicarEndereco } from '../../common/endereco.dto';
+import { FilaGeocodificacaoService } from '../cep/fila-geocodificacao.service';
 import { TenantConfigService } from '../../common/tenant-config/tenant-config.service';
 import { TenantScopeService } from '../../common/tenant-scope/tenant-scope.service';
 import { AdminService } from '../admin/admin.service';
@@ -46,6 +47,7 @@ export class AdministradorasService {
     private readonly admin: AdminService,
     private readonly tenantScope: TenantScopeService,
     private readonly tenantConfig: TenantConfigService,
+    private readonly geo: FilaGeocodificacaoService,
   ) {}
 
   // ------------------------------------------------------------ superadmin
@@ -197,7 +199,7 @@ export class AdministradorasService {
 
     if (dto.nome !== undefined) tenant.nome = dto.nome;
     if (dto.documento !== undefined) tenant.documento = dto.documento || null;
-    aplicarEndereco(tenant, dto);
+    const enderecoMudou = aplicarEndereco(tenant, dto);
     if (dto.telefoneContato !== undefined) tenant.telefoneContato = dto.telefoneContato || null;
     if (dto.emailContato !== undefined) tenant.emailContato = dto.emailContato || null;
 
@@ -212,6 +214,10 @@ export class AdministradorasService {
       // `TenantConfigService` guarda isso em cache: sem invalidar, a mudança só
       // valeria depois do TTL — e o síndico veria o formulário antigo.
       if (dto.configJson !== undefined) this.tenantConfig.invalidate(tenantId);
+
+      // Só quando o endereço mudou de verdade: a tela manda o endereço inteiro
+      // a cada salvamento, mesmo quem só corrigiu o nome do condomínio.
+      if (enderecoMudou) await this.geo.agendar(tenantId);
 
       return salvo;
     } catch (err) {

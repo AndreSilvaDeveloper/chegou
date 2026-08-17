@@ -8,6 +8,7 @@ import { OpenwaModule } from '../openwa/openwa.module';
 import { AdminTenantManagementController } from './admin-tenant-management.controller';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { CepModule } from '../cep/cep.module';
 
 /**
  * O WhatsApp por condomínio **não** mora aqui: ele é
@@ -16,7 +17,7 @@ import { AdminService } from './admin.service';
  * assunto virou uma aba de cada condomínio.
  */
 @Module({
-  imports: [
+  imports: [CepModule, 
     TypeOrmModule.forFeature([Tenant, User, Notificacao]),
     UsuariosModule,
     MoradoresModule,

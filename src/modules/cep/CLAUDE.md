@@ -1,7 +1,8 @@
-# Módulo: CEP
+# Módulo: CEP e geocodificação
 
-Consulta de CEP para preencher o endereço do condomínio. É o módulo mais simples
-do projeto: um controller, um service, nenhuma tabela.
+Duas metades de "onde fica este endereço": a **consulta de CEP**, que preenche o
+formulário, e a **geocodificação**, que grava a coordenada do condomínio para o
+mapa da plataforma.
 
 ## Rota e perfis
 
@@ -73,6 +74,68 @@ dígitos, como o `PhoneInput` e o `DocumentoInput`.
 sobre o valor do campo ela dispararia também no carregamento do condomínio que
 já existe — e sobrescreveria o endereço salvo pelo genérico da base dos Correios.
 
+---
+
+# Geocodificação
+
+`tenants.latitude` / `longitude` / `geo_precisao` / `geo_atualizado_em`
+(migration 036). Duas colunas `NUMERIC` e não PostGIS: a única pergunta prevista
+é "onde desenhar o alfinete", e para isso um par de números basta.
+
+## A cadeia, em ordem de PRECISÃO
+
+Nenhum provedor sozinho cobre o Brasil, então são três tentativas:
+
+| # | Fonte | `geo_precisao` | Falha quando |
+|---|---|---|---|
+| 1 | Nominatim — rua + número + cidade + UF | `endereco` | Rua nova, ou grafada diferente do OSM |
+| 2 | BrasilAPI — coordenada do CEP | `cep` | O CEP não tem coordenada na base (**comum**) |
+| 3 | Nominatim — cidade + UF | `cidade` | Praticamente nunca |
+
+**A ordem não é a da confiabilidade do provedor, é a da precisão do resultado.**
+A BrasilAPI é fonte melhor que o OSM, mas a coordenada dela é do CEP: acerta a
+rua e ignora o número. Num condomínio numa avenida de 4 km, o alfinete cairia em
+qualquer ponto dela.
+
+O passo 3 é deliberadamente ruim e existe assim mesmo — um alfinete no centro do
+município, **marcado como tal**, é melhor que um buraco no mapa. É por isso que
+`geo_precisao` é gravada junto: sem ela, o alfinete de "centro de Juiz de Fora"
+pareceria tão exato quanto o da portaria, e alguém decidiria algo em cima disso.
+
+## Regras de negócio
+
+1. **`location.coordinates` da BrasilAPI vem vazio com frequência.** A v2
+   responde `{ "type": "Point", "coordinates": {} }` para uma parcela grande dos
+   CEPs. Confiar em `location` existir grava `NaN`. `coordenadaDaBrasilApi()`
+   trata isso, mais string não-numérica, par fora da faixa e **(0,0)** — que é o
+   Golfo da Guiné e, na prática, significa "não sei". Coberto em
+   `cep.service.spec.ts`.
+2. **Fila, nunca no salvamento.** O Nominatim aceita 1 req/s e um endereço pode
+   gastar duas chamadas; resolver em linha somaria segundos ao `PATCH`. E
+   provedor fora do ar deixaria o condomínio sem coordenada **para sempre**,
+   porque não haveria o que reprocessar.
+3. **`jobId = geo:{tenantId}`.** Corrigir o número e depois o complemento
+   enfileira **um** trabalho, não três.
+4. **Só quando o endereço muda de verdade.** `aplicarEndereco()` devolve se
+   algum campo mudou — a tela manda o endereço inteiro a cada salvamento, mesmo
+   quem só corrigiu o nome do condomínio.
+5. **`geo_atualizado_em` é gravado mesmo sem achar nada.** É o que separa "nunca
+   tentamos" de "tentamos e este endereço não existe em base nenhuma".
+6. **Concorrência 1 no worker**, e `WORKER_ENABLED=false` fecha o worker: mais de
+   uma réplica consumindo a fila multiplicaria as chamadas ao Nominatim, que é
+   exatamente o que a política proíbe.
+
+## Nominatim: as regras de uso não são opcionais
+
+Serviço gratuito, mantido por doação. A política exige **User-Agent que
+identifique a aplicação e permita contato** e **no máximo 1 req/s**. As duas
+coisas estão no `GeocodingService` — a segunda como intervalo mínimo entre
+chamadas, não como confiança em quem chama. Ignorar isso rende bloqueio por IP,
+que derruba a geocodificação de **todos** os condomínios de uma vez.
+
+Preencha o `GEOCODING_USER_AGENT` com um contato real. `NOMINATIM_BASE_URL`
+vazio desliga os passos 1 e 3 (sobra a coordenada do CEP).
+
 ## Ao alterar este módulo
 
 - [ ] Trocou de provedor? O parser é por provedor — acrescente o método e
@@ -81,3 +144,11 @@ já existe — e sobrescreveria o endereço salvo pelo genérico da base dos Cor
       condomínio (tabela "O que cada perfil faz" no `CLAUDE.md` raiz).
 - [ ] Campo novo na resposta? Espelhe em `EnderecoPorCep` (`web/src/api/types.ts`)
       e decida se o `EnderecoFields` deve preenchê-lo sozinho.
+- [ ] Mexeu na cadeia de geocodificação? A ordem é por **precisão do
+      resultado**, não por qualidade do provedor — e toda fonte nova precisa
+      dizer qual `geo_precisao` ela produz.
+- [ ] Provedor novo devolvendo coordenada? Passe pelas mesmas recusas de
+      `coordenadaDaBrasilApi()` (vazio, não-numérico, fora de faixa, (0,0)).
+      Alfinete no oceano é o defeito clássico daqui.
+- [ ] Vai desenhar o mapa? Leia `geo_precisao` — tratar `cidade` como se fosse
+      `endereco` põe um condomínio a quilômetros de onde ele está.

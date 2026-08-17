@@ -10,6 +10,15 @@ export interface EnderecoPorCep {
   cidade: string | null;
   /** Sigla de duas letras. */
   estado: string | null;
+  /**
+   * Coordenada do CEP, quando a BrasilAPI tiver.
+   *
+   * **Vem nula com frequência**: a v2 responde `location.coordinates` como
+   * objeto vazio para uma parcela grande dos CEPs, e a ViaCEP não devolve
+   * coordenada nenhuma. Quem completa isso é o `GeocodingService`.
+   */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface RespostaBrasilApi {
@@ -18,6 +27,15 @@ interface RespostaBrasilApi {
   neighborhood?: string;
   city?: string;
   state?: string;
+  /**
+   * `coordinates` vem como **strings** (`"-26.9244749"`), e vem como `{}` vazio
+   * quando o provedor por trás não tem a coordenada daquele CEP. Tipar como
+   * opcional é o que obriga quem lê a tratar os dois casos.
+   */
+  location?: {
+    type?: string;
+    coordinates?: { longitude?: string; latitude?: string };
+  };
 }
 
 interface RespostaViaCep {
@@ -27,6 +45,35 @@ interface RespostaViaCep {
   localidade?: string;
   uf?: string;
   erro?: boolean | string;
+}
+
+/**
+ * A coordenada da BrasilAPI, quando ela existe **e** faz sentido.
+ *
+ * Três desfechos são tratados como "não tem", e todos acontecem de verdade:
+ * o objeto `coordinates` vazio (o mais comum), string que não vira número, e
+ * par fora da faixa geográfica. Deixar qualquer um deles passar grava um
+ * alfinete no meio do oceano — e o CHECK da migration recusaria a gravação
+ * depois, longe daqui.
+ */
+export function coordenadaDaBrasilApi(dados: {
+  location?: { coordinates?: { latitude?: string; longitude?: string } };
+}): { latitude: number | null; longitude: number | null } {
+  const bruto = dados.location?.coordinates;
+  const latitude = Number(bruto?.latitude);
+  const longitude = Number(bruto?.longitude);
+
+  const valido =
+    bruto?.latitude !== undefined &&
+    bruto?.longitude !== undefined &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180 &&
+    // (0,0) é o Golfo da Guiné: na prática significa "o provedor não sabe".
+    !(latitude === 0 && longitude === 0);
+
+  return valido ? { latitude, longitude } : { latitude: null, longitude: null };
 }
 
 /**
@@ -119,6 +166,7 @@ export class CepService {
       bairro: dados.neighborhood?.trim() || null,
       cidade: dados.city?.trim() || null,
       estado: dados.state.trim().toUpperCase().slice(0, 2),
+      ...coordenadaDaBrasilApi(dados),
     };
   }
 
@@ -135,6 +183,9 @@ export class CepService {
       bairro: dados.bairro?.trim() || null,
       cidade: dados.localidade?.trim() || null,
       estado: dados.uf.trim().toUpperCase().slice(0, 2),
+      // A ViaCEP não tem coordenada. Quem resolve é o `GeocodingService`.
+      latitude: null,
+      longitude: null,
     };
   }
 }

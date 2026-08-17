@@ -10,14 +10,7 @@ import { CheckboxField } from '@/components/ui/checkbox';
 import { CodigoStrip } from '@/components/ui/codigo-strip';
 import { clearLoginLembrado, getLoginLembrado, setLoginLembrado } from '@/lib/lembrar-login';
 import { asset } from '@/lib/asset';
-
-/** Onde cada papel cai depois de entrar. */
-const DESTINO_POR_PAPEL: Record<AuthenticatedUser['role'], string> = {
-  superadmin: '/admin',
-  admin: '/meus-condominios',
-  sindico: '/encomendas',
-  porteiro: '/encomendas',
-};
+import { rotaInicial } from '@/lib/rota-inicial';
 
 export function Login() {
   // Lido uma vez, na montagem: ler o localStorage a cada render trocaria o que
@@ -31,7 +24,14 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const nav = useNavigate();
 
-  if (getToken()) return <Navigate to="/encomendas" replace />;
+  // Quem já tem sessão não vê o login — e vai para a tela DO PAPEL dele.
+  //
+  // Esta linha era `<Navigate to="/encomendas">`, e é ela que causava o bug de
+  // superadmin e administradora caírem sempre em encomendas: o `submit` grava o
+  // token e chama `nav(...)`, mas o componente ainda re-renderiza antes da
+  // navegação sair — e neste ponto `getToken()` já é verdadeiro, então este
+  // redirect corria por cima do destino certo.
+  if (getToken()) return <Navigate to={rotaInicial()} replace />;
 
   /**
    * Desmarcar apaga na hora, sem esperar um login novo: quem desmarca num
@@ -61,7 +61,9 @@ export function Login() {
       // A administradora começa pela carteira: ela ainda não está "dentro" de
       // nenhum condomínio, e é lá que escolhe.
       clearTenantAtivo();
-      nav(DESTINO_POR_PAPEL[res.user.role] ?? '/encomendas', { replace: true });
+      // O usuário vem da resposta, não do localStorage: não depende de o
+      // `setUser` acima já ter sido lido de volta.
+      nav(rotaInicial(res.user), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'E-mail ou senha incorretos.');
     } finally {

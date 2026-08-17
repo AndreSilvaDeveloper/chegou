@@ -95,13 +95,23 @@ type AlvoEndereco = {
  * `undefined` (não veio no corpo) preserva o valor atual; campo vazio, que o
  * `TextoOpcional` já converteu em `null`, apaga. Sem essa distinção não haveria
  * como limpar um complemento errado.
+ *
+ * **Devolve se algum campo mudou de verdade.** É o gatilho da geocodificação:
+ * quem salva a tela inteira manda o endereço a cada `PATCH`, mesmo tendo mexido
+ * só no nome do condomínio — sem comparar valor a valor, todo salvamento
+ * enfileiraria uma consulta ao provedor externo para reconfirmar a mesma
+ * coordenada.
  */
-export function aplicarEndereco(alvo: AlvoEndereco, dto: EnderecoDto): void {
-  if (dto.cep !== undefined) alvo.cep = dto.cep || null;
-  if (dto.endereco !== undefined) alvo.endereco = dto.endereco || null;
-  if (dto.numero !== undefined) alvo.numero = dto.numero || null;
-  if (dto.complemento !== undefined) alvo.complemento = dto.complemento || null;
-  if (dto.bairro !== undefined) alvo.bairro = dto.bairro || null;
-  if (dto.cidade !== undefined) alvo.cidade = dto.cidade || null;
-  if (dto.estado !== undefined) alvo.estado = dto.estado || null;
+export function aplicarEndereco(alvo: AlvoEndereco, dto: EnderecoDto): boolean {
+  const campos = ['cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado'] as const;
+
+  let mudou = false;
+  for (const campo of campos) {
+    const novo = dto[campo];
+    if (novo === undefined) continue;
+    const valor = novo || null;
+    if (alvo[campo] !== valor) mudou = true;
+    alvo[campo] = valor;
+  }
+  return mudou;
 }

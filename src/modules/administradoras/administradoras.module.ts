@@ -5,9 +5,10 @@ import { AdminModule } from '../admin/admin.module';
 import { AdministradorasService } from './administradoras.service';
 import { AdminAdministradorasController } from './admin-administradoras.controller';
 import { MinhaAdministradoraController } from './minha-administradora.controller';
+import { CepModule } from '../cep/cep.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Administradora, Tenant, User]), AdminModule],
+  imports: [CepModule, TypeOrmModule.forFeature([Administradora, Tenant, User]), AdminModule],
   controllers: [AdminAdministradorasController, MinhaAdministradoraController],
   providers: [AdministradorasService],
   exports: [AdministradorasService],

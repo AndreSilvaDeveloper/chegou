@@ -14,6 +14,15 @@ export const QUEUE_NOTIFICATION_DISPATCH = 'notification-dispatch';
  */
 export const QUEUE_COBRANCA_EMISSAO = 'cobranca-emissao';
 
+/**
+ * Geocodificação do endereço do condomínio.
+ *
+ * Fila própria, e a mais lenta das três de propósito: o provedor (Nominatim)
+ * aceita 1 requisição por segundo, então o worker roda com concorrência 1.
+ * Juntá-la a qualquer outra fila imporia esse ritmo a quem não precisa dele.
+ */
+export const QUEUE_GEOCODIFICACAO = 'geocodificacao';
+
 @Global()
 @Module({
   imports: [
@@ -34,6 +43,7 @@ export const QUEUE_COBRANCA_EMISSAO = 'cobranca-emissao';
     }),
     BullModule.registerQueue({ name: QUEUE_NOTIFICATION_DISPATCH }),
     BullModule.registerQueue({ name: QUEUE_COBRANCA_EMISSAO }),
+    BullModule.registerQueue({ name: QUEUE_GEOCODIFICACAO }),
   ],
   exports: [BullModule],
 })

@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { getTenantAtivo, getToken, getUser } from '../api/client';
 import { useModuleGate, type TenantModule } from '@/hooks/use-tenant-config';
+import { rotaInicial } from '@/lib/rota-inicial';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function ProtectedRoute({
@@ -23,8 +24,13 @@ export function ProtectedRoute({
   if (!token) return <Navigate to="/login" replace />;
 
   const user = getUser();
+  // Perfil sem acesso volta para a PRÓPRIA tela inicial, não para encomendas:
+  // mandar o superadmin para uma tela de condomínio o deixava preso num lugar
+  // que ele não opera (e que ele consegue abrir, porque `/encomendas` não
+  // declara `allowedRoles`). Não há laço possível — a tela inicial de cada
+  // perfil é, por construção, uma que ele pode abrir.
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/encomendas" replace />;
+    return <Navigate to={rotaInicial(user)} replace />;
   }
 
   // A administradora não tem condomínio fixo: sem escolher um, as telas de
@@ -42,7 +48,8 @@ export function ProtectedRoute({
         </div>
       );
     }
-    if (gate === 'negado') return <Navigate to="/encomendas" replace />;
+    // Módulo não contratado: mesma regra do perfil sem acesso.
+    if (gate === 'negado') return <Navigate to={rotaInicial(user)} replace />;
   }
 
   return <>{children}</>;

@@ -11,6 +11,96 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.35.0 — 2026-08-17
+
+**Coordenadas do condomínio, para o mapa da plataforma.**
+
+`tenants.latitude`, `longitude`, `geo_precisao` e `geo_atualizado_em`
+(migration 036). Duas colunas `NUMERIC` e não PostGIS: a única pergunta prevista
+é "onde desenhar o alfinete", e para isso um par de números basta.
+
+**A coordenada não vem de um provedor só, porque nenhum cobre o Brasil.** A
+cadeia tenta em ordem de **precisão do resultado**:
+
+| # | Fonte | `geo_precisao` |
+|---|---|---|
+| 1 | Nominatim — rua + número + cidade + UF | `endereco` |
+| 2 | BrasilAPI — coordenada do CEP | `cep` |
+| 3 | Nominatim — cidade + UF | `cidade` |
+
+A BrasilAPI é fonte mais confiável que o OSM, mas vem **depois**: a coordenada
+dela é do CEP, então acerta a rua e ignora o número — num condomínio numa
+avenida de 4 km o alfinete cairia em qualquer ponto dela. O passo 3 é
+deliberadamente ruim e existe assim mesmo: um alfinete no centro do município,
+**marcado como tal**, é melhor que um buraco no mapa. Daí a coluna
+`geo_precisao` — sem ela, "centro de Juiz de Fora" pareceria tão exato quanto a
+portaria.
+
+**`location.coordinates` da BrasilAPI vem vazio com frequência** — `{}`, com o
+`location` presente. Confiar em ele existir gravaria `NaN`. Além disso são
+recusados: string não-numérica, par fora da faixa geográfica e **(0,0)**, que é o
+Golfo da Guiné e na prática significa "não sei". Seis casos em
+`cep.service.spec.ts`.
+
+**Resolvida em fila (`geocodificacao`), nunca no salvamento.** O Nominatim aceita
+1 requisição por segundo e um endereço pode gastar duas chamadas; em linha, isso
+somaria segundos a cada `PATCH`. E provedor fora do ar deixaria o condomínio sem
+coordenada para sempre, porque não haveria o que reprocessar. O `jobId` é
+`geo:{tenantId}`: corrigir o número e depois o complemento enfileira **um**
+trabalho, não três.
+
+**Só enfileira quando o endereço muda de verdade** — `aplicarEndereco()` agora
+devolve se algum campo mudou. As telas mandam o endereço inteiro a cada
+salvamento, inclusive quem só corrigiu o nome do condomínio.
+
+`geo_atualizado_em` é gravado **mesmo quando nada é encontrado**: é o que separa
+"nunca tentamos" de "tentamos e este endereço não existe em base nenhuma".
+
+Variáveis novas: `NOMINATIM_BASE_URL` (padrão: a instância pública; vazio
+desliga os passos 1 e 3), `GEOCODING_USER_AGENT` e `GEOCODING_TIMEOUT_MS`.
+
+> ⚠️ **A política de uso do Nominatim não é opcional.** Ela exige User-Agent que
+> identifique a aplicação e permita contato, e no máximo 1 req/s — o código
+> respeita o intervalo, mas o User-Agent é configuração. **Ponha um contato real
+> em `GEOCODING_USER_AGENT` antes do deploy**: bloqueio por IP derruba a
+> geocodificação de todos os condomínios de uma vez.
+
+---
+
+## 0.34.1 — 2026-08-17
+
+**Cada perfil cai na tela dele ao entrar.** Superadmin e administradora eram
+sempre jogados em `/encomendas` — o superadmin numa tela de condomínio que ele
+nem opera, a administradora numa tela que exige um condomínio escolhido.
+
+**A causa era uma corrida no próprio `Login`.** A guarda de "já está logado" era
+`<Navigate to="/encomendas">`. O `submit` grava o token e chama `nav(...)` com o
+destino certo, mas o componente **re-renderiza antes de a navegação sair** — e
+nesse render `getToken()` já é verdadeiro, então o redirect fixo corria por cima.
+O mapa de destinos existia e estava sendo ignorado.
+
+Agora há **um mapa só**, em `lib/rota-inicial.ts`:
+
+| Perfil | Cai em |
+|---|---|
+| `porteiro` | `/encomendas` |
+| `sindico` | `/dashboard` (era `/encomendas`) |
+| `admin` | `/meus-condominios` |
+| `superadmin` | `/admin` |
+
+Ele é usado nos **seis** lugares que decidiam destino, dos quais quatro
+mandavam todo mundo para encomendas: o `nav()` do login, a guarda de sessão do
+`Login`, a rota `/`, o catch-all `*` e os dois redirects de recusa do
+`ProtectedRoute`.
+
+**Perfil recusado agora volta para a própria tela inicial.** Mandar o superadmin
+para `/encomendas` o deixava preso num lugar que ele não opera — e que ele
+consegue abrir, porque essa rota não declara `allowedRoles`. Não há laço
+possível: a tela inicial de cada perfil é, por construção, uma que ele pode
+abrir.
+
+---
+
 ## 0.34.0 — 2026-08-17
 
 **Cadastro de condomínio em três passos, e o slug some do formulário.**

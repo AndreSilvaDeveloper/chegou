@@ -28,6 +28,40 @@ web/src/
 └── components/Layout.tsx  # sidebar, menu por perfil, condomínio ativo
 ```
 
+### A tela inicial de cada perfil
+
+`lib/rota-inicial.ts` — **um mapa só**, porque o destino era decidido em quatro
+lugares e três deles mandavam todo mundo para `/encomendas`:
+
+| Perfil | Cai em | Porque |
+|---|---|---|
+| `porteiro` | `/encomendas` | Está em pé na portaria com um pacote na mão |
+| `sindico` | `/dashboard` | Quer o resumo do condomínio, não a fila |
+| `admin` | `/meus-condominios` | Ainda não está **dentro** de nenhum condomínio |
+| `superadmin` | `/admin` | O trabalho dele é a plataforma, não um condomínio |
+
+Usam esse mapa: o `nav()` depois do login, a guarda de "já está logado" do
+`Login`, a rota `/`, o catch-all `*` e os dois redirects de recusa do
+`ProtectedRoute` (perfil sem acesso e módulo não contratado).
+
+> **O bug que originou o arquivo:** a guarda de sessão do `Login` era
+> `<Navigate to="/encomendas">`. O `submit` grava o token e chama `nav(...)`,
+> mas o componente **re-renderiza antes de a navegação sair** — e nesse render
+> `getToken()` já é verdadeiro, então o redirect fixo corria por cima do destino
+> certo. Superadmin e administradora caíam sempre em encomendas.
+
+**Perfil recusado volta para a própria tela inicial**, não para `/encomendas`:
+mandar o superadmin para uma tela de condomínio o deixava preso num lugar que
+ele não opera — e que ele **consegue** abrir, já que `/encomendas` não declara
+`allowedRoles`. Não há laço possível: a tela inicial de cada perfil é, por
+construção, uma que ele pode abrir. Ao mexer no mapa, confira isso.
+
+`InicioPorPapel` é um componente (em `App.tsx`), e não um
+`<Navigate to={rotaInicial()} />` escrito no `element`: o `element` de uma
+`<Route>` é avaliado quando o `App` renderiza, e o papel precisa ser lido na
+hora em que a rota casa — senão quem entra numa sessão nova vai para a tela do
+papel de quem estava logado antes.
+
 ## Acesso — três lugares que precisam concordar
 
 1. **Rota** (`App.tsx`): `<ProtectedRoute allowedRoles={[...]} requiresModule="...">`
@@ -695,6 +729,9 @@ em Vagas e em Encomendas, e as três cópias já tinham divergido do original.
 
 - [ ] Tela nova → rota + menu + `@Roles` da API combinando (veja a skill
       `tela-frontend`).
+- [ ] Redirect novo → use `rotaInicial()` (`lib/rota-inicial.ts`), nunca uma
+      rota fixa. Papel novo → acrescente no `ROTA_INICIAL` e confira que a tela
+      escolhida aceita esse papel, senão vira laço de redirect.
 - [ ] Texto novo → classe da escala (`txt-*`), nunca `text-sm`/`text-[13px]`.
       Confira com:
       ```bash

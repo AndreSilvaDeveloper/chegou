@@ -55,6 +55,19 @@ export const envValidationSchema = Joi.object({
   // preenchimento automático: o endereço continua digitável à mão.
   CEP_TIMEOUT_MS: Joi.number().integer().min(1000).max(30000).default(5000),
 
+  // ---- Geocodificação (coordenadas do condomínio, para o mapa) ----
+  // O padrão é o Nominatim público: gratuito, sem chave e sem cadastro. Vazio
+  // desliga a geocodificação por endereço — sobra a coordenada do CEP, que a
+  // BrasilAPI devolve para uma parte dos CEPs. Aponte para uma instância
+  // própria se o volume crescer.
+  NOMINATIM_BASE_URL: Joi.string().uri().allow('').default('https://nominatim.openstreetmap.org'),
+  // A política de uso do Nominatim EXIGE um User-Agent que identifique a
+  // aplicação e permita contato. Genérico ou ausente é motivo de bloqueio por
+  // IP — e o bloqueio derruba a geocodificação de todos os condomínios de uma
+  // vez, não de um.
+  GEOCODING_USER_AGENT: Joi.string().allow('').optional(),
+  GEOCODING_TIMEOUT_MS: Joi.number().integer().min(1000).max(30000).default(8000),
+
   // ---- Payment API (gateway de cobrança da assinatura) ----
   // Vazio = cobrança desligada, mesma disciplina do OPENWA_BASE_URL: dev e
   // teste rodam sem gateway, a fatura continua sendo gerada e a emissão fica

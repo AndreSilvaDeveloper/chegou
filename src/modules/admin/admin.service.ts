@@ -10,6 +10,7 @@ import { Like, QueryFailedError, Repository } from 'typeorm';
 import { Tenant, User } from '../../database/entities';
 import { aplicarEndereco } from '../../common/endereco.dto';
 import { baseDeSlug, sufixoAleatorio } from '../../common/slug';
+import { FilaGeocodificacaoService } from '../cep/fila-geocodificacao.service';
 import { OpenwaService } from '../openwa/openwa.service';
 import { AtualizarTenantDto } from './dto/atualizar-tenant.dto';
 import { CriarTenantDto } from './dto/criar-tenant.dto';
@@ -38,6 +39,7 @@ export class AdminService {
     private readonly openwa: OpenwaService,
     private readonly tenantConfig: TenantConfigService,
     private readonly tenantScope: TenantScopeService,
+    private readonly geo: FilaGeocodificacaoService,
   ) {}
 
   async listarTenants(): Promise<Array<Tenant & { qtdUsuarios: number }>> {
@@ -123,6 +125,10 @@ export class AdminService {
         // nunca bloqueia o cadastro se o gateway estiver indisponível.
         await this.openwa.provisionForTenant(tenant.id);
 
+        // A coordenada do mapa vem depois, pela fila: o cadastro não espera
+        // provedor externo.
+        await this.geo.agendar(tenant.id);
+
         return await this.tenantRepo.findOneOrFail({ where: { id: tenant.id } });
       } catch (err) {
         if (!(err instanceof QueryFailedError) || (err as any).code !== PG_UNIQUE_VIOLATION) {
@@ -176,7 +182,7 @@ export class AdminService {
     if (dto.nome !== undefined) tenant.nome = dto.nome;
     if (dto.slug !== undefined) tenant.slug = dto.slug;
     if (dto.documento !== undefined) tenant.documento = dto.documento || null;
-    aplicarEndereco(tenant, dto);
+    const enderecoMudou = aplicarEndereco(tenant, dto);
     if (dto.emailContato !== undefined) tenant.emailContato = dto.emailContato || null;
     if (dto.telefoneContato !== undefined) tenant.telefoneContato = dto.telefoneContato || null;
     if (dto.plano !== undefined) tenant.plano = dto.plano;
@@ -202,6 +208,9 @@ export class AdminService {
       this.tenantConfig.invalidate(id);
       // Idem para desativar o condomínio: o escopo por request também é cacheado.
       this.tenantScope.invalidate(id);
+      // Só quando o endereço mudou de verdade: a tela manda o endereço inteiro
+      // a cada salvamento, mesmo quem só corrigiu o nome do condomínio.
+      if (enderecoMudou) await this.geo.agendar(id);
       return salvo;
     } catch (err) {
       if (err instanceof QueryFailedError && (err as { code?: string }).code === PG_UNIQUE_VIOLATION) {

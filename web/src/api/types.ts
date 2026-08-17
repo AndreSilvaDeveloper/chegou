@@ -296,6 +296,14 @@ export interface Tenant {
   estado: string | null;
   /** Só dígitos; a máscara `00000-000` é do `CepInput`. */
   cep?: string | null;
+  // ---- Coordenadas (mapa da plataforma) ----
+  // Resolvidas no servidor, em fila, DEPOIS de salvar o endereço — então elas
+  // não voltam na resposta do próprio salvamento. `null` é estado normal.
+  latitude?: number | null;
+  longitude?: number | null;
+  /** `endereco` (a porta) · `cep` (a rua) · `cidade` (o centro do município). */
+  geoPrecisao?: 'endereco' | 'cep' | 'cidade' | null;
+  geoAtualizadoEm?: string | null;
   telefoneContato?: string | null;
   emailContato?: string | null;
   plano: string;
@@ -320,6 +328,16 @@ export interface EnderecoPorCep {
   bairro: string | null;
   cidade: string | null;
   estado: string | null;
+  /**
+   * Coordenada do CEP, quando a BrasilAPI tiver — vem `null` com frequência.
+   *
+   * A tela **não** manda isso de volta ao salvar: quem grava a coordenada do
+   * condomínio é a fila de geocodificação no servidor, que também considera o
+   * número do endereço. Está aqui para um mapa futuro poder usar sem uma
+   * chamada nova.
+   */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 /** Empresa que administra uma carteira de condomínios. */

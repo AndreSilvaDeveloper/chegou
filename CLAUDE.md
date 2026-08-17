@@ -369,7 +369,7 @@ naquela pasta.
 | Relatórios | [src/modules/relatorios](src/modules/relatorios/CLAUDE.md) | Consultas agregadas para as telas de relatório |
 | Assinaturas | [src/modules/assinaturas](src/modules/assinaturas/CLAUDE.md) | O que o cliente paga pelo Chegou (por apartamento, em faixas) |
 | Pagamentos | [src/modules/pagamentos](src/modules/pagamentos/CLAUDE.md) | O gateway de cobrança (Payment API/Asaas): cliente, cobrança e acesso |
-| CEP | [src/modules/cep](src/modules/cep/CLAUDE.md) | Consulta de CEP que preenche o endereço do condomínio |
+| CEP e geocodificação | [src/modules/cep](src/modules/cep/CLAUDE.md) | Consulta de CEP e as coordenadas do condomínio (para o mapa) |
 | Storage | [src/modules/storage](src/modules/storage/CLAUDE.md) | Upload de fotos e contratos (S3/MinIO/R2) |
 | Common | [src/common](src/common/CLAUDE.md) | Guards, decorators, escopo de tenant e auditoria |
 | Frontend | [web/src](web/src/CLAUDE.md) | Páginas, componentes, hooks e client da API |
@@ -707,6 +707,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `@Cep()` | `src/common/cep.ts` | Campo de CEP: aceita `36010-000`, grava só dígitos |
 | `EnderecoDto` / `aplicarEndereco()` | `src/common/endereco.dto.ts` | Endereço completo do condomínio nos três DTOs que o editam |
 | `baseDeSlug()` / `sufixoAleatorio()` | `src/common/slug.ts` | Slug do condomínio a partir do nome — **nunca digitado pelo usuário** |
+| `GeocodingService` / `FilaGeocodificacaoService` | `src/modules/cep` | Coordenada do endereço (Nominatim + CEP), resolvida em fila |
 | `@TenantId()` | `src/common/decorators` | Condomínio da request, já validado |
 | `@TenantScope()` | `src/common/decorators` | Igual, mas aceita "sem condomínio" (`null`) |
 | `@AdministradoraId()` | `src/common/decorators` | Carteira do usuário logado |
@@ -726,6 +727,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
 | `formatarCep()` | `web/src/lib/cep.ts` | CEP legível nas listagens |
 | `enderecoLinha()` / `municipioLinha()` | `web/src/lib/endereco.ts` | Endereço numa linha (cabeçalho) e só cidade/UF (coluna de tabela) |
+| `rotaInicial()` / `ROTA_INICIAL` | `web/src/lib/rota-inicial.ts` | A primeira tela de cada perfil — **todo redirect padrão sai daqui** |
 | `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
 | `asset()` | `web/src/lib/asset.ts` | Caminho de arquivo de `web/public/` — **o painel mora em `/app/`**, e `src="/x.png"` à mão cai na landing e dá 404 |
@@ -943,6 +945,9 @@ Veja `.env.example` para lista completa. As mais críticas:
 | `OCR_BASE_URL` | Serviço de OCR de etiquetas (vazio = leitura desligada) |
 | `OCR_TIMEOUT_MS` | Timeout de cada leitura de imagem (padrão 30000) |
 | `CEP_TIMEOUT_MS` | Timeout da consulta de CEP (padrão 5000). Sem URL: BrasilAPI + ViaCEP |
+| `NOMINATIM_BASE_URL` | Geocodificação por endereço (vazio = só a coordenada do CEP) |
+| `GEOCODING_USER_AGENT` | **Exigido pela política do Nominatim** — ponha um contato real |
+| `GEOCODING_TIMEOUT_MS` | Timeout de cada geocodificação (padrão 8000) |
 | `PAYMENT_API_BASE_URL` | Gateway de cobrança da assinatura (vazio = cobrança desligada) |
 | `PAYMENT_API_COMPANY_ID` | `X-Company-Id` — somos uma company só lá dentro |
 | `PAYMENT_API_KEY` | Chave do gateway (`X-API-Key`) — o caminho principal de autenticação |

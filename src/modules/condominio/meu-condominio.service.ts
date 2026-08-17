@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Tenant } from '../../database/entities';
 import { aplicarEndereco } from '../../common/endereco.dto';
+import { FilaGeocodificacaoService } from '../cep/fila-geocodificacao.service';
 import { TenantConfigService } from '../../common/tenant-config/tenant-config.service';
 import { mesclarConfigOperacional } from './config-operacional';
 import { AtualizarMeuCondominioDto } from './dto/atualizar-meu-condominio.dto';
@@ -22,6 +23,7 @@ export class MeuCondominioService {
   constructor(
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly tenantConfig: TenantConfigService,
+    private readonly geo: FilaGeocodificacaoService,
   ) {}
 
   async obter(tenantId: string): Promise<Tenant> {
@@ -37,7 +39,7 @@ export class MeuCondominioService {
     // um campo novo do DTO virar caminho para trocar `id`, `ativo` ou `plano`.
     if (dto.nome !== undefined) tenant.nome = dto.nome;
     if (dto.documento !== undefined) tenant.documento = dto.documento || null;
-    aplicarEndereco(tenant, dto);
+    const enderecoMudou = aplicarEndereco(tenant, dto);
     if (dto.telefoneContato !== undefined) tenant.telefoneContato = dto.telefoneContato || null;
     if (dto.emailContato !== undefined) tenant.emailContato = dto.emailContato || null;
 
@@ -52,6 +54,10 @@ export class MeuCondominioService {
       // `TenantConfigService` guarda isso em cache: sem invalidar, o próprio
       // síndico que acabou de salvar continuaria vendo o formulário antigo.
       if (dto.configJson !== undefined) this.tenantConfig.invalidate(tenantId);
+
+      // Só quando o endereço mudou de verdade: a tela manda o endereço inteiro
+      // a cada salvamento, mesmo quem só corrigiu o nome do condomínio.
+      if (enderecoMudou) await this.geo.agendar(tenantId);
 
       return salvo;
     } catch (err) {
