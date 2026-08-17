@@ -95,6 +95,19 @@ precisaria de conserto no cadastro **antes** de ligar.
 (`OptionCard`, `ModuleToggle`, `ModuleReadonly`, `InfoPill`, `TIPO_META`) moram
 em `components/condominio/condominio-shared.tsx`, e não copiadas nas duas.
 
+**O endereço é a terceira peça compartilhada**, e é a que mais divergia:
+`EnderecoFields` (`components/condominio/EnderecoFields.tsx`). Antes dele as
+mesmas três telas tinham três endereços diferentes — duas com um campo "Endereço"
+de texto livre, a do superadmin sem campo nenhum, e o CEP em lugar algum apesar
+de a coluna existir no banco desde a migration 001. Ele é o único lugar que sabe
+quebrar o endereço em logradouro, número, complemento e bairro, e o único que
+chama `GET /cep/:cep`.
+
+> **A consulta do CEP sai do `onChange` do campo, nunca de um efeito.** Num
+> efeito sobre o valor ela dispararia também quando o formulário carrega o
+> condomínio que já existe, e sobrescreveria o endereço salvo pelo genérico da
+> base dos Correios.
+
 Na tela da administradora, plano, `ativo` e os módulos aparecem **de leitura**,
 com o motivo. Some-los faria o cliente achar que Vagas não existe e abrir
 chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
@@ -137,6 +150,8 @@ linhas precisar e **quem manda na largura da aba é o rótulo dela** (ver
 | Telefone em listagem | `formatarTelefone()` de `@/lib/telefone` |
 | CPF ou CNPJ | `DocumentoInput` — mascara enquanto se digita, entrega só dígitos. **Nunca peça "só os números"** |
 | CPF/CNPJ em listagem | `formatarDocumento()` de `@/lib/documento` |
+| CEP | `CepInput` — mascara `00000-000`, entrega só dígitos |
+| Endereço de condomínio (o conjunto todo) | `EnderecoFields` de `@/components/condominio` — já traz a consulta pelo CEP |
 | Foto que vai subir para o servidor | `prepararFoto()` de `@/lib/imagem` (ver abaixo) |
 | Erro de request | `toast.error(mensagemErro(err, 'Não foi possível …'))` |
 | Dinheiro, data, competência | `fmtMoeda` / `fmtData` / `fmtCompetencia` de `@/lib/formato` |

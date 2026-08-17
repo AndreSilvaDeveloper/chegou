@@ -1,9 +1,16 @@
 import { DocumentoBrasileiro } from '../../../common/documento';
 import { IsBoolean, IsOptional, IsString, Matches, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { EnderecoDto } from '../../../common/endereco.dto';
 import { ConfigTenantDto } from './config-tenant.dto';
 
-export class AtualizarTenantDto {
+/**
+ * O endereço vem de `EnderecoDto`, e é o que faz esta rota deixar de ser a mais
+ * pobre das três: até aqui o superadmin só editava cidade e UF, então quando a
+ * cobrança falhava por endereço incompleto quem tinha de consertar era o próprio
+ * cliente — justamente quem abriu o chamado.
+ */
+export class AtualizarTenantDto extends EnderecoDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)
@@ -16,15 +23,6 @@ export class AtualizarTenantDto {
   @IsOptional()
   @DocumentoBrasileiro()
   documento?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  cidade?: string;
-
-  @IsOptional()
-  @Matches(/^[A-Z]{2}$/, { message: 'UF deve ter 2 letras maiúsculas' })
-  estado?: string;
 
   @IsOptional()
   @IsString()

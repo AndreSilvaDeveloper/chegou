@@ -48,6 +48,24 @@ muda.
 `tenant-ref.ts` traz `assertRefDoTenant()`: use para **todo** campo
 `algumaCoisaId` que chega no corpo da request.
 
+## Campos que se digitam mascarados (`telefone.ts`, `documento.ts`, `cep.ts`)
+
+Os três seguem a mesma disciplina: **a máscara é da tela, o banco guarda o dado
+cru**. `@TelefoneE164()` grava E.164, `@DocumentoBrasileiro()` e `@Cep()` gravam
+só dígitos. Pedir `+55` ou "só os números" ao usuário é transferir a ele um
+detalhe de armazenamento nosso.
+
+`endereco.dto.ts` junta os sete campos de endereço de condomínio num
+`EnderecoDto` que **três DTOs estendem** (síndico, administradora e superadmin),
+mais o `aplicarEndereco()` que os copia para a entidade campo a campo — nunca
+`Object.assign`, que faria um campo novo do DTO virar caminho para trocar `id`
+ou `ativo`.
+
+> **Cuidado que custou:** o `@IsOptional()` pula `null` e `undefined`, mas
+> **não** string vazia. Sem o `TextoOpcional` do `EnderecoDto`, apagar a UF
+> mandaria `''` direto ao `@Matches(/^[A-Z]{2}$/)` e devolveria 400 para quem só
+> queria limpar o campo.
+
 ## Decorators (`decorators/`)
 
 | Decorator | Devolve / faz |

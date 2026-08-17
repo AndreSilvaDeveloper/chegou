@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { IsNull, QueryFailedError, Repository } from 'typeorm';
 import { Administradora, Tenant, User } from '../../database/entities';
+import { aplicarEndereco } from '../../common/endereco.dto';
 import { TenantConfigService } from '../../common/tenant-config/tenant-config.service';
 import { TenantScopeService } from '../../common/tenant-scope/tenant-scope.service';
 import { AdminService } from '../admin/admin.service';
@@ -196,9 +197,7 @@ export class AdministradorasService {
 
     if (dto.nome !== undefined) tenant.nome = dto.nome;
     if (dto.documento !== undefined) tenant.documento = dto.documento || null;
-    if (dto.cidade !== undefined) tenant.cidade = dto.cidade || null;
-    if (dto.estado !== undefined) tenant.estado = dto.estado || null;
-    if (dto.endereco !== undefined) tenant.endereco = dto.endereco || null;
+    aplicarEndereco(tenant, dto);
     if (dto.telefoneContato !== undefined) tenant.telefoneContato = dto.telefoneContato || null;
     if (dto.emailContato !== undefined) tenant.emailContato = dto.emailContato || null;
 

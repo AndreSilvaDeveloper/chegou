@@ -30,6 +30,8 @@
 | Campo que aceita valor fora da lista | `Combobox` | `ui/combobox.tsx` |
 | Telefone | `PhoneInput` (**nunca peça `+55`**) | `ui/phone-input.tsx` |
 | CPF ou CNPJ | `DocumentoInput` (**nunca peça "só os números"**) | `ui/documento-input.tsx` |
+| CEP | `CepInput` | `ui/cep-input.tsx` |
+| Endereço de condomínio inteiro | `EnderecoFields` | `components/condominio/` |
 | Sim/não numa linha | `CheckboxField` | `ui/checkbox.tsx` |
 | Ligar/desligar um recurso | `SwitchField` | `ui/switch.tsx` |
 | Aviso passageiro (salvo, erro) | `toast` do Sonner | `ui/sonner.tsx` |

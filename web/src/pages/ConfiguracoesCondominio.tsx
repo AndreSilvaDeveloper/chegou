@@ -18,6 +18,13 @@ import {
   TIPO_META,
   estruturaSugerida,
 } from '@/components/condominio/condominio-shared';
+import {
+  ENDERECO_VAZIO,
+  EnderecoFields,
+  enderecoDoCondominio,
+  enderecoParaApi,
+  type EnderecoForm,
+} from '@/components/condominio/EnderecoFields';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +46,7 @@ const TABS: { key: Tab; label: string; icon: typeof Building2 }[] = [
 ];
 
 const CADASTRO_VAZIO = {
-  nome: '', documento: '', cidade: '', estado: '', endereco: '', telefoneContato: '', emailContato: '',
+  nome: '', documento: '', telefoneContato: '', emailContato: '',
 };
 
 /**
@@ -76,6 +83,7 @@ export function ConfiguracoesCondominio() {
   const condominio = condominioQuery.data;
 
   const [cadastro, setCadastro] = useState(CADASTRO_VAZIO);
+  const [endereco, setEndereco] = useState<EnderecoForm>(ENDERECO_VAZIO);
   const [config, setConfig] = useState<Required<TenantConfig>>(DEFAULT_CONFIG);
 
   // O formulário nasce do que veio do servidor, e é recarregado a cada resposta
@@ -85,12 +93,10 @@ export function ConfiguracoesCondominio() {
     setCadastro({
       nome: condominio.nome,
       documento: condominio.documento ?? '',
-      cidade: condominio.cidade ?? '',
-      estado: condominio.estado ?? '',
-      endereco: condominio.endereco ?? '',
       telefoneContato: condominio.telefoneContato ?? '',
       emailContato: condominio.emailContato ?? '',
     });
+    setEndereco(enderecoDoCondominio(condominio));
     setConfig({ ...DEFAULT_CONFIG, ...(condominio.configJson ?? {}) });
   }, [condominio]);
 
@@ -114,9 +120,9 @@ export function ConfiguracoesCondominio() {
       // Campo vazio some do corpo: mandar string vazia num CNPJ reprovaria no
       // formato, e o DTO trata ausência como "não mexi nisso".
       documento: cadastro.documento.trim() || undefined,
-      cidade: cadastro.cidade.trim() || undefined,
-      estado: cadastro.estado.trim().toUpperCase() || undefined,
-      endereco: cadastro.endereco.trim() || undefined,
+      // O endereço vai por inteiro, inclusive campo vazio: o DTO converte vazio
+      // em NULL, e é assim que dá para apagar um complemento errado.
+      ...enderecoParaApi(endereco),
       telefoneContato: cadastro.telefoneContato || undefined,
       emailContato: cadastro.emailContato.trim() || undefined,
     });
@@ -265,47 +271,23 @@ export function ConfiguracoesCondominio() {
                     </div>
                   </div>
 
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="cond-cidade">Cidade</Label>
-                      <Input
-                        id="cond-cidade"
-                        value={cadastro.cidade}
-                        onChange={(e) => setCadastro({ ...cadastro, cidade: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cond-uf">Estado (UF)</Label>
-                      <Input
-                        id="cond-uf"
-                        className="uppercase"
-                        placeholder="SP"
-                        value={cadastro.estado}
-                        onChange={(e) =>
-                          setCadastro({ ...cadastro, estado: e.target.value.toUpperCase().slice(0, 2) })
-                        }
-                        maxLength={2}
-                      />
-                    </div>
+                  <div className="space-y-2 sm:max-w-xs">
+                    <Label htmlFor="cond-telefone">Telefone de contato</Label>
+                    <PhoneInput
+                      id="cond-telefone"
+                      value={cadastro.telefoneContato}
+                      onChange={(e164) => setCadastro({ ...cadastro, telefoneContato: e164 })}
+                    />
                   </div>
 
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="cond-endereco">Endereço</Label>
-                      <Input
-                        id="cond-endereco"
-                        value={cadastro.endereco}
-                        onChange={(e) => setCadastro({ ...cadastro, endereco: e.target.value })}
-                      />
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="txt-subtitulo font-semibold text-foreground">Endereço</h3>
+                      <p className="txt-apoio text-muted-foreground">
+                        Digite o CEP e o resto é preenchido sozinho.
+                      </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cond-telefone">Telefone de contato</Label>
-                      <PhoneInput
-                        id="cond-telefone"
-                        value={cadastro.telefoneContato}
-                        onChange={(e164) => setCadastro({ ...cadastro, telefoneContato: e164 })}
-                      />
-                    </div>
+                    <EnderecoFields valor={endereco} onChange={setEndereco} />
                   </div>
 
                   <PlataformaDecide texto="O plano da assinatura e o acesso do condomínio (ativo ou inativo) são definidos pelo Chegou. Precisa mudar? Fale com o suporte." />

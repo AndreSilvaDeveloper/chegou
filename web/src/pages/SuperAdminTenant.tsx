@@ -10,6 +10,13 @@ import {
   TIPO_META,
   estruturaSugerida,
 } from '@/components/condominio/condominio-shared';
+import {
+  ENDERECO_VAZIO,
+  EnderecoFields,
+  enderecoDoCondominio,
+  enderecoParaApi,
+  type EnderecoForm,
+} from '@/components/condominio/EnderecoFields';
 import { AssinaturaCondominioPanel } from '@/components/condominio/AssinaturaCondominioPanel';
 import { WhatsappCondominioPanel } from '@/components/condominio/WhatsappCondominioPanel';
 import { ApartamentosManager } from '../components/ApartamentosManager';
@@ -47,8 +54,9 @@ export function SuperAdminTenant() {
   const [tab, setTab] = useState<Tab>('dados');
 
   const [form, setForm] = useState({
-    nome: '', slug: '', documento: '', cidade: '', estado: '', plano: '', ativo: true,
+    nome: '', slug: '', documento: '', plano: '', ativo: true,
   });
+  const [endereco, setEndereco] = useState<EnderecoForm>(ENDERECO_VAZIO);
   const [config, setConfig] = useState<Required<TenantConfig>>(DEFAULT_CONFIG);
   const [saving, setSaving] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
@@ -57,9 +65,10 @@ export function SuperAdminTenant() {
     api.get<Tenant>(`/admin/tenants/${id}`).then((t) => {
       setTenant(t);
       setForm({
-        nome: t.nome, slug: t.slug, documento: t.documento ?? '', cidade: t.cidade ?? '',
-        estado: t.estado ?? '', plano: t.plano, ativo: t.ativo,
+        nome: t.nome, slug: t.slug, documento: t.documento ?? '',
+        plano: t.plano, ativo: t.ativo,
       });
+      setEndereco(enderecoDoCondominio(t));
       setConfig({ ...DEFAULT_CONFIG, ...(t.configJson ?? {}) });
     }).catch(() => toast.error('Condomínio não encontrado'));
 
@@ -73,8 +82,9 @@ export function SuperAdminTenant() {
         nome: form.nome,
         slug: form.slug,
         documento: form.documento || null,
-        cidade: form.cidade || null,
-        estado: form.estado || null,
+        // O endereço vai por inteiro, inclusive campo vazio: o DTO converte
+        // vazio em NULL, e é assim que dá para apagar um complemento errado.
+        ...enderecoParaApi(endereco),
         plano: form.plano,
         ativo: form.ativo,
       });
@@ -225,18 +235,14 @@ export function SuperAdminTenant() {
                   </div>
                 </div>
 
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="cidade">Cidade</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input id="cidade" className="pl-9" value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
-                    </div>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="txt-subtitulo font-semibold text-foreground">Endereço</h3>
+                    <p className="txt-apoio text-muted-foreground">
+                      É o endereço que vai para o cadastro de cobrança do cliente.
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="estado">Estado (UF)</Label>
-                    <Input id="estado" className="uppercase" placeholder="SP" value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase().slice(0, 2) })} maxLength={2} />
-                  </div>
+                  <EnderecoFields valor={endereco} onChange={setEndereco} />
                 </div>
 
                 <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">

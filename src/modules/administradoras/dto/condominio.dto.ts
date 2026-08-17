@@ -9,6 +9,7 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
+import { EnderecoDto } from '../../../common/endereco.dto';
 import { TelefoneE164 } from '../../../common/telefone';
 
 const HORARIO_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -51,8 +52,11 @@ export class ConfigOperacionalCondominioDto {
  * `ativo` merece o destaque: condomínio inativo sai da conta da assinatura
  * (ela conta apartamento ativo **de condomínio ativo**), então esse botão na
  * mão de quem paga a fatura seria um jeito de baixar a própria conta.
+ *
+ * O endereço completo (CEP, logradouro, número, complemento, bairro, cidade e
+ * UF) vem de `EnderecoDto` — os mesmos campos do síndico e do superadmin.
  */
-export class AtualizarCondominioDto {
+export class AtualizarCondominioDto extends EnderecoDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)
@@ -61,20 +65,6 @@ export class AtualizarCondominioDto {
   @IsOptional()
   @DocumentoBrasileiro()
   documento?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  cidade?: string;
-
-  @IsOptional()
-  @Matches(/^[A-Z]{2}$/, { message: 'UF deve ter 2 letras maiúsculas' })
-  estado?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  endereco?: string;
 
   @IsOptional()
   @TelefoneE164()

@@ -285,9 +285,17 @@ export interface Tenant {
   nome: string;
   slug: string;
   documento: string | null;
+  // ---- Endereço ----
+  // `endereco` é o LOGRADOURO (rua/avenida), sem número — o nome ficou por
+  // compatibilidade. Ver `EnderecoDto` no backend.
+  endereco?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
   cidade: string | null;
   estado: string | null;
-  endereco?: string | null;
+  /** Só dígitos; a máscara `00000-000` é do `CepInput`. */
+  cep?: string | null;
   telefoneContato?: string | null;
   emailContato?: string | null;
   plano: string;
@@ -297,6 +305,21 @@ export interface Tenant {
   configJson?: TenantConfig;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * O que `GET /cep/:cep` devolve — os campos que a tela preenche sozinha.
+ *
+ * Número e complemento não estão aqui porque o CEP não os conhece: quem
+ * preenche é sempre a pessoa.
+ */
+export interface EnderecoPorCep {
+  cep: string;
+  /** Logradouro. Vazio nos CEPs que valem para a cidade inteira. */
+  endereco: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
 }
 
 /** Empresa que administra uma carteira de condomínios. */

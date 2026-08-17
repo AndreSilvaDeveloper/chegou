@@ -9,7 +9,17 @@ Todas as rotas aqui são `@Roles('superadmin')`.
 
 ### `AdminController` — `/admin/tenants`
 `GET /` (com contagem de usuários) · `GET /:id` · `POST /` (cria condomínio +
-primeiro síndico) · `PATCH /:id` (cadastro, plano, `ativo`, `config_json`).
+primeiro síndico) · `PATCH /:id` (cadastro, **endereço completo**, plano,
+`ativo`, `config_json`).
+
+> **O endereço entrou tarde aqui, e isso doía.** Até a migration 035 o `PATCH`
+> desta rota só aceitava cidade e UF — então quando a cobrança de um cliente
+> falhava por endereço incompleto, quem tinha de consertar era o próprio
+> cliente: justamente quem abriu o chamado. Hoje os sete campos vêm de
+> `EnderecoDto` (`src/common/endereco.dto.ts`), o mesmo das rotas do síndico e
+> da administradora. O `POST` continua pedindo só cidade e UF: endereço de
+> condomínio é preenchimento incremental, e travar a criação nele atrasaria o
+> cadastro sem necessidade.
 
 ### `AdminTenantManagementController` — `/admin/tenants/:tenantId/...`
 Usuários, apartamentos e moradores de um condomínio específico. **É por aqui que

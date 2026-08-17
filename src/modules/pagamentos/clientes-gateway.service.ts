@@ -24,7 +24,10 @@ export interface ClienteParaGateway {
   documento: string | null;
   email?: string | null;
   telefone?: string | null;
+  /** Logradouro, sem número — o número vem à parte e os dois viram `addressStreet`. */
   endereco?: string | null;
+  numero?: string | null;
+  bairro?: string | null;
   cidade?: string | null;
   uf?: string | null;
   cep?: string | null;
@@ -206,7 +209,13 @@ export class ClientesGatewayService {
     // O telefone sai daqui em E.164 (`+5532...`); o gateway espera com DDD e
     // sem DDI. Mandar o `+55` faria o Asaas recusar ou guardar torto.
     if (cliente.telefone) campos.phone = cliente.telefone.replace(/^\+55/, '').replace(/\D/g, '');
-    if (cliente.endereco) campos.addressStreet = cliente.endereco;
+    // A Payment API tem **um** campo de rua (`addressStreet`) — não há
+    // `addressNumber` nem `province` do outro lado. Desde que o nosso cadastro
+    // separou número e bairro, montá-los de volta aqui é o que impede o
+    // endereço do boleto de regredir para "Rua Halfeld", sem número.
+    const rua = [cliente.endereco, cliente.numero].filter(Boolean).join(', ');
+    const comBairro = [rua, cliente.bairro].filter(Boolean).join(' - ');
+    if (comBairro) campos.addressStreet = comBairro;
     if (cliente.cidade) campos.addressCity = cliente.cidade;
     if (cliente.uf) campos.addressState = cliente.uf;
     if (cliente.cep) campos.addressPostalCode = cliente.cep;

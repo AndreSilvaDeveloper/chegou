@@ -61,7 +61,9 @@ erro. O caminho é desativar (`ativo = false`), como no resto do sistema.
 ## O que ela configura num condomínio
 
 `PATCH /minha-administradora/condominios/:tenantId` — cadastro (nome, documento,
-cidade, UF, endereço, contatos) e, em `configJson`, **só o operacional**:
+contatos e o **endereço completo**: CEP, logradouro, número, complemento,
+bairro, cidade e UF, vindos de `EnderecoDto`) e, em `configJson`, **só o
+operacional**:
 
 | Campo | Quem edita | Por quê |
 |---|---|---|

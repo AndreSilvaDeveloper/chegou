@@ -11,6 +11,52 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.33.0 — 2026-08-17
+
+**Endereço completo do condomínio, com preenchimento pelo CEP.**
+
+Até aqui o endereço era **uma linha de texto livre** e o `cep` existia na tabela
+`tenants` desde a migration 001 sem nunca ter aparecido em tela nenhuma. Cada
+condomínio escreveu do jeito que quis, e o cadastro que o gateway de cobrança
+recebe (`addressStreet`) saía com número e bairro grudados na rua.
+
+**Sete campos, um só componente.** CEP, logradouro, número, complemento, bairro,
+cidade e UF, em `components/condominio/EnderecoFields.tsx`. As três telas que
+editam o mesmo endereço — síndico (`/configuracoes`), administradora
+(`/meus-condominios/:id`) e superadmin (`/admin/condominios/:id`) — passam a usar
+esse componente. Elas divergiam: duas tinham "Endereço" de texto livre e **a do
+superadmin não tinha endereço nenhum**, então quando a cobrança falhava por
+endereço incompleto quem consertava era o próprio cliente que abriu o chamado.
+
+**A coluna `endereco` continua com esse nome**, agora significando *logradouro*
+(migration `035_endereco_completo_tenant.sql`, que só acrescenta `numero`,
+`complemento` e `bairro`). Renomear custaria caro por nada, e **não há backfill**:
+separar "1179" de "Rua Halfeld 1179" por regex acerta o caso fácil e estraga o
+difícil em silêncio. O que está gravado segue valendo e se ajeita no próximo
+salvamento.
+
+**Consulta de CEP pelo backend** (`GET /cep/:cep`, módulo novo `src/modules/cep`)
+— BrasilAPI com ViaCEP de reserva, cache em memória, timeout de 5s
+(`CEP_TIMEOUT_MS`). Pelo servidor e não pelo navegador porque o síndico costuma
+estar em rede de condomínio ou corporativa, que é onde domínio de terceiro é
+filtrado. Perfis: síndico, administradora e superadmin — os mesmos que editam
+endereço. **A consulta nunca trava o cadastro**: CEP não encontrado vira um aviso
+inline e o endereço segue digitável.
+
+**No gateway de cobrança**, `addressStreet` volta a ser montado com logradouro,
+número e bairro — a Payment API tem um campo de rua só, e sem isso o endereço do
+boleto teria regredido para "Rua Halfeld", sem número.
+
+Peças novas: `@Cep()` e `EnderecoDto`/`aplicarEndereco()` (`src/common/`),
+`CepInput` e `lib/cep.ts` no front.
+
+> **Cuidado que vale registrar:** o `@IsOptional()` do class-validator pula
+> `null` e `undefined`, mas **não** string vazia. Sem o `TextoOpcional` do
+> `EnderecoDto`, apagar a UF mandaria `''` ao `@Matches(/^[A-Z]{2}$/)` e
+> devolveria 400 para quem só queria limpar o campo.
+
+---
+
 ## 0.32.1 — 2026-08-17
 
 **Dois formulários mais leves: apartamento e morador.**

@@ -265,6 +265,8 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Ler etiqueta por foto ao registrar encomenda | — | — | ✅ | ✅ |
 | Carteira própria (listar/criar/editar condomínios) | — | ✅ | — | — |
 | Configurar condomínio da carteira: cadastro, tipo, blocos, janela de envio | ✅ | ✅⁵ | — | — |
+| Endereço completo do condomínio (CEP, logradouro, nº, compl., bairro, cidade, UF) | ✅ | ✅ | ✅ | — |
+| Consultar CEP (`GET /cep/:cep`, preenche o endereço) | ✅ | ✅ | ✅ | — |
 | Assinatura própria: quanto paga e as faturas (só leitura) | — | ✅³ | ✅⁴ | — |
 | Dashboard e relatórios | — | ✅ | ✅ | — |
 | Encomendas: registrar, listar, dar baixa | — | ✅ | ✅ | ✅ |
@@ -367,6 +369,7 @@ naquela pasta.
 | Relatórios | [src/modules/relatorios](src/modules/relatorios/CLAUDE.md) | Consultas agregadas para as telas de relatório |
 | Assinaturas | [src/modules/assinaturas](src/modules/assinaturas/CLAUDE.md) | O que o cliente paga pelo Chegou (por apartamento, em faixas) |
 | Pagamentos | [src/modules/pagamentos](src/modules/pagamentos/CLAUDE.md) | O gateway de cobrança (Payment API/Asaas): cliente, cobrança e acesso |
+| CEP | [src/modules/cep](src/modules/cep/CLAUDE.md) | Consulta de CEP que preenche o endereço do condomínio |
 | Storage | [src/modules/storage](src/modules/storage/CLAUDE.md) | Upload de fotos e contratos (S3/MinIO/R2) |
 | Common | [src/common](src/common/CLAUDE.md) | Guards, decorators, escopo de tenant e auditoria |
 | Frontend | [web/src](web/src/CLAUDE.md) | Páginas, componentes, hooks e client da API |
@@ -701,6 +704,8 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `assertRefDoTenant()` | `src/common/tenant-scope/tenant-ref.ts` | Validar que um id do corpo é do condomínio da request |
 | `@TelefoneE164()` | `src/common/telefone.ts` | Campo de telefone: aceita `(32) 99999-9999`, grava E.164 |
 | `@DocumentoBrasileiro()` | `src/common/documento.ts` | Campo de CPF/CNPJ: tira a máscara e confere os dígitos verificadores |
+| `@Cep()` | `src/common/cep.ts` | Campo de CEP: aceita `36010-000`, grava só dígitos |
+| `EnderecoDto` / `aplicarEndereco()` | `src/common/endereco.dto.ts` | Endereço completo do condomínio nos três DTOs que o editam |
 | `@TenantId()` | `src/common/decorators` | Condomínio da request, já validado |
 | `@TenantScope()` | `src/common/decorators` | Igual, mas aceita "sem condomínio" (`null`) |
 | `@AdministradoraId()` | `src/common/decorators` | Carteira do usuário logado |
@@ -709,12 +714,15 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `FormDialog` | `web/src/components/ui/form-dialog.tsx` | Casca de formulário em diálogo (rolagem, empilhamento, salvando) |
 | `PhoneInput` | `web/src/components/ui/phone-input.tsx` | Telefone mascarado `(32) 99999-9999` → E.164 |
 | `DocumentoInput` | `web/src/components/ui/documento-input.tsx` | CPF/CNPJ mascarado enquanto se digita → só dígitos para a API |
+| `CepInput` | `web/src/components/ui/cep-input.tsx` | CEP mascarado `00000-000` → só dígitos para a API |
+| `EnderecoFields` | `web/src/components/condominio/EnderecoFields.tsx` | Endereço completo do condomínio, com preenchimento pelo CEP — as três telas usam este |
 | `formatarDocumento()` | `web/src/lib/documento.ts` | CPF/CNPJ legível nas listagens |
 | `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
 | `Combobox` | `web/src/components/ui/combobox.tsx` | Campo com sugestões que **aceita valor fora da lista** (transportadora) |
 | `TRANSPORTADORAS` | `web/src/lib/transportadoras.ts` | Transportadoras do Brasil + o tipo que amarra o leitor de código à lista |
 | `prepararFoto()` / `capturarQuadro()` | `web/src/lib/imagem.ts` | Reduzir, recomprimir e medir nitidez de foto antes do upload |
 | `formatarTelefone()` | `web/src/lib/telefone.ts` | Telefone legível nas listagens |
+| `formatarCep()` | `web/src/lib/cep.ts` | CEP legível nas listagens |
 | `fmtMoeda()` / `fmtData()` / `fmtCompetencia()` | `web/src/lib/formato.ts` | Dinheiro, data e competência em toda tela financeira |
 | `mensagemErro()` | `web/src/lib/erros.ts` | Texto de erro para o usuário a partir de um `ApiError` |
 | `asset()` | `web/src/lib/asset.ts` | Caminho de arquivo de `web/public/` — **o painel mora em `/app/`**, e `src="/x.png"` à mão cai na landing e dá 404 |
@@ -863,6 +871,9 @@ passaria a acontecer no meio do que o porteiro estiver digitando.
 30.1. **NUNCA** pedir "só os números" num campo de CPF/CNPJ — a máscara é da
     tela. No DTO, `@DocumentoBrasileiro()`; na tela, `DocumentoInput`; na
     listagem, `formatarDocumento()`. O banco guarda **sempre** só dígitos
+30.2. **NUNCA** escrever um campo de CEP à mão — no DTO, `@Cep()`; na tela,
+    `CepInput`; na listagem, `formatarCep()`. Endereço de condomínio inteiro é
+    `EnderecoFields`, que já traz a consulta pelo CEP
 
 ### Documentação viva
 31. **SEMPRE** atualizar o `CLAUDE.md` do módulo ao alterá-lo (rotas, perfis,
@@ -925,6 +936,7 @@ Veja `.env.example` para lista completa. As mais críticas:
 | `WORKER_ENABLED` | `false` numa réplica que só atende HTTP |
 | `OCR_BASE_URL` | Serviço de OCR de etiquetas (vazio = leitura desligada) |
 | `OCR_TIMEOUT_MS` | Timeout de cada leitura de imagem (padrão 30000) |
+| `CEP_TIMEOUT_MS` | Timeout da consulta de CEP (padrão 5000). Sem URL: BrasilAPI + ViaCEP |
 | `PAYMENT_API_BASE_URL` | Gateway de cobrança da assinatura (vazio = cobrança desligada) |
 | `PAYMENT_API_COMPANY_ID` | `X-Company-Id` — somos uma company só lá dentro |
 | `PAYMENT_API_KEY` | Chave do gateway (`X-API-Key`) — o caminho principal de autenticação |

@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Tenant } from '../../database/entities';
+import { aplicarEndereco } from '../../common/endereco.dto';
 import { TenantConfigService } from '../../common/tenant-config/tenant-config.service';
 import { mesclarConfigOperacional } from './config-operacional';
 import { AtualizarMeuCondominioDto } from './dto/atualizar-meu-condominio.dto';
@@ -36,9 +37,7 @@ export class MeuCondominioService {
     // um campo novo do DTO virar caminho para trocar `id`, `ativo` ou `plano`.
     if (dto.nome !== undefined) tenant.nome = dto.nome;
     if (dto.documento !== undefined) tenant.documento = dto.documento || null;
-    if (dto.cidade !== undefined) tenant.cidade = dto.cidade || null;
-    if (dto.estado !== undefined) tenant.estado = dto.estado || null;
-    if (dto.endereco !== undefined) tenant.endereco = dto.endereco || null;
+    aplicarEndereco(tenant, dto);
     if (dto.telefoneContato !== undefined) tenant.telefoneContato = dto.telefoneContato || null;
     if (dto.emailContato !== undefined) tenant.emailContato = dto.emailContato || null;
 

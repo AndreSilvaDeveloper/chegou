@@ -93,6 +93,8 @@ export class AssinaturaClientesService {
         email: tenant.emailContato,
         telefone: tenant.telefoneContato,
         endereco: tenant.endereco,
+        numero: tenant.numero,
+        bairro: tenant.bairro,
         cidade: tenant.cidade,
         uf: tenant.estado,
         cep: tenant.cep,

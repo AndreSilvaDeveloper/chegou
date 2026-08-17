@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, ValidateNested } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 import { DocumentoBrasileiro } from '../../../common/documento';
+import { EnderecoDto } from '../../../common/endereco.dto';
 import { TelefoneE164 } from '../../../common/telefone';
 
 /**
@@ -39,8 +40,13 @@ export class ConfigMeuCondominioDto {
  * - **`slug`** é o nome da sessão do condomínio no gateway de WhatsApp
  *   (`{OPENWA_SESSION_PREFIX}-{slug}`). Trocá-lo é trocar de sessão.
  * - **`plano`** é contrato, não operação.
+ *
+ * O endereço completo (CEP, logradouro, número, complemento, bairro, cidade e
+ * UF) vem de `EnderecoDto` — os mesmos campos que a administradora e o
+ * superadmin editam, para o cadastro não depender de por qual das três telas ele
+ * foi preenchido.
  */
-export class AtualizarMeuCondominioDto {
+export class AtualizarMeuCondominioDto extends EnderecoDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)
@@ -49,20 +55,6 @@ export class AtualizarMeuCondominioDto {
   @IsOptional()
   @DocumentoBrasileiro()
   documento?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  cidade?: string;
-
-  @IsOptional()
-  @Matches(/^[A-Z]{2}$/, { message: 'UF deve ter 2 letras maiúsculas' })
-  estado?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  endereco?: string;
 
   @IsOptional()
   @TelefoneE164()

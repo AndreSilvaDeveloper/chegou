@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Tenant, User } from '../../database/entities';
+import { aplicarEndereco } from '../../common/endereco.dto';
 import { OpenwaService } from '../openwa/openwa.service';
 import { AtualizarTenantDto } from './dto/atualizar-tenant.dto';
 import { CriarTenantDto } from './dto/criar-tenant.dto';
@@ -106,8 +107,7 @@ export class AdminService {
     if (dto.nome !== undefined) tenant.nome = dto.nome;
     if (dto.slug !== undefined) tenant.slug = dto.slug;
     if (dto.documento !== undefined) tenant.documento = dto.documento || null;
-    if (dto.cidade !== undefined) tenant.cidade = dto.cidade || null;
-    if (dto.estado !== undefined) tenant.estado = dto.estado || null;
+    aplicarEndereco(tenant, dto);
     if (dto.plano !== undefined) tenant.plano = dto.plano;
     if (dto.ativo !== undefined) tenant.ativo = dto.ativo;
     if (dto.configJson !== undefined) {

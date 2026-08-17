@@ -48,6 +48,13 @@ export const envValidationSchema = Joi.object({
   // (15s) seria curto demais aqui.
   OCR_TIMEOUT_MS: Joi.number().integer().min(1000).max(120000).default(30000),
 
+  // ---- Consulta de CEP (BrasilAPI, com ViaCEP de reserva) ----
+  // Sem URL para configurar: os dois provedores são públicos e gratuitos, e
+  // trocá-los é mudar o parser junto. O que se ajusta é a paciência — provedor
+  // lento não pode segurar a tela de cadastro, e falhar rápido aqui só custa o
+  // preenchimento automático: o endereço continua digitável à mão.
+  CEP_TIMEOUT_MS: Joi.number().integer().min(1000).max(30000).default(5000),
+
   // ---- Payment API (gateway de cobrança da assinatura) ----
   // Vazio = cobrança desligada, mesma disciplina do OPENWA_BASE_URL: dev e
   // teste rodam sem gateway, a fatura continua sendo gerada e a emissão fica

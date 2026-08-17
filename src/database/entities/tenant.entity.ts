@@ -36,8 +36,21 @@ export class Tenant {
   @Column({ type: 'varchar', length: 14, nullable: true })
   documento!: string | null;
 
+  // ---- Endereço ----
+  // `endereco` é o LOGRADOURO (rua/avenida), sem número. O nome ficou por
+  // compatibilidade — ver `db/migrations/035_endereco_completo_tenant.sql`.
   @Column({ type: 'text', nullable: true })
   endereco!: string | null;
+
+  /** Texto, não inteiro: "s/n", "1179-A" e "KM 12" são endereços válidos. */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  numero!: string | null;
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  complemento!: string | null;
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  bairro!: string | null;
 
   @Column({ type: 'varchar', length: 120, nullable: true })
   cidade!: string | null;
@@ -45,6 +58,7 @@ export class Tenant {
   @Column({ type: 'char', length: 2, nullable: true })
   estado!: string | null;
 
+  /** Só dígitos (8). A máscara `00000-000` é da tela. */
   @Column({ type: 'varchar', length: 8, nullable: true })
   cep!: string | null;
 

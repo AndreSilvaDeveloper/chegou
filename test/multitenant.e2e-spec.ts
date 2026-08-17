@@ -365,6 +365,10 @@ describe('Multitenant (e2e)', () => {
       const res = await configurar(sindicoA1Token, {
         cidade: 'Juiz de Fora',
         estado: 'MG',
+        cep: '36010-000',
+        endereco: 'Rua Halfeld',
+        numero: '1179',
+        bairro: 'Centro',
         // `estruturaBlocos` fica em 'unico' de propósito: 'multiplos' passaria a
         // exigir bloco no cadastro de unidade, e os testes seguintes criam
         // apartamento neste condomínio só com o número.
@@ -373,7 +377,31 @@ describe('Multitenant (e2e)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.cidade).toBe('Juiz de Fora');
+      // A máscara é da tela: o banco guarda só os dígitos, como no telefone e
+      // no documento.
+      expect(res.body.cep).toBe('36010000');
+      expect(res.body.numero).toBe('1179');
       expect(res.body.configJson).toMatchObject({ tipo: 'comercial', estruturaBlocos: 'unico' });
+    });
+
+    /**
+     * Campo de endereço vazio **apaga**, e é o `TextoOpcional` do `EnderecoDto`
+     * que faz isso: o `@IsOptional()` pula `null` e `undefined`, mas não string
+     * vazia — sem a conversão, apagar a UF devolveria 400 no `@Matches`, e o
+     * complemento errado ficaria gravado para sempre.
+     */
+    it('campo de endereço vazio apaga o que estava lá', async () => {
+      expect((await configurar(sindicoA1Token, { complemento: 'Bloco A' })).status).toBe(200);
+
+      const res = await configurar(sindicoA1Token, { complemento: '', estado: '' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.complemento).toBeNull();
+      expect(res.body.estado).toBeNull();
+
+      // Devolve a UF: os testes seguintes leem este condomínio, e deixá-lo sem
+      // estado faria a falha aparecer longe daqui.
+      expect((await configurar(sindicoA1Token, { estado: 'MG' })).status).toBe(200);
     });
 
     it('salvar o operacional não apaga o resto da configuração', async () => {
