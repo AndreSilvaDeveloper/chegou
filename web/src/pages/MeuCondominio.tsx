@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell, Building2, CalendarDays, Car, Clock, CreditCard, DoorClosed,
-  Layers, Loader2, Lock, MapPin, MessageCircle, Receipt, Save, Settings2,
+  Layers, Loader2, MapPin, MessageCircle, Receipt, Save, Settings2,
   SlidersHorizontal, Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ import {
   InfoPill,
   ModuleReadonly,
   OptionCard,
+  PlataformaDecide,
   TIPO_META,
   estruturaSugerida,
 } from '@/components/condominio/condominio-shared';
@@ -521,15 +522,5 @@ export function MeuCondominio() {
       </Tabs>
       </div>
     </PageShell>
-  );
-}
-
-/** Aviso do que é decisão da plataforma — some a dúvida de "por que não edito isso?". */
-function PlataformaDecide({ texto }: { texto: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-lg bg-muted/40 p-4">
-      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-      <p className="txt-apoio text-muted-foreground">{texto}</p>
-    </div>
   );
 }

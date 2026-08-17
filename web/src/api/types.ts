@@ -508,27 +508,17 @@ export interface WhatsappQr {
   qrCode: string | null;
 }
 
-export interface TemplateVariavel {
-  token: string;
-  descricao: string;
-  exemplo: string;
-}
-
 /**
- * Config de disparo/modelos de mensagem de um condomínio.
+ * Config de ritmo de disparo de um condomínio.
  *
  * A mesma forma serve às duas telas: a do condomínio (`/whatsapp/config`) e a
  * da plataforma (`/admin/tenants/:id/whatsapp/config`). O que muda vem dentro
  * da resposta — `limites` e `jitterEditavel` —, nunca do lado do cliente.
+ *
+ * **Sem os textos das mensagens**: eles não são configuráveis pelo cliente. São
+ * cinco versões fixas por tipo, sorteadas a cada envio no backend.
  */
 export interface WhatsappTenantConfig {
-  /** Texto salvo pelo condomínio; vazio = está usando o padrão do sistema. */
-  templateEncomenda: string;
-  templatePadrao: string;
-  variaveis: TemplateVariavel[];
-  templateRetirada: string;
-  templatePadraoRetirada: string;
-  variaveisRetirada: TemplateVariavel[];
   intervaloSegundos: number;
   jitterSegundos: number;
   limiteDiario: number;

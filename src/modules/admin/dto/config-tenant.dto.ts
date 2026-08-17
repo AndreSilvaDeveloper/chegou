@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
 
 const HORARIO_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -54,23 +54,9 @@ export class ConfigTenantDto {
   @Max(100000)
   whatsappLimiteDiario?: number;
 
-  /**
-   * Template da mensagem de encomenda (com variáveis {{...}}).
-   * Vazio = usa o template padrão do sistema.
-   */
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  whatsappTemplateEncomenda?: string;
-
-  /**
-   * Template da confirmação de retirada (com variáveis {{...}}).
-   * Vazio = usa o template padrão do sistema.
-   */
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  whatsappTemplateRetirada?: string;
+  // Não existe template por condomínio: os textos são as cinco versões fixas de
+  // `notificacoes/message-template.ts`, sorteadas a cada envio. Ver a regra e o
+  // porquê lá.
 }
 
 export const DEFAULT_TENANT_CONFIG: Required<ConfigTenantDto> = {
@@ -80,9 +66,10 @@ export const DEFAULT_TENANT_CONFIG: Required<ConfigTenantDto> = {
   moduloAvisos: false,
   horarioEnvioInicio: '08:00',
   horarioEnvioFim: '21:00',
-  whatsappIntervaloSegundos: 60,
-  whatsappJitterSegundos: 60,
+  // 90s fixos + 0–90s aleatórios = 1min30 a 3min entre mensagens do mesmo
+  // número. Subiu de 60/60 para afastar mais o disparo do padrão de rajada que
+  // o WhatsApp não-oficial marca como spam.
+  whatsappIntervaloSegundos: 90,
+  whatsappJitterSegundos: 90,
   whatsappLimiteDiario: 100,
-  whatsappTemplateEncomenda: '',
-  whatsappTemplateRetirada: '',
 };

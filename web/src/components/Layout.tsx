@@ -6,7 +6,7 @@ import {
   Package, PackagePlus, Building2, Users, HardHat, Building,
   Menu, LogOut, Sun, Moon, Laptop, BarChart3, Car, Megaphone, ListChecks,
   PanelLeftClose, PanelLeftOpen, Download, MessageCircle, LayoutDashboard,
-  Briefcase, ArrowLeftRight, Receipt, ScanText, ArrowLeft, Check,
+  Briefcase, ArrowLeftRight, Receipt, ScanText, ArrowLeft, Check, SlidersHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -87,6 +87,9 @@ const NAV_ITEMS: NavItem[] = [
   // para a administradora é da carteira — e ela precisa vê-la mesmo sem ter
   // escolhido um condomínio, por isso o `semCondominio`.
   { path: '/assinatura', label: 'Assinatura', icon: Receipt, roles: ['sindico'], group: 'Condomínio', alertaAssinatura: true },
+  // Só o síndico: a administradora configura o condomínio pela carteira, e o
+  // superadmin por `/admin/condominios/:id`.
+  { path: '/configuracoes', label: 'Configurações', icon: SlidersHorizontal, roles: ['sindico'], group: 'Condomínio' },
   { path: '/meus-condominios', label: 'Meus condomínios', icon: Briefcase, roles: ['admin'], group: 'Carteira', semCondominio: true },
   { path: '/assinatura', label: 'Assinatura', icon: Receipt, roles: ['admin'], group: 'Carteira', semCondominio: true, alertaAssinatura: true },
   { path: '/admin', label: 'Condomínios', icon: Building, roles: ['superadmin'], end: true, group: 'Plataforma' },

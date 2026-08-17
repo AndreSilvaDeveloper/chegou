@@ -11,6 +11,63 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.32.0 — 2026-08-17
+
+**Cinco versões de cada mensagem, sorteadas por envio, e o ritmo em 90s.** Um
+número que dispara o mesmo texto para dezenas de destinatários é o padrão que o
+WhatsApp não-oficial marca como spam. Esta versão ataca os dois lados do
+problema — o texto e a cadência.
+
+**Texto.** Chegada de encomenda e confirmação de retirada passam a ter **cinco
+redações diferentes cada uma** (`src/modules/notificacoes/message-template.ts`),
+e o sistema sorteia uma no enfileiramento. As cinco não são sinônimos trocados:
+mudam estrutura, tamanho e uso de emoji — duas com lista de tópicos, duas em
+prosa, uma sem emoji nenhum.
+
+**Saudação pelo horário.** Toda versão abre com `{{saudacao}}` → "Bom dia"
+(05:00–11:59), "Boa tarde" (12:00–17:59) ou "Boa noite" (18:00–04:59).
+
+O token é resolvido **na hora em que a mensagem sai**, não na em que foi criada:
+o conteúdo é montado quando o porteiro registra a encomenda, mas entre isso e o
+envio há fila, intervalo anti-bloqueio e janela de horário. Uma encomenda
+registrada às 20h55 sai às 8h do dia seguinte — resolvido no registro, o morador
+receberia "Boa noite" de manhã. Por isso `{{saudacao}}` atravessa a renderização
+das variáveis e só é fechado em `NotificationService.agendarEmLote`, o único
+ponto que conhece a hora real de saída.
+
+**A personalização por condomínio saiu.** Não existe mais
+`whatsappTemplateEncomenda` / `whatsappTemplateRetirada`, nem para o síndico,
+nem para a administradora, nem para o superadmin — o card "Modelos de mensagem"
+foi removido das três telas (`/whatsapp`, `/admin/condominios/:id`,
+`/meus-condominios/:id`), junto com `WhatsappTemplateCard` e `TemplateEditor`.
+
+É uma troca deliberada de liberdade por segurança do número: um cliente colando
+o mesmo texto em todo envio anularia a variação e derrubaria o próprio WhatsApp.
+`/whatsapp/config` passa a devolver só o ritmo.
+
+**Ritmo.** O intervalo entre mensagens do mesmo número sobe de 60s+60s para
+**90s fixos + 0 a 90s aleatórios** — de 1 a 2 minutos para 1min30 a 3min. O piso
+que o síndico pode escolher na tela sobe junto, de 60s para 90s: nascer em 90 e
+deixar a primeira tela devolver o número para 60 não protegeria nada.
+
+Sem migration: nenhum condomínio em produção tinha personalizado texto ou ritmo.
+
+**O plano de migração para a API Oficial foi revisado junto** (`docs/whatsapp-migration/`).
+Ele fora escrito na 0.31.3 e descrevia a personalização como uma feature a
+preservar — um gap inteiro (§3.2, "fluxo de aprovação de template") existia só
+por causa dela. Esse gap **acabou**, e com ele 5–8 dias da estimativa, que caiu
+de 43–67 para 38–59 dias. A pergunta aberta B3 virou registro de decisão.
+
+Duas descobertas da revisão, que não são só atualização de texto:
+
+- **A Meta rejeita template cujo corpo começa com variável** (*dangling
+  parameter*), e as cinco versões abrem com `{{saudacao}}`. Na Cloud API o texto
+  precisa abrir com palavra fixa; a saudação continua só no caminho OpenWA.
+- **As cinco versões não devem virar cinco templates na Meta.** Elas defendem
+  contra o filtro de spam do WhatsApp não-oficial, que não existe numa plataforma
+  onde o texto é pré-aprovado — submeter as dez custaria manutenção sem comprar
+  proteção. O catálogo segue em 11 templates, não 19.
+
 ## 0.31.3 — 2026-08-02
 
 **O logo do painel quebrou com a mudança para `/app/`.** Aparecia como imagem

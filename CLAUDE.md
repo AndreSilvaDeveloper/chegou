@@ -280,7 +280,7 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Vagas: consultar | — | ✅ | ✅ | ✅ |
 | Vagas: cadastrar, alugar, preços, cobranças | — | ✅ | ✅ | — |
 | Vagas: histórico financeiro (contratos, pagamentos) | — | ✅ | ✅ | — |
-| WhatsApp: modelos de mensagem e ritmo de envio do condomínio | ✅² | ✅ | ✅ | — |
+| WhatsApp: ritmo de envio do condomínio | ✅² | ✅ | ✅ | — |
 | Avisos: ler | — | ✅ | ✅ | ✅ |
 | Avisos: publicar/remover | — | ✅ | ✅ | — |
 | Filas de notificação e WhatsApp do condomínio | — | ✅ | ✅ | — |
@@ -290,9 +290,11 @@ rota `/usuarios` (que é do condomínio). Ninguém cria `superadmin` pela API.
 
 ² O superadmin edita o mesmo dado na aba WhatsApp do condomínio
 (`/admin/condominios/:id`), sem as faixas de segurança que valem para o síndico
-(intervalo ≥ 60s, janela dentro de 08:00–21:00, limite de 20 a 300/dia) e com o
+(intervalo ≥ 90s, janela dentro de 08:00–21:00, limite de 20 a 300/dia) e com o
 jitter, que o condomínio nem enxerga. Não há painel consolidado de WhatsApp: a
-sessão é de um condomínio de cada vez.
+sessão é de um condomínio de cada vez. **O texto das mensagens não é editável
+por ninguém** — são cinco versões fixas de cada tipo, sorteadas a cada envio
+(ver "Regras Anti-Bloqueio" abaixo).
 
 ³ A conta da administradora é a da **carteira inteira**, em
 `/minha-administradora/assinatura` — não a de um condomínio. É a única coisa que
@@ -433,7 +435,9 @@ mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a do
 > bloqueio do número WhatsApp do condomínio.
 
 ### Controle de Taxa (Rate Limiting)
-1. **Delay entre mensagens**: Intervalo aleatório de **8 a 30 segundos** entre cada envio
+1. **Delay entre mensagens**: **90 segundos fixos + 0 a 90 aleatórios** (1min30 a
+   3min entre um envio e o seguinte do mesmo número). O síndico pode subir daí,
+   nunca descer
 2. **Lotes**: Máximo **15 mensagens por lote**, pausa de **3 a 8 minutos** entre lotes
 3. **Limite diário**: Máximo configurável por número (padrão: **100/dia**, escalar gradualmente)
 4. **Warm-up de número novo**: Iniciar com 10-20/dia, aumentar 10 a cada 3 dias
@@ -447,7 +451,16 @@ mesmo toda vez (e ninguém esquecer de perguntar os perfis nem de atualizar a do
 6. **Sem envio em massa simultâneo**: Fila serializada por número remetente
 
 ### Conteúdo
-7. **Variação de texto**: Adicionar variações sutis nas mensagens (nome do morador, horário, etc.)
+7. **Cinco versões de cada texto, sorteadas por envio**: chegada e retirada têm
+   cada uma **5 redações diferentes** em `src/modules/notificacoes/message-template.ts`,
+   e o sistema sorteia uma no enfileiramento. Texto único repetido para dezenas
+   de destinatários é o padrão que marca o número como spam
+7.1. **Saudação pelo horário**: toda versão abre com `{{saudacao}}` — Bom dia /
+   Boa tarde / Boa noite —, resolvida na **hora em que a mensagem sai**, não na
+   em que foi criada
+7.2. **Ninguém personaliza o texto**: nem o síndico, nem a administradora, nem o
+   superadmin. Variação controlada vale mais que liberdade de edição, e um
+   cliente colando o mesmo texto em todo envio derrubaria o próprio número
 8. **Personalização**: Toda mensagem deve ter dados específicos do destinatário
 9. **Sem links suspeitos**: Evitar encurtadores de URL
 

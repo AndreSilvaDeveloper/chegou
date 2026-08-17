@@ -5,8 +5,30 @@
 > para não divergir do resto da documentação. Ver
 > [00-perguntas-abertas.md](00-perguntas-abertas.md), item 1.
 
-> **Status**: proposta. Nenhuma linha de código foi alterada.
+> **Status**: proposta. Nenhuma linha de código foi alterada *por causa deste
+> plano*.
 > **Data**: 04/08/2026 · **Versão do sistema no levantamento**: 0.31.3
+> **Revisado em 17/08/2026 para a 0.32.0** — ver a nota abaixo.
+
+> ### ⚠️ O que a 0.32.0 mudou neste plano
+>
+> A 0.32.0 (17/08/2026) **removeu a personalização de texto por condomínio** e
+> deu a cada mensagem **cinco versões sorteadas por envio**, abertas por uma
+> saudação de horário. Foi feita pelo produto, não por esta migração — mas
+> derruba um gap inteiro dela:
+>
+> - **§3.2 deixou de ser "fluxo de aprovação de template"**. O editor que
+>   precisaria de `rascunho → em_analise → aprovado` não existe mais. A seção foi
+>   reescrita como "as cinco versões de cada texto", e a decisão agora é outra:
+>   quantas delas viram template na Meta.
+> - **A estimativa perdeu os 5–8 dias** daquele gap (§11).
+> - **B3 de [00-perguntas-abertas](00-perguntas-abertas.md) está respondida** —
+>   não mantém a personalização, porque ela já não existe.
+> - **O total continua em 11 templates** (§5.7): a recomendação é submeter **uma**
+>   versão de cada mensagem, não as cinco. O porquê está no §3.2.
+> - **Achado novo e concreto**: as cinco versões **abrem com `{{saudacao}}`**, e a
+>   Meta rejeita template que começa com variável. O texto da Cloud API precisa
+>   abrir com palavra fixa (§5.1).
 
 ---
 
@@ -36,7 +58,7 @@ item aqui é um ponto que a migração toca.
 | Arquivo | Papel | O que a migração faz com ele |
 |---|---|---|
 | `src/modules/openwa/openwa.client.ts` | Cliente REST do gateway (`/sessions`, `/webhooks`, `/contacts/check`, `/messages/send-text`) | Fica intacto, passa a ser um dos dois providers |
-| `src/modules/openwa/openwa.service.ts` | Orquestra sessão (provisionar, QR, status, restart) **e** é o **único caminho de envio** (`sendText`). Também guarda `getWhatsappConfig`/`updateWhatsappConfig` | Quebra em dois: a parte de sessão fica no provider OpenWA; a config de template/ritmo **sai daqui** e vira neutra de provedor |
+| `src/modules/openwa/openwa.service.ts` | Orquestra sessão (provisionar, QR, status, restart) **e** é o **único caminho de envio** (`sendText`). Também guarda `getWhatsappConfig`/`updateWhatsappConfig` — que desde a 0.32.0 é **só ritmo**, sem texto | Quebra em dois: a parte de sessão fica no provider OpenWA; a config de ritmo **sai daqui** e vira neutra de provedor |
 | `openwa-connection.controller.ts` · `openwa-config.controller.ts` · `admin-tenant-whatsapp.controller.ts` | REST do painel (conexão, config, escopo plataforma) | `connection` passa a ser polimórfico (QR no OpenWA, status da WABA na Cloud API) |
 | `src/modules/notificacoes/notification-dispatcher.service.ts` | Consome a fila e chama `openwa.sendText(...)`. Trata `WhatsappNumberNotFoundError` como falha terminal | Passa a chamar `MessagingProvider.send(...)`; ganha o mapa de erros da Cloud API |
 | `src/modules/whatsapp/whatsapp.service.ts` | Histórico + **resposta automática**, que chama `openwa.sendText` **direto, sem fila** | Passa pelo provider; na Cloud API essa é uma *session message* (grátis, dentro da janela) |
@@ -46,7 +68,7 @@ item aqui é um ponto que a migração toca.
 | `src/database/entities/tenant.entity.ts` | `whatsapp_session_id`, `whatsapp_session_name`, `whatsapp_status`, `whatsapp_numero` (migration `017`) | Ganha as colunas da Cloud API (§6) |
 | `src/database/entities/whatsapp-message.entity.ts` | Histórico; `provider` hoje é sempre `'openwa'` (constante `PROVIDER`) | A constante vira valor por linha (`openwa` \| `cloud_api`) |
 | `src/config/env.validation.ts` · `.env.example` · `deploy/docker-compose.yml` | `OPENWA_BASE_URL`, `OPENWA_API_KEY`, `OPENWA_SESSION_PREFIX`, `OPENWA_WEBHOOK_BASE_URL`, `OPENWA_TIMEOUT_MS` | Ganham o bloco `WHATSAPP_*` da Cloud API |
-| `web/src/pages/Whatsapp.tsx`, `components/Whatsapp{Connection,Template,Envio}Card.tsx`, `components/whatsapp/TemplateEditor.tsx`, `components/condominio/WhatsappCondominioPanel.tsx` | Telas de conexão, modelos e ritmo (o mesmo painel em `/whatsapp`, `/admin/condominios/:id` e `/meus-condominios/:id`) | O card de conexão vira dois modos; o de modelos vira fluxo de aprovação (§3.2) |
+| `web/src/pages/Whatsapp.tsx`, `components/Whatsapp{Connection,Envio}Card.tsx`, `components/condominio/WhatsappCondominioPanel.tsx` | Telas de conexão e ritmo (o mesmo painel em `/whatsapp`, `/admin/condominios/:id` e `/meus-condominios/:id`) | O card de conexão vira dois modos. **Não há mais card de modelos**: `WhatsappTemplateCard` e `TemplateEditor` foram removidos na 0.32.0 |
 
 **Módulos que importam `OpenwaModule`**: `app.module`, `notificacoes.module`,
 `whatsapp.module`, `admin.module`. A dependência é sempre num sentido só
@@ -83,22 +105,34 @@ item aqui é um ponto que a migração toca.
 
 ### 1.3 Mensagens que o sistema envia hoje
 
-Seis textos distintos. Os dois primeiros são editáveis pelo condomínio; os
-outros são fixos no código.
+Seis textos distintos. **Desde a 0.32.0, nenhum é editável pelo condomínio** —
+todos são fixos no código, e os dois primeiros existem em cinco versões cada.
 
-| # | Mensagem | Origem | Personalizável? | Fila? |
+| # | Mensagem | Origem | Versões | Fila? |
 |---|---|---|:---:|:---:|
-| 1 | Encomenda chegou | `encomendas.service.ts` → `DEFAULT_TEMPLATE_ENCOMENDA` | ✅ (`whatsappTemplateEncomenda`) | ✅ |
-| 2 | Encomenda retirada | `encomendas.service.ts` → `DEFAULT_TEMPLATE_RETIRADA` | ✅ (`whatsappTemplateRetirada`) | ✅ |
-| 3 | Aviso do condomínio | `avisos.service.ts` — **texto livre digitado pelo síndico** | — (é 100 % livre) | ✅ |
-| 4 | Cobrança de vaga | `vagas/cobranca-template.ts` → `montarMensagemCobranca` | ❌ | ✅ |
-| 5 | Cobrança de condomínio | `apartamentos.service.ts`, string inline | ❌ | ✅ |
-| 6a | Lembrete de código (resposta) | `whatsapp/templates.ts` → `lembrete_codigo` | ❌ | ❌ **direto** |
-| 6b | Sem encomenda pendente (resposta) | `whatsapp/templates.ts` → `sem_encomenda_pendente` | ❌ | ❌ **direto** |
+| 1 | Encomenda chegou | `notificacoes/message-template.ts` → `TEMPLATES_ENCOMENDA` | **5**, sorteadas | ✅ |
+| 2 | Encomenda retirada | `notificacoes/message-template.ts` → `TEMPLATES_RETIRADA` | **5**, sorteadas | ✅ |
+| 3 | Aviso do condomínio | `avisos.service.ts` — **texto livre digitado pelo síndico** | 1 (é 100 % livre) | ✅ |
+| 4 | Cobrança de vaga | `vagas/cobranca-template.ts` → `montarMensagemCobranca` | 1 | ✅ |
+| 5 | Cobrança de condomínio | `apartamentos.service.ts`, string inline | 1 | ✅ |
+| 6a | Lembrete de código (resposta) | `whatsapp/templates.ts` → `lembrete_codigo` | 1 | ❌ **direto** |
+| 6b | Sem encomenda pendente (resposta) | `whatsapp/templates.ts` → `sem_encomenda_pendente` | 1 | ❌ **direto** |
+
+**As cinco versões são regra anti-bloqueio, não estética**: o WhatsApp
+não-oficial marca como spam o número que dispara o mesmo texto para dezenas de
+destinatários. Elas mudam estrutura, tamanho e uso de emoji — duas com lista de
+tópicos, duas em prosa, uma sem emoji nenhum. O sorteio acontece no
+enfileiramento. É exatamente o tipo de defesa que a Cloud API torna
+desnecessária (§3.2), como acontece com o ritmo (§3.5).
+
+**Toda versão abre com `{{saudacao}}`** → "Bom dia" / "Boa tarde" / "Boa noite",
+resolvida em `NotificationService.agendarEmLote` com a hora **em que a mensagem
+sai**, não a em que foi criada (fila e janela de horário no meio). Guarde este
+detalhe: ele é o que colide com uma regra da Meta no §5.1.
 
 > **Achado**: `whatsapp/templates.ts` ainda define `encomenda_chegou`, com teste
-> em `templates.spec.ts`, mas **nada o envia** — a chegada passou a usar o
-> template personalizável (#1). O nome sobrevive como valor histórico em
+> em `templates.spec.ts`, mas **nada o envia** — a chegada usa as cinco versões
+> de `message-template.ts` (#1). O nome sobrevive como valor histórico em
 > `whatsapp_messages.template_name`, consultado em `encomendas.service.ts:55`.
 > Não migrar; ver [00-perguntas-abertas.md](00-perguntas-abertas.md), item 8.
 
@@ -112,16 +146,18 @@ não uso:
 
 | Parâmetro | Padrão (`DEFAULT_TENANT_CONFIG`) | Faixa que o síndico escolhe |
 |---|---|---|
-| Intervalo entre mensagens | 60 s | ≥ 60 s, até 3600 s |
-| Jitter | 60 s | só o superadmin edita |
+| Intervalo entre mensagens | **90 s** (era 60 s até a 0.32.0) | ≥ **90 s**, até 3600 s |
+| Jitter | **90 s** | só o superadmin edita |
 | Limite diário por condomínio | **100/dia** | 20 a 300 |
 | Janela de envio | 08:00–21:00 | dentro de 08:00–21:00 |
 | Condomínios enviando em paralelo | 15 (`NOTIFICATION_CONCURRENCY`) | env |
 
 Teto teórico da plataforma hoje: `nº de condomínios × limiteDiario`, com o piso
-de 60 s + jitter entre mensagens do mesmo número — o que dá, na janela de 13 h,
-**~390 mensagens/dia por condomínio** de capacidade física, bem acima do limite
-padrão de 100. Ou seja: **quem limita hoje é a configuração, não a infra.**
+de 90 s + até 90 s de jitter entre mensagens do mesmo número — o que dá, na
+janela de 13 h, **~260 mensagens/dia por condomínio** no pior caso (~350 na
+média), ainda acima do limite padrão de 100. Ou seja: **quem limita hoje é a
+configuração, não a infra** — mas a folga encolheu com a 0.32.0, que quase
+dobrou o intervalo. Um condomínio no teto de 300/dia **não cabe mais** na janela.
 
 **Onde obter o número real** (rodar no Postgres de produção):
 
@@ -189,11 +225,11 @@ Todas as regras abaixo foram conferidas na documentação oficial da Meta em
 | Dimensão | OpenWA (hoje) | Cloud API |
 |---|---|---|
 | **Conteúdo da mensagem** | Qualquer texto, a qualquer hora | Fora da janela de 24 h, **só template pré-aprovado**. Dentro dela, texto livre |
-| **Aprovação** | Nenhuma. Muda o texto, vale no próximo envio | Cada template passa por revisão (**até 24 h**); editar = nova revisão |
+| **Aprovação** | Nenhuma. Trocar uma das cinco versões é um deploy, e vale no próximo envio | Cada template passa por revisão (**até 24 h**); editar = nova revisão |
 | **Janela de atendimento** | Não existe | 24 h a partir da **última mensagem do usuário**. Fechada → erro `131047` |
 | **Opt-in** | Convenção interna (`receber_whatsapp`) | **Exigido pela política da Meta**, com registro de quando/como/onde |
 | **Limite de envio** | Que a gente impuser (anti-bloqueio) | *Messaging limit* por número: **250 → 2.000 → 10.000 → 100.000 → ilimitado** destinatários únicos por 24 h móveis |
-| **Throughput** | ~1 msg/60 s por condomínio (autoimposto) | **80 msg/s por número**, com upgrade disponível |
+| **Throughput** | ~1 msg/90–180 s por condomínio (autoimposto) | **80 msg/s por número**, com upgrade disponível |
 | **Qualidade** | Invisível até o número cair | *Quality rating* por número + qualidade por template, com pausa automática |
 | **Risco de banimento** | **Alto** — é a razão desta migração | Baixo; a punição é degradar tier / pausar template, não sumir com o número |
 | **Status de entrega** | Praticamente nenhum (o evento `message.ack` é registrado no gateway mas o parser não o trata) | `sent` · `delivered` · `read` · `failed` por webhook |
@@ -274,30 +310,51 @@ Avisos de manutenção/segurança seguem baratos; convite para festa junina, nã
 > categoria marketing, ou tirar esse tipo do WhatsApp. Item 3 de
 > [00-perguntas-abertas](00-perguntas-abertas.md).
 
-### 3.2 Templates editáveis pelo condomínio
+### 3.2 As cinco versões de cada texto
 
-**Hoje**: `/whatsapp` tem um editor de texto livre; o síndico salva e o próximo
-envio já usa o texto novo, sem intermediários. É uma feature vendida.
+> **Esta seção mudou de assunto na 0.32.0.** Ela era "templates editáveis pelo
+> condomínio", com três alternativas de fluxo de aprovação. Esse gap **acabou**:
+> o editor foi removido do produto, e com ele o problema. O que sobrou é uma
+> decisão menor, e de sinal contrário.
 
-**Na Cloud API**: cada edição é uma submissão nova, com até 24 h de análise, e
-pode ser **rejeitada**.
+**Hoje**: chegada e retirada têm **cinco redações cada**, sorteadas por envio,
+mais a saudação do horário. Ninguém edita — nem síndico, nem administradora, nem
+superadmin.
 
-**Alternativas**:
+**Por que existem**: o WhatsApp não-oficial marca como spam o número que dispara
+texto idêntico em série. Cinco redações × três saudações × as variáveis do
+morador fazem duas mensagens seguidas do mesmo condomínio nunca serem iguais.
+É defesa contra o mesmo inimigo do §3.5 (o ritmo de 90 s).
 
-| # | Alternativa | Prós | Contras |
-|---|---|---|---|
-| **A** | **Fluxo de aprovação no painel**: o editor continua, mas o texto salvo entra em `rascunho → em_analise → aprovado → ativo`. Até aprovar, envia-se a versão aprovada anterior | Mantém a feature; o síndico entende o porquê da espera | Estado novo na UI, polling do status do template, e-mail/aviso de rejeição |
-| **B** | **Catálogo de variantes**: a plataforma pré-aprova N variantes por mensagem; o síndico escolhe uma | Zero espera, zero rejeição | Deixa de ser personalização de verdade |
-| **C** | **Só o superadmin edita**, e a edição vale para todos | Um template por mensagem na plataforma inteira, barato de operar | Tira do síndico algo que ele já tem |
+**Na Cloud API o inimigo não existe.** O texto é aprovado antes de sair, e o
+quality rating do número vem de **bloqueio e denúncia do morador**, não de
+repetição de conteúdo. Mandar o mesmo template utility para 300 moradores é o
+uso normal e esperado da plataforma. Logo: as cinco versões deixam de comprar
+proteção — passam a custar manutenção.
 
-**Recomendação**: **A**, com **B como fallback visual** (oferecer 2–3 variantes
-prontas no editor, para quem só quer "outro jeito de dizer"). O estado do
-template já precisa existir no banco de qualquer forma (§6).
+**A decisão que sobra**: quantas versões viram template na Meta?
+
+| # | Alternativa | Templates | Prós | Contras |
+|---|---|:---:|---|---|
+| **A** | **Uma versão de cada** vira template; as cinco continuam no código, servindo só o caminho OpenWA enquanto ele existir | 11 | Catálogo pequeno; uma recategorização para vigiar por mensagem; nada a manter depois que o OpenWA morrer | Quem vem do OpenWA vê a variedade sumir (invisível para o morador, que recebe poucas mensagens) |
+| **B** | **As cinco viram template** (`encomenda_chegou_v1..v5`), sorteadas no envio como hoje | 19 | Paridade exata com o comportamento atual | 10 templates para submeter, versionar e vigiar contra recategorização, comprando proteção que a Cloud API já dá |
+| **C** | **Três versões** como meio-termo | 15 | — | Herda os contras de B sem os prós de A |
+
+**Recomendação**: **A**. As cinco versões são uma resposta a uma ameaça que a
+migração elimina; carregá-las para a Meta é pagar o custo da defesa depois de o
+ataque ter parado. Elas **não devem ser apagadas do código** enquanto houver um
+condomínio em OpenWA — durante a coexistência (§9) elas continuam protegendo
+esses números.
+
+**Consequência para o código**: o sorteio passa a ser do provider OpenWA, não do
+`encomendas.service`. Na Cloud API não se envia texto, e sim nome do template +
+parâmetros — o conteúdo renderizado vira *preview* para a tela "Filas" (§6).
 
 > **Atenção ao multiplicador**: na arquitetura de *uma WABA por condomínio*
 > (opção C do doc 03), cada condomínio tem seus próprios templates — 200
-> condomínios × 6 templates = 1.200 submissões para gerenciar. Numa WABA única,
-> são 6. Este gap é um argumento forte na escolha da arquitetura.
+> condomínios × 11 templates = 2.200 submissões para gerenciar. Numa WABA única,
+> são 11. Pela alternativa B seriam 3.800 contra 19. O multiplicador é um
+> argumento forte na escolha da arquitetura, e mais forte ainda contra B.
 
 ### 3.3 Opt-in
 
@@ -349,24 +406,26 @@ existir, volta `131026` — **depois** de a mensagem ter sido aceita pela API.
 
 ### 3.5 O ritmo anti-bloqueio deixa de fazer sentido — mas o scheduler não
 
-**Hoje**: 60 s + jitter entre mensagens, lote, cota diária, janela 08–21 h,
-trava por condomínio. Tudo isso existe para **não ser banido**.
+**Hoje**: **90 s + 0 a 90 s de jitter** entre mensagens (era 60+60 até a
+0.32.0), lote, cota diária, janela 08–21 h, trava por condomínio. Tudo isso
+existe para **não ser banido**.
 
-**Na Cloud API**: 80 msg/s por número. Espaçar 60 s é jogar fora capacidade —
-um aviso para 300 unidades levaria 5 horas sem nenhuma razão.
+**Na Cloud API**: 80 msg/s por número. Espaçar 90 s é jogar fora capacidade — um
+aviso para 300 unidades levaria ~11 horas de envio e, com a cota diária padrão
+de 100/dia, **três dias** para chegar a todo mundo.
 
 Mas o `DispatchSchedulerService` **não deve ser deletado**. Ele muda de dono:
 
 | Regra | Hoje | Depois |
 |---|---|---|
-| Intervalo 60 s + jitter | anti-banimento | **remove** (ou baixa para o mínimo do throughput) |
+| Intervalo 90 s + jitter | anti-banimento | **remove** (ou baixa para o mínimo do throughput) |
 | Trava um-envio-por-condomínio | anti-banimento | **remove** — a Cloud API é concorrente |
 | Cota diária por condomínio | anti-banimento | **vira controle de custo** (teto de gasto do condomínio) e de *messaging limit* |
 | Janela 08:00–21:00 | anti-banimento | **fica**, como decisão de produto (não acordar morador às 3 h) |
 | Repescagem `moveToDelayed` | contenção da trava | vira backoff de `130429` (throughput) |
 
-O ganho é grande: hoje um condomínio com 300 avisos leva ~5 h; na Cloud API,
-segundos. O que precisa segurar é o **messaging limit do tier** e o **custo**,
+O ganho é grande: hoje um condomínio com 300 avisos leva ~11 h de envio (e
+esbarra na cota do dia); na Cloud API, segundos. O que precisa segurar é o **messaging limit do tier** e o **custo**,
 não a cadência.
 
 ### 3.6 Provisionamento por QR
@@ -388,7 +447,7 @@ para "nos dê um número novo" ou "vamos usar o número da plataforma"**.
 | Gap | Severidade | Alternativa escolhida |
 |---|:---:|---|
 | Aviso livre do síndico | 🔴 alta | Template por tipo de aviso (§3.1-A) |
-| Template editável pelo condomínio | 🟠 média | Fluxo de aprovação no painel (§3.2-A) |
+| ~~Template editável pelo condomínio~~ | ⚪ **extinto** | A 0.32.0 removeu o editor. Sobrou "quantas das 5 versões viram template": **uma** (§3.2-A) |
 | Opt-in não registrado | 🔴 alta | Registro auditável + `SAIR` no inbound (§3.3) |
 | `contacts/check` inexistente | 🟢 baixa | `wa_id` da resposta + `131026` terminal (§3.4) |
 | Ritmo anti-bloqueio obsoleto | 🟢 baixa | Scheduler vira controle de custo/limite (§3.5) |
@@ -516,7 +575,7 @@ ALTER TABLE tenants
 | `whatsapp/inbound-cloud-api.parser.ts` (**novo**) | Tradução do payload da Meta |
 | `src/modules/templates/` (**novo**) | Catálogo de templates, submissão, status, sincronização com a Meta |
 | `main.ts` | `NestFactory.create(AppModule, { rawBody: true })` — a assinatura do webhook é sobre o corpo **cru** |
-| `web/src/components/Whatsapp*` | Card de conexão polimórfico; card de modelos com estado de aprovação |
+| `web/src/components/Whatsapp*` | Card de conexão polimórfico. **Não há card de modelos** desde a 0.32.0; o catálogo de templates é tela de plataforma (superadmin), não do condomínio |
 
 > **Compatível com o CLAUDE.md do projeto**: o módulo `messaging` nasce com o
 > próprio `CLAUDE.md` (regra 33), as rotas novas declaram `@Roles(...)` e a
@@ -537,10 +596,12 @@ template padrão.
 
 ### 5.1 `encomenda_chegou` — utility
 
-**Texto de hoje** (`DEFAULT_TEMPLATE_ENCOMENDA`, 9 variáveis nomeadas):
+**Base**: a **versão 1** de `TEMPLATES_ENCOMENDA` (§3.2-A manda submeter uma das
+cinco, não as cinco). É a mais completa — carrega data, hora, tipo e
+transportadora, então é a que exercita todas as variáveis:
 
 ```
-Olá, {{nome}}! 📦
+{{saudacao}}, {{nome}}! 📦
 
 Chegou uma encomenda para a unidade *{{unidade}}* na portaria do {{condominio}}.
 
@@ -551,6 +612,27 @@ Chegou uma encomenda para a unidade *{{unidade}}* na portaria do {{condominio}}.
 🔑 Código de retirada: *{{codigo}}*
 Apresente este código na portaria para retirar. 🙂
 ```
+
+> ### 🚨 A saudação não pode abrir o template
+>
+> As cinco versões abrem com `{{saudacao}}`. A Meta **rejeita template cujo corpo
+> começa ou termina com variável** — o caso chamado *dangling parameter*. Traduzir
+> `{{saudacao}}` para `{{1}}` na primeira posição dá rejeição na submissão, não
+> falha no envio: quebra na Fase 1, de graça, mas quebra.
+>
+> Três saídas, em ordem de preferência:
+>
+> 1. **Abrir com palavra fixa** — `"Olá, {{1}}! 📦"`, como era antes da 0.32.0. A
+>    saudação some **só na Cloud API**; no OpenWA ela continua, porque lá ela
+>    ajuda (variação de texto). É o que o payload abaixo faz.
+> 2. **Prefixo fixo antes da variável** — `"Bom dia/boa tarde, {{1}}!"` fica ruim
+>    de ler.
+> 3. **Três templates por versão**, um por saudação — triplica o catálogo para
+>    resolver um cumprimento. Não.
+>
+> Custo real de (1): quase nenhum. A saudação foi criada para variar o texto
+> contra o filtro de spam do WhatsApp não-oficial — o mesmo motivo das cinco
+> versões, e que morre na Cloud API pelo argumento do §3.2.
 
 **Payload de submissão** (`POST /{waba-id}/message_templates`):
 
@@ -583,18 +665,20 @@ Apresente este código na portaria para retirar. 🙂
 | `{{7}}` | `transportadora` | `encomenda.transportadora` ou "não informada" |
 | `{{8}}` | `codigo` | `encomenda.codigo_retirada` |
 
-> `{{morador}}` (nome completo) fica de fora: hoje só existe como *alias*
-> disponível ao síndico, não no texto padrão. Se algum condomínio o usa no
-> template personalizado, ele entra como variável 9 na versão daquele
-> condomínio. O `TOKEN_ALIASES` de `message-template.ts` continua servindo para
-> traduzir o texto do síndico → posições.
+> **Oito posições, não nove.** `{{saudacao}}` sai (é o achado acima) e
+> `{{morador}}` (nome completo) nunca esteve em nenhuma das cinco versões — ele
+> só existe como *alias* em `TOKEN_ALIASES`, resquício da época do editor do
+> síndico. Com o editor removido na 0.32.0, esses aliases não recebem mais texto
+> de fora: **são candidatos a remoção**, e não precisam de posição na Meta.
 
 > **Rodapé de opt-out**: acrescentado de propósito (§3.3). Custa nada e é o que
 > segura o quality rating.
 
 ### 5.2 `encomenda_retirada` — utility
 
-Mesmo enquadramento (atualização de um pedido específico do usuário).
+Mesmo enquadramento (atualização de um pedido específico do usuário) e mesma
+regra do §5.1: base na **versão 1** de `TEMPLATES_RETIRADA`, abrindo com palavra
+fixa em vez de `{{saudacao}}`.
 
 ```json
 {
@@ -741,6 +825,13 @@ mas a resposta demorou > 24 h (fila travada, retry longo), o envio volta
 
 **11 templates** por WABA (ou por condomínio, dependendo da arquitetura do doc 03).
 
+> **Por que continua 11 depois da 0.32.0**: chegada e retirada passaram a ter
+> cinco versões cada no código, mas a recomendação do §3.2-A é submeter **uma**
+> de cada — a variedade existe contra o filtro de spam do WhatsApp não-oficial e
+> não compra nada na Cloud API. Pela alternativa B (as cinco viram template)
+> seriam **19**. Se essa decisão for revista, é este número que muda, e com ele o
+> doc 03, a Fase 1 e a estimativa.
+
 ---
 
 ## 6. Mudanças no schema do banco
@@ -798,7 +889,9 @@ CREATE UNIQUE INDEX uq_tenants_phone_number_id
 CREATE TABLE whatsapp_templates (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   -- NULL = template da plataforma (vale para todo condomínio da WABA).
-  -- Preenchido = versão personalizada de um condomínio.
+  -- Preenchido = template registrado na WABA de um condomínio específico,
+  -- que só acontece na arquitetura C do doc 03 (uma WABA por condomínio).
+  -- NÃO é personalização de texto: essa saiu do produto na 0.32.0 (§3.2).
   tenant_id         uuid REFERENCES tenants(id) ON DELETE CASCADE,
   template_key      varchar(60)  NOT NULL,   -- 'encomenda_chegou', ...
   meta_name         varchar(80)  NOT NULL,   -- nome na Meta (pode ter sufixo por tenant)
@@ -995,7 +1088,7 @@ cadastrado em dois condomínios deixa de ser um problema de desempate, porque o
 | `statuses[].status = delivered` | entregue no aparelho | `delivered_at`; é aqui que a **cobrança acontece** |
 | `statuses[].status = read` | lida | `read_at` (métrica de qualidade do template) |
 | `statuses[].status = failed` | falhou | `error_code` + decidir retry (§8) |
-| `message_template_status_update` | template aprovado/rejeitado/pausado | atualiza `whatsapp_templates.status` — **é o que fecha o fluxo de aprovação do §3.2** |
+| `message_template_status_update` | template aprovado/rejeitado/pausado | atualiza `whatsapp_templates.status`. **Continua necessário mesmo sem o §3.2**: quem submete passou a ser a plataforma, mas é por aqui que se descobre pausa por qualidade (`132015`) e **recategorização** — que muda o custo sem ninguém ter mexido em nada |
 | `template_category_update` | recategorização | atualiza `category_current` (§6.2) |
 | `phone_number_quality_update` | quality rating mudou | `tenants.whatsapp_quality_rating` + alerta ao superadmin |
 | `account_update` | WABA restrita/banida | alerta **imediato** + considerar fallback |
@@ -1046,7 +1139,7 @@ Códigos e descrições da [referência oficial](https://developers.facebook.com
 | `132001` | Template não existe / idioma indisponível | ❌ | Bug de configuração. Cair para o provider antigo? Não: alertar e falhar |
 | `132015` | Template pausado por qualidade | ❌ | Marcar `status='pausado'`, **parar de usar**, alertar superadmin |
 | `132016` | Template desabilitado de vez | ❌ | Idem, sem volta: criar template novo |
-| `132007` | Conteúdo viola política | ❌ | Submissão rejeitada; mostrar o motivo ao síndico (§3.2) |
+| `132007` | Conteúdo viola política | ❌ | Submissão rejeitada; o motivo vai para o **superadmin**, que é quem submete — o síndico não escreve mais texto (§3.2) |
 | `131064` | Limite atingido por violações de template | ⏳ | Volta sozinho; alertar |
 | `368` / `131031` | Conta restrita / bloqueada por política | ❌ | **Incidente**: alerta imediato ao superadmin, avaliar fallback para OpenWA |
 | `190` | Token expirado | ❌ | Alerta crítico. Token de System User **não expira**, então isto é sinal de revogação |
@@ -1126,7 +1219,10 @@ gatilho de rollback. Nenhuma fase começa sem a anterior fechada.
 
 - **Entrada**: Fase 0 fechada.
 - **Faz**: submeter os 11 templates do §5. Descobrir **empiricamente** o que a
-  Meta aprova como utility (especialmente os cinco de aviso, §5.3).
+  Meta aprova como utility (especialmente os cinco de aviso, §5.3) e **confirmar
+  a regra do dangling parameter** (§5.1) — submeter de propósito uma versão
+  abrindo com `{{1}}` custa uma rodada e fecha a dúvida com resposta da Meta, não
+  com opinião.
 - **Saída**: ≥ 90 % dos templates aprovados; **categorias reais anotadas** —
   elas alimentam o [02-custos](02-custos.md), que hoje está estimando.
 - **Rollback**: n/a. Se `aviso_manutencao` cair como marketing, a decisão do
@@ -1288,14 +1384,20 @@ calendário, não trabalho).
 | 2 | Módulo `messaging`, interface, `OpenWaProvider`, resolver, 6 migrations | **6–9 d** | — |
 | 3 | `CloudApiProvider`, cliente Graph, webhook + assinatura + fila, parser, classificação de erros, contador de destinatários únicos | **10–15 d** | — |
 | — | Gap §3.1 — avisos por tipo (back + tela) | **3–5 d** | — |
-| — | Gap §3.2 — fluxo de aprovação de template (back + tela + webhook de status) | **5–8 d** | — |
+| — | ~~Gap §3.2 — fluxo de aprovação de template~~ | ~~5–8 d~~ **0 d** | **Saiu na 0.32.0**: sem editor, não há o que aprovar |
 | — | Gap §3.3 — opt-in (migration, autocadastro, `SAIR` no inbound, tela) | **3–4 d** | — |
 | — | Painel de saúde (quality, tier, falhas por código) | **3–5 d** | — |
 | 4 | Piloto: acompanhamento, ajuste, correções | **3–5 d** | + 14 d de observação |
 | 5–6 | Ondas: automação da migração em lote, suporte | **4–6 d** | + 30–60 d de calendário |
 | 7 | Grandes + desligar OpenWA + limpeza | **2–3 d** | — |
-| | **Total de desenvolvimento** | **43–67 d** | |
+| | **Total de desenvolvimento** | **38–59 d** | |
 | | **Calendário realista** | | **4 a 6 meses**, dominado pelas ondas |
+
+> Eram **43–67 d** no levantamento de 04/08. A 0.32.0 tirou o gap §3.2 da conta
+> (−5–8 d) sem acrescentar nada: pela recomendação §3.2-A, as cinco versões não
+> viram templates novos. Pela alternativa B, some 1–2 d de submissão e a
+> manutenção recorrente de 10 templates, que não cabe nesta tabela por não ter
+> fim.
 
 **O que pode estourar a estimativa**, em ordem de probabilidade:
 
@@ -1319,3 +1421,8 @@ calendário, não trabalho).
       [02-custos](02-custos.md); aqui só o raciocínio.
 - [ ] Fase concluída → marque o critério de saída atingido, com a data e o
       número medido. Um plano sem o que **de fato aconteceu** vira ficção em três meses.
+- [ ] **O produto andou enquanto o plano esperava** → revise §1.3 (mensagens de
+      hoje), §5 (textos submetidos) e §11. Foi o que aconteceu na 0.32.0: um gap
+      inteiro (§3.2) evaporou porque a feature que o causava foi removida. Plano
+      de migração descreve um alvo em movimento; datar cada revisão no cabeçalho
+      é o que separa "desatualizado" de "errado".

@@ -21,7 +21,6 @@ web/src/
 │   ├── ui/             # shadcn + peças próprias (FormDialog, EmptyState, StatCard…)
 │   ├── apartamentos/   # vagas que pertencem à unidade
 │   ├── vagas/          # diálogos e painéis do módulo Vagas
-│   └── whatsapp/       # cards da conexão
 ├── hooks/              # use-tenant-config, use-theme, use-mobile, use-debounce…
 ├── lib/                # utils (cn), erros (mensagemErro), formato (moeda/data)
 ├── pages/              # uma por rota

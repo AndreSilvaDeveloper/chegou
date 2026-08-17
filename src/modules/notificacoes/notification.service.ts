@@ -8,6 +8,7 @@ import { StatusNotificacao } from '../../database/entities/notificacao.entity';
 import { QUEUE_NOTIFICATION_DISPATCH } from '../../queues/queues.module';
 import { DEFAULT_TENANT_CONFIG } from '../admin/dto/config-tenant.dto';
 import { AntiBanConfig, DispatchSchedulerService } from './dispatch-scheduler.service';
+import { aplicarSaudacao } from './message-template';
 
 @Injectable()
 export class NotificationService {
@@ -73,10 +74,19 @@ export class NotificationService {
       const delay = Math.max(schedulerDelay, explicitDelay);
       const agendada = delay > 1000;
 
+      // "Bom dia / Boa tarde / Boa noite" só pode ser decidido AQUI: é o único
+      // ponto que conhece a hora real de saída (o conteúdo foi montado quando o
+      // porteiro registrou a encomenda, e a fila pode empurrar para amanhã).
+      // Mensagem sem o token atravessa sem mudança.
+      const conteudo = params.conteudo
+        ? aplicarSaudacao(params.conteudo, new Date(agora + delay))
+        : params.conteudo;
+
       preparadas.push({
         delay,
         entidade: this.notificacaoRepo.create({
           ...params,
+          conteudo,
           status: agendada ? StatusNotificacao.AGENDADA : StatusNotificacao.PENDENTE,
           agendadaPara: agendada ? new Date(agora + delay) : (params.agendadaPara ?? null),
         }),

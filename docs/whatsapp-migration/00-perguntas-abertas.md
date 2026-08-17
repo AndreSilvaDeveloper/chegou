@@ -2,7 +2,11 @@
 
 > Tudo o que depende de você, e tudo o que faltou para completar a análise.
 > Ordenado por **quanto trava o trabalho**, não por assunto.
-> **Data**: 04/08/2026.
+> **Data**: 04/08/2026 · **Revisado em 17/08/2026 (0.32.0)**.
+
+> **A 0.32.0 respondeu B3 sozinha.** A personalização de texto por condomínio foi
+> removida do produto, então não há mais o que decidir sobre ela — a pergunta
+> virou registro. Ver [01-plano §3.2](01-plano-de-migracao.md#32-as-cinco-versões-de-cada-texto).
 
 Legenda: 🔴 **bloqueia** um entregável · 🟠 **muda o desenho** se a resposta for
 outra · 🟡 detalhe a confirmar antes de codar.
@@ -117,17 +121,27 @@ assinatura.
 
 ---
 
-### 🟠 B3 — O que acontece com a personalização de template pelo síndico?
+### ✅ B3 — O que acontece com a personalização de template pelo síndico? — **RESPONDIDA (0.32.0, 17/08/2026)**
 
-Hoje o síndico edita o texto em `/whatsapp` e vale no próximo envio. Na Cloud API,
-cada edição vira submissão com até 24 h de análise e pode ser **rejeitada**.
+~~Hoje o síndico edita o texto em `/whatsapp` e vale no próximo envio.~~ **Não
+mais.** A 0.32.0 removeu a personalização de texto do produto inteiro — nem
+síndico, nem administradora, nem superadmin editam mensagem. Cada tipo passou a
+ter cinco redações fixas no código, sorteadas por envio.
 
-Alternativas em [01-plano §3.2](01-plano-de-migracao.md#32-templates-editáveis-pelo-condomínio).
-Recomendação: **fluxo de aprovação no painel** (rascunho → em análise → aprovado),
-enviando a versão aprovada anterior enquanto a nova não sai.
+A troca foi deliberada: **variação controlada vale mais que liberdade de
+edição**, porque um cliente colando o mesmo texto em todo envio anularia a
+variação e derrubaria o próprio número.
 
-**Pergunta**: mantém a personalização com espera de aprovação (5–8 dias de
-desenvolvimento), ou simplifica para um catálogo de variantes prontas?
+**Efeito na migração**: o gap sumiu antes de a migração começar. Os 5–8 dias do
+fluxo de aprovação saíram da estimativa
+([§11](01-plano-de-migracao.md#11-estimativa-de-esforço)).
+
+**O que sobrou para decidir** — pergunta nova, bem menor: as cinco versões viram
+**cinco templates** na Meta, ou **uma**? Recomendação registrada em
+[01-plano §3.2](01-plano-de-migracao.md#32-as-cinco-versões-de-cada-texto):
+**uma**, porque a variedade existe contra o filtro de spam do WhatsApp
+não-oficial e não compra nada numa plataforma onde o texto é pré-aprovado.
+Decidir isso não bloqueia nada agora — é escolha da Fase 1.
 
 ---
 
@@ -270,6 +284,22 @@ leva de 4 a 6 meses e **atravessa essa data**.
 
 ---
 
+### 🟡 C9 — Template que começa com variável (a saudação da 0.32.0)
+
+As cinco versões de cada mensagem abrem com `{{saudacao}}`, e a documentação da
+Meta e os guias dos provedores são consistentes: **corpo que começa ou termina
+com variável é rejeitado** (o caso do *dangling parameter*).
+
+**A confirmar**: se a regra vale mesmo quando a variável é seguida de pontuação e
+texto na mesma linha (`"{{1}}, {{2}}! 📦"`). Custa uma submissão na Fase 1.
+
+**Se confirmada** — e a expectativa é que sim —, a saída já está escolhida em
+[01-plano §5.1](01-plano-de-migracao.md#51-encomenda_chegou--utility): o texto da
+Cloud API abre com palavra fixa ("Olá"), e a saudação continua existindo só no
+caminho OpenWA. Não bloqueia nada: muda uma linha do payload.
+
+---
+
 ## D. Informações que faltaram no código
 
 ### 🔴 D1 — Volume e picos
@@ -303,9 +333,14 @@ informativa, mas não é um número.
 ### 🟡 E1 — Template morto `encomenda_chegou`
 
 `whatsapp/templates.ts` define `encomenda_chegou`, com teste em
-`templates.spec.ts`, mas **nada o envia** — a chegada usa o template
-personalizável desde que ele existe. O nome sobrevive como valor histórico em
+`templates.spec.ts`, mas **nada o envia** — a chegada usa as cinco versões de
+`notificacoes/message-template.ts`. O nome sobrevive como valor histórico em
 `whatsapp_messages.template_name`, consultado em `encomendas.service.ts:55`.
+
+> Junto dele, a 0.32.0 deixou outro morto: os `TOKEN_ALIASES` de
+> `message-template.ts` (`bloco_ap`, `nome_completo`, `destinatario`…) existiam
+> para tolerar o que o síndico digitasse no editor. Sem editor, ninguém escreve
+> esses tokens. Mesma pergunta, mesma resposta provável.
 
 **Pergunta**: remover na migração (mantendo a consulta ao histórico) ou deixar
 como está? Não migrar para a Meta em nenhuma hipótese.
@@ -351,7 +386,7 @@ Na ordem em que destravam mais coisa:
 | 3 | [A2](#-a2--volume-real-da-operação) — volume real (5 consultas SQL) | você (rodar) | As projeções e a escolha do piloto |
 | 4 | [C1](#-c1--a-meta-aprova-os-avisos-como-utility) — categoria dos avisos | Fase 1 do plano (~2 dias) | A maior incerteza financeira |
 | 5 | [B1](#-b1--o-remetente-passa-a-ser-chegou) — remetente | você | A arquitetura de contas |
-| 6 | [B2](#-b2--aviso-de-tipo-evento-e-geral-vira-marketing-e-daí) e [B3](#-b3--o-que-acontece-com-a-personalização-de-template-pelo-síndico) — política de avisos e personalização | você | Escopo de duas telas (8–13 dias) |
+| 6 | [B2](#-b2--aviso-de-tipo-evento-e-geral-vira-marketing-e-daí) — política de avisos | você | Escopo da tela de avisos (3–5 dias) |
 
 > **O item 1 não espera pelos outros.** A verificação de negócio é pré-requisito
 > do tier 2.000 e é a única etapa cujo prazo não está nas suas mãos. Começar hoje

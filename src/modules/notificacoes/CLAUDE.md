@@ -70,39 +70,64 @@ base): `horarioEnvioInicio` / `horarioEnvioFim`, `whatsappIntervaloSegundos`,
 `whatsappJitterSegundos`, `whatsappLimiteDiario`.
 
 **Quem edita isso**: o síndico, em `/whatsapp`, dentro de faixas seguras
-(intervalo ≥ 60s, janela dentro de 08:00–21:00, limite de 20 a 300/dia); o
+(intervalo ≥ 90s, janela dentro de 08:00–21:00, limite de 20 a 300/dia); o
 superadmin, sem essas amarras, na aba WhatsApp do condomínio
 (`/admin/tenants/:tenantId/whatsapp`). As faixas e o porquê estão
 no [módulo OpenWA](../openwa/CLAUDE.md). A leitura é sempre direta do banco, sem
 cache — mudou, vale no próximo disparo.
 
-### `message-template.ts` — os textos que o condomínio edita
+### `message-template.ts` — cinco versões de cada texto, sorteadas
 
-Aqui moram os dois modelos personalizáveis, com padrão, variáveis `{{token}}` e
-renderizador:
+**Não há personalização por condomínio.** Cada tipo de mensagem tem **cinco
+versões fixas** e o sistema sorteia uma a cada envio:
 
-| Modelo | Padrão | Variáveis | Config do tenant |
-|---|---|---|---|
-| Chegada | `DEFAULT_TEMPLATE_ENCOMENDA` | `VARIAVEIS_ENCOMENDA` | `whatsappTemplateEncomenda` |
-| Retirada | `DEFAULT_TEMPLATE_RETIRADA` | `VARIAVEIS_RETIRADA` | `whatsappTemplateRetirada` |
+| Modelo | Versões | Sorteio |
+|---|---|---|
+| Chegada | `TEMPLATES_ENCOMENDA` (5) | `sortearTemplateEncomenda()` |
+| Retirada | `TEMPLATES_RETIRADA` (5) | `sortearTemplateRetirada()` |
 
-`resolveTemplate*()` decide entre o texto do condomínio e o padrão (vazio =
-padrão), e `renderTemplate()` troca os tokens — **token desconhecido vira string
-vazia**, para nunca vazar `{{...}}` na mensagem do morador.
+É regra anti-bloqueio, não estética: o WhatsApp não-oficial marca como spam o
+número que dispara o mesmo texto para dezenas de destinatários. Cinco redações
+diferentes × três saudações × as variáveis do morador fazem duas mensagens
+seguidas do mesmo condomínio nunca serem iguais. **Ao acrescentar ou trocar uma
+versão, mantenha-as realmente diferentes entre si** (estrutura, tamanho e uso de
+emoji) — sinônimos trocados na mesma forma continuam parecendo o mesmo disparo.
+
+`renderTemplate()` troca os tokens — **token desconhecido vira string vazia**,
+para nunca vazar `{{...}}` na mensagem do morador.
 
 A retirada não tem `{{codigo}}`: o código já foi usado. E as variáveis `data` /
 `hora` dela são as **da retirada**, não as do recebimento.
 
-A edição é pelos mesmos cards em três telas (módulo OpenWA): `/whatsapp` (o
-síndico no próprio condomínio), `/admin/condominios/:id` (superadmin) e
-`/meus-condominios/:id` (administradora). É o mesmo dado — modelo novo aparece
-nas três de uma vez.
+#### `{{saudacao}}` é resolvido tarde, no agendamento
+
+Toda versão abre com `{{saudacao}}` → **Bom dia** (05:00–11:59), **Boa tarde**
+(12:00–17:59) ou **Boa noite** (18:00–04:59), no fuso de referência.
+
+Esse token **atravessa** a renderização das variáveis e só é fechado em
+`agendarEmLote`, por `aplicarSaudacao(conteudo, new Date(agora + delay))`. O
+motivo: o conteúdo é montado quando o porteiro registra a encomenda, mas o envio
+acontece depois — fila, intervalo anti-bloqueio e janela de horário no meio. Uma
+encomenda registrada às 20h55 sai às 8h do dia seguinte; resolvido no registro,
+o morador receberia "Boa noite" de manhã.
+
+Consequência conhecida: **reenviar** (`POST /notificacoes/:id/reenviar`) reusa o
+conteúdo já gravado, então a saudação é a do agendamento original. Reenvio é
+resposta a falha, quase sempre no mesmo turno — não vale guardar o texto cru só
+por isso.
+
+Nada disso aparece no painel: o card "Modelos de mensagem" foi removido das três
+telas do módulo OpenWA.
 
 ## Regras de negócio
 
 1. **Fora da janela de horário, agenda para a próxima abertura** — não descarta e
    não envia de madrugada.
-2. **Intervalo com jitter** entre mensagens: cadência humana, não rajada.
+2. **Intervalo com jitter** entre mensagens: cadência humana, não rajada. O
+   padrão é **90s fixos + 0 a 90s aleatórios** (1min30 a 3min entre mensagens do
+   mesmo número).
+2.1. **Texto sorteado entre cinco versões** a cada envio, com a saudação do
+   horário: nenhum número dispara o mesmo texto em série.
 3. **Limite diário por condomínio**; ao estourar, empurra para o dia seguinte.
 4. **Serializado por condomínio** — cada um tem o próprio número no gateway.
 5. **Reenviar cria um novo agendamento**, passando pelo scheduler de novo (não
@@ -126,8 +151,9 @@ nas três de uma vez.
 ## Ao alterar este módulo
 
 - [ ] Tipo novo de notificação → registre o enum, o template e quem consome.
-- [ ] Mexeu num modelo personalizável → `message-template.spec.ts` cobre
-      resolução e renderização; rode.
+- [ ] Mexeu numa das cinco versões → `message-template.spec.ts` cobre a
+      contagem, o essencial de cada uma (código na chegada, ausência dele na
+      retirada), o sorteio e a saudação; rode.
 - [ ] Mexeu em ritmo/janela/limite → confirme que continua respeitando as regras
       anti-bloqueio e atualize os padrões em `config-tenant.dto.ts`.
 - [ ] Origem nova de disparo → chame `agendarNotificacao`, **nunca** o gateway

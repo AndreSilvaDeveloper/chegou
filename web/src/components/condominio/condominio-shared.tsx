@@ -1,16 +1,17 @@
 import { ComponentType } from 'react';
-import { Blend, Building2, Home, Layers, Store } from 'lucide-react';
+import { Blend, Building2, Home, Layers, Lock, Store } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import type { TenantConfig, TenantTipo } from '@/api/types';
 
 /**
- * Peças da tela "gerenciar condomínio", usadas por dois perfis.
+ * Peças da tela "gerenciar condomínio", usadas por três perfis.
  *
- * O superadmin (`SuperAdmin` → `SuperAdminTenant`) e a administradora
- * (`MeusCondominios` → `MeuCondominio`) configuram o mesmo condomínio com
- * poderes diferentes. O que muda é **o que cada um pode salvar**, não a
- * aparência — por isso a aparência mora aqui, e não copiada nas duas telas.
+ * O superadmin (`SuperAdmin` → `SuperAdminTenant`), a administradora
+ * (`MeusCondominios` → `MeuCondominio`) e o síndico (`ConfiguracoesCondominio`)
+ * configuram o mesmo condomínio com poderes diferentes. O que muda é **o que
+ * cada um pode salvar**, não a aparência — por isso a aparência mora aqui, e
+ * não copiada nas três telas.
  */
 
 export const DEFAULT_CONFIG: Required<TenantConfig> = {
@@ -189,6 +190,24 @@ export function InfoPill({
         <p className="txt-nota uppercase tracking-wide text-muted-foreground">{label}</p>
         <p className="truncate txt-corpo font-medium text-foreground">{value}</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Aviso do que é decisão da plataforma — some a dúvida de "por que não edito
+ * isso?".
+ *
+ * Vale para os dois perfis que não mandam no contrato (administradora e
+ * síndico). Esconder o campo faria o cliente achar que o recurso não existe e
+ * abrir chamado; mostrá-lo editável quebraria a regra. O meio-termo é mostrar,
+ * de leitura, **com o motivo**.
+ */
+export function PlataformaDecide({ texto }: { texto: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg bg-muted/40 p-4">
+      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      <p className="txt-apoio text-muted-foreground">{texto}</p>
     </div>
   );
 }

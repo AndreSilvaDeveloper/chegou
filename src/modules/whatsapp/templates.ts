@@ -1,8 +1,8 @@
-// Aqui ficam só os textos FIXOS do sistema. Os que o condomínio personaliza —
-// chegada da encomenda e confirmação de retirada — vivem em
-// `notificacoes/message-template.ts`, com as variáveis {{...}} e o padrão.
-// Duplicar o texto da retirada aqui faria a tela do síndico editar um lado e o
-// envio usar o outro.
+// Aqui ficam os textos de RESPOSTA ao morador — réplica a uma mensagem que ele
+// acabou de mandar, fora da fila. Os textos de chegada e retirada que saem pela
+// FILA vivem em `notificacoes/message-template.ts`, onde são cinco versões
+// sorteadas por envio (regra anti-bloqueio). Duplicá-los aqui faria os dois
+// caminhos divergirem — e a variação da fila perderia o sentido.
 export type TemplateKey = 'encomenda_chegou' | 'lembrete_codigo' | 'sem_encomenda_pendente';
 
 interface EncomendaChegouVars {

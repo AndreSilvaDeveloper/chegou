@@ -13,6 +13,7 @@ import { DatabaseModule } from './database/database.module';
 import { QueuesModule } from './queues/queues.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AdministradorasModule } from './modules/administradoras/administradoras.module';
+import { MeuCondominioModule } from './modules/condominio/meu-condominio.module';
 import { ApartamentosModule } from './modules/apartamentos/apartamentos.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EncomendasModule } from './modules/encomendas/encomendas.module';
@@ -62,6 +63,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
     StorageModule,
     AdminModule,
     AdministradorasModule,
+    MeuCondominioModule,
     VagasModule,
     EquipeModule,
     NotificacoesModule,

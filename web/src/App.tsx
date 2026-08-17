@@ -19,6 +19,7 @@ const SuperAdminTenant = React.lazy(() => import('./pages/SuperAdminTenant').the
 const SuperAdminAdministradoras = React.lazy(() => import('./pages/SuperAdminAdministradoras').then(m => ({ default: m.SuperAdminAdministradoras })));
 const MeusCondominios = React.lazy(() => import('./pages/MeusCondominios').then(m => ({ default: m.MeusCondominios })));
 const MeuCondominio = React.lazy(() => import('./pages/MeuCondominio').then(m => ({ default: m.MeuCondominio })));
+const ConfiguracoesCondominio = React.lazy(() => import('./pages/ConfiguracoesCondominio').then(m => ({ default: m.ConfiguracoesCondominio })));
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const AutocadastroMorador = React.lazy(() => import('./pages/AutocadastroMorador').then(m => ({ default: m.AutocadastroMorador })));
 const Relatorios = React.lazy(() => import('./pages/Relatorios').then(m => ({ default: m.Relatorios })));
@@ -88,6 +89,10 @@ export default function App() {
           <Route path="/avisos" element={<ProtectedRoute allowedRoles={['admin', 'sindico']} requiresModule="avisos"><Avisos /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Notificacoes /></ProtectedRoute>} />
           <Route path="/whatsapp" element={<ProtectedRoute allowedRoles={['admin', 'sindico']}><Whatsapp /></ProtectedRoute>} />
+          {/* Só o síndico: a administradora configura o mesmo condomínio pela
+              carteira (`/meus-condominios/:id`) e o superadmin por
+              `/admin/condominios/:id`, os dois com poderes maiores. */}
+          <Route path="/configuracoes" element={<ProtectedRoute allowedRoles={['sindico']}><ConfiguracoesCondominio /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/encomendas" replace />} />
       </Routes>

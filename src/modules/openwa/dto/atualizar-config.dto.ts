@@ -1,9 +1,14 @@
-import { IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import { IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
 
 const HORARIO_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-/** Piso do intervalo entre mensagens. Abaixo disso o número vira alvo de bloqueio. */
-export const INTERVALO_MINIMO_SEGUNDOS = 60;
+/**
+ * Piso do intervalo entre mensagens. Abaixo disso o número vira alvo de bloqueio.
+ *
+ * Subiu de 60s para 90s junto com o padrão: de nada adiantaria o sistema nascer
+ * em 90s se a primeira tela deixasse o síndico devolver o número para 60.
+ */
+export const INTERVALO_MINIMO_SEGUNDOS = 90;
 
 /**
  * Janela em que o condomínio pode enviar. É a regra anti-bloqueio nº 5 do
@@ -26,19 +31,7 @@ export const LIMITE_DIARIO_MAXIMO = 300;
  * do condomínio em risco de bloqueio.
  */
 export class AtualizarConfigWhatsappDto {
-  /** Mensagem de quando a encomenda chega. Vazio = padrão do sistema. */
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  templateEncomenda?: string;
-
-  /** Mensagem de confirmação da retirada. Vazio = padrão do sistema. */
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  templateRetirada?: string;
-
-  /** Espera fixa entre mensagens. Só pode subir a partir de 60s. */
+  /** Espera fixa entre mensagens. Só pode subir a partir de 90s. */
   @IsOptional()
   @IsInt()
   @Min(INTERVALO_MINIMO_SEGUNDOS, {

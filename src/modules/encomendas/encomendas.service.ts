@@ -14,8 +14,8 @@ import {
   buildEncomendaVars,
   buildRetiradaVars,
   renderTemplate,
-  resolveTemplateEncomenda,
-  resolveTemplateRetirada,
+  sortearTemplateEncomenda,
+  sortearTemplateRetirada,
 } from '../notificacoes/message-template';
 
 export interface NotificacaoResumo {
@@ -169,10 +169,10 @@ export class EncomendasService {
       const tenant = await this.tenantRepo.findOneOrFail({ where: { id: tenantId } });
       encomenda.apartamento = apto; // garante identificador na renderização
       const vars = buildEncomendaVars(encomenda, morador, tenant);
-      const template = resolveTemplateEncomenda(
-        (tenant.configJson as { whatsappTemplateEncomenda?: string })?.whatsappTemplateEncomenda,
-      );
-      const conteudo = renderTemplate(template, vars);
+      // Uma das cinco versões, sorteada por envio — ver `message-template.ts`.
+      // O `{{saudacao}}` sobrevive a esta renderização de propósito: quem o
+      // resolve é o agendamento, que sabe a que horas a mensagem sai.
+      const conteudo = renderTemplate(sortearTemplateEncomenda(), vars);
 
       await this.notifications.agendarNotificacao({
         tenantId,
@@ -225,9 +225,7 @@ export class EncomendasService {
       ]);
 
       const vars = buildRetiradaVars(encomenda, morador, tenant, apartamento);
-      const template = resolveTemplateRetirada(
-        (tenant.configJson as { whatsappTemplateRetirada?: string })?.whatsappTemplateRetirada,
-      );
+      const template = sortearTemplateRetirada();
 
       await this.notifications.agendarNotificacao({
         tenantId,

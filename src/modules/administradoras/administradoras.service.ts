@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -14,14 +13,13 @@ import { TenantConfigService } from '../../common/tenant-config/tenant-config.se
 import { TenantScopeService } from '../../common/tenant-scope/tenant-scope.service';
 import { AdminService } from '../admin/admin.service';
 import { CriarTenantDto } from '../admin/dto/criar-tenant.dto';
-import { DEFAULT_TENANT_CONFIG } from '../admin/dto/config-tenant.dto';
-import { JANELA_MAXIMA, JANELA_MINIMA } from '../openwa/dto/atualizar-config.dto';
+import { mesclarConfigOperacional } from '../condominio/config-operacional';
 import {
   AtualizarAdministradoraDto,
   CriarAdministradoraDto,
   CriarUsuarioAdminDto,
 } from './dto/administradora.dto';
-import { AtualizarCondominioDto, ConfigOperacionalCondominioDto } from './dto/condominio.dto';
+import { AtualizarCondominioDto } from './dto/condominio.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -205,7 +203,7 @@ export class AdministradorasService {
     if (dto.emailContato !== undefined) tenant.emailContato = dto.emailContato || null;
 
     if (dto.configJson !== undefined) {
-      tenant.configJson = this.mesclarConfigOperacional(tenant.configJson, dto.configJson);
+      tenant.configJson = mesclarConfigOperacional(tenant.configJson, { ...dto.configJson });
     }
 
     try {
@@ -220,47 +218,6 @@ export class AdministradorasService {
     } catch (err) {
       throw this.traduzirUnique(err, 'Documento já em uso por outro condomínio');
     }
-  }
-
-  /**
-   * Mistura a configuração operacional na que já está salva.
-   *
-   * Duas armadilhas evitadas aqui:
-   *
-   * 1. **Chave `undefined` fica de fora.** O `class-transformer` materializa
-   *    todo campo declarado no DTO, inclusive os que não vieram na request;
-   *    espalhar o DTO cru apagaria a configuração existente, porque o JSONB
-   *    descarta chave `undefined`. É a mesma regra do `AdminService`.
-   * 2. **A janela de envio é validada como par.** Cada horário sozinho já passa
-   *    pelo regex do DTO, mas quem decide se a janela é válida são os dois
-   *    juntos — e ela precisa caber dentro da faixa anti-bloqueio, igual à tela
-   *    `/whatsapp`. Sem isso, esta rota seria o desvio para o condomínio passar
-   *    a enviar de madrugada.
-   */
-  private mesclarConfigOperacional(
-    atual: Record<string, unknown> | null,
-    entrada: ConfigOperacionalCondominioDto,
-  ): Record<string, unknown> {
-    const informado = Object.fromEntries(
-      Object.entries(entrada).filter(([, valor]) => valor !== undefined),
-    );
-    const mesclado = { ...(atual ?? {}), ...informado };
-
-    if (entrada.horarioEnvioInicio !== undefined || entrada.horarioEnvioFim !== undefined) {
-      const efetivo = { ...DEFAULT_TENANT_CONFIG, ...mesclado };
-      const { horarioEnvioInicio: inicio, horarioEnvioFim: fim } = efetivo;
-
-      if (inicio < JANELA_MINIMA || fim > JANELA_MAXIMA) {
-        throw new BadRequestException(
-          `A janela de envio precisa ficar entre ${JANELA_MINIMA} e ${JANELA_MAXIMA}`,
-        );
-      }
-      if (inicio >= fim) {
-        throw new BadRequestException('O horário de início precisa ser antes do de término');
-      }
-    }
-
-    return mesclado;
   }
 
   /**

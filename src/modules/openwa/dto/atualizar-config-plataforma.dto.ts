@@ -1,11 +1,11 @@
-import { IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import { IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
 
 const HORARIO_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
  * A mesma config de WhatsApp, editada pela **plataforma** (superadmin).
  *
- * É o irmão frouxo de `AtualizarConfigWhatsappDto`: sem o piso de 60s, sem a
+ * É o irmão frouxo de `AtualizarConfigWhatsappDto`: sem o piso de 90s, sem a
  * janela 08:00–21:00 e sem o teto de 300/dia, e com o `jitterSegundos` — que o
  * condomínio nem enxerga, porque é o disfarce da cadência e não uma
  * preferência.
@@ -44,13 +44,7 @@ export class AtualizarConfigWhatsappPlataformaDto {
   @Matches(HORARIO_REGEX, { message: 'Horário deve estar no formato HH:mm' })
   horarioEnvioFim?: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  templateEncomenda?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  templateRetirada?: string;
+  // Os textos não são configuráveis em escopo nenhum — nem pelo superadmin.
+  // São as cinco versões de `notificacoes/message-template.ts`, sorteadas por
+  // envio; mudar o texto é mudar o código, e vale para a plataforma inteira.
 }

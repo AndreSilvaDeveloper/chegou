@@ -6,13 +6,6 @@ import { Repository } from 'typeorm';
 import { REDIS_CLIENT } from '../../common/redis/redis.module';
 import { Tenant } from '../../database/entities';
 import { DEFAULT_TENANT_CONFIG } from '../admin/dto/config-tenant.dto';
-import {
-  DEFAULT_TEMPLATE_ENCOMENDA,
-  DEFAULT_TEMPLATE_RETIRADA,
-  TemplateVariavel,
-  VARIAVEIS_ENCOMENDA,
-  VARIAVEIS_RETIRADA,
-} from '../notificacoes/message-template';
 import { AtualizarConfigWhatsappPlataformaDto } from './dto/atualizar-config-plataforma.dto';
 import {
   AtualizarConfigWhatsappDto,
@@ -29,14 +22,14 @@ import {
   OpenWaSessionStatus,
 } from './openwa.client';
 
+/**
+ * Ritmo de envio de um condomínio.
+ *
+ * **Sem os textos das mensagens**: eles não são configuráveis. São as cinco
+ * versões de `notificacoes/message-template.ts`, sorteadas a cada envio — ver o
+ * porquê lá.
+ */
 export interface WhatsappTenantConfig {
-  /** Texto salvo pelo condomínio; vazio = está usando o padrão do sistema. */
-  templateEncomenda: string;
-  templatePadrao: string;
-  variaveis: TemplateVariavel[];
-  templateRetirada: string;
-  templatePadraoRetirada: string;
-  variaveisRetirada: TemplateVariavel[];
   intervaloSegundos: number;
   jitterSegundos: number;
   limiteDiario: number;
@@ -567,7 +560,7 @@ export class OpenwaService {
   }
 
   /**
-   * Config de disparo/template do condomínio.
+   * Config de disparo do condomínio.
    *
    * O `escopo` decide as faixas devolvidas: o síndico recebe as travas
    * anti-bloqueio, a plataforma recebe o campo livre. A tela é a mesma nos dois
@@ -581,12 +574,6 @@ export class OpenwaService {
     const cfg = { ...DEFAULT_TENANT_CONFIG, ...(tenant.configJson ?? {}) } as typeof DEFAULT_TENANT_CONFIG;
     const plataforma = escopo === 'plataforma';
     return {
-      templateEncomenda: cfg.whatsappTemplateEncomenda || '',
-      templatePadrao: DEFAULT_TEMPLATE_ENCOMENDA,
-      variaveis: VARIAVEIS_ENCOMENDA,
-      templateRetirada: cfg.whatsappTemplateRetirada || '',
-      templatePadraoRetirada: DEFAULT_TEMPLATE_RETIRADA,
-      variaveisRetirada: VARIAVEIS_RETIRADA,
       intervaloSegundos: cfg.whatsappIntervaloSegundos,
       jitterSegundos: cfg.whatsappJitterSegundos,
       limiteDiario: cfg.whatsappLimiteDiario,
@@ -606,8 +593,7 @@ export class OpenwaService {
   }
 
   /**
-   * Salva o que o condomínio pode ajustar sozinho: os dois modelos de mensagem
-   * (vazio = volta ao padrão) e o ritmo de envio.
+   * Salva o que o condomínio pode ajustar sozinho: o ritmo de envio.
    *
    * Campo `undefined` não é tocado — a tela manda só o que mudou, sem apagar o
    * resto sem querer. Os limites de cada campo estão no DTO; aqui fica só a
@@ -620,12 +606,6 @@ export class OpenwaService {
     const tenant = await this.loadTenant(tenantId);
     const configJson = { ...(tenant.configJson ?? {}) };
 
-    if (dto.templateEncomenda !== undefined) {
-      configJson.whatsappTemplateEncomenda = dto.templateEncomenda;
-    }
-    if (dto.templateRetirada !== undefined) {
-      configJson.whatsappTemplateRetirada = dto.templateRetirada;
-    }
     if (dto.intervaloSegundos !== undefined) {
       configJson.whatsappIntervaloSegundos = dto.intervaloSegundos;
     }
@@ -662,7 +642,7 @@ export class OpenwaService {
    * A mesma config, salva pela **plataforma**.
    *
    * Não repassa para `updateWhatsappConfig` de propósito: aquela aplica as
-   * travas anti-bloqueio do condomínio (piso de 60s, janela 08:00–21:00), e é
+   * travas anti-bloqueio do condomínio (piso de 90s, janela 08:00–21:00), e é
    * justamente delas que o superadmin precisa poder sair. O que fica igual é a
    * disciplina do merge: campo `undefined` não é tocado.
    */
@@ -673,8 +653,6 @@ export class OpenwaService {
     const tenant = await this.loadTenant(tenantId);
     const configJson = { ...(tenant.configJson ?? {}) };
 
-    if (dto.templateEncomenda !== undefined) configJson.whatsappTemplateEncomenda = dto.templateEncomenda;
-    if (dto.templateRetirada !== undefined) configJson.whatsappTemplateRetirada = dto.templateRetirada;
     if (dto.intervaloSegundos !== undefined) configJson.whatsappIntervaloSegundos = dto.intervaloSegundos;
     if (dto.jitterSegundos !== undefined) configJson.whatsappJitterSegundos = dto.jitterSegundos;
     if (dto.limiteDiario !== undefined) configJson.whatsappLimiteDiario = dto.limiteDiario;

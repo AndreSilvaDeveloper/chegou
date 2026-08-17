@@ -337,6 +337,107 @@ describe('Multitenant (e2e)', () => {
     });
   });
 
+  // ------------------------------ o que o síndico configura no próprio condomínio
+
+  /**
+   * O síndico configura o **próprio** condomínio em `/meu-condominio`, com o
+   * mesmo recorte da administradora: o que descreve o condomínio, nunca o que
+   * descreve o contrato.
+   *
+   * A rota não recebe id — o condomínio vem do vínculo do usuário, pelo
+   * `TenantScopeGuard`. Por isso os testes daqui são sobre **o que o corpo
+   * consegue mudar**, que é a superfície que sobrou.
+   */
+  describe('configuração do próprio condomínio pelo síndico', () => {
+    const configurar = (token: string, corpo: object) =>
+      http.patch('/api/meu-condominio').set('Authorization', `Bearer ${token}`).send(corpo);
+
+    it('lê o próprio condomínio, sem informar id', async () => {
+      const res = await http
+        .get('/api/meu-condominio')
+        .set('Authorization', `Bearer ${sindicoA1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe(condA1);
+    });
+
+    it('salva cadastro e o operacional', async () => {
+      const res = await configurar(sindicoA1Token, {
+        cidade: 'Juiz de Fora',
+        estado: 'MG',
+        // `estruturaBlocos` fica em 'unico' de propósito: 'multiplos' passaria a
+        // exigir bloco no cadastro de unidade, e os testes seguintes criam
+        // apartamento neste condomínio só com o número.
+        configJson: { tipo: 'comercial', estruturaBlocos: 'unico' },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.cidade).toBe('Juiz de Fora');
+      expect(res.body.configJson).toMatchObject({ tipo: 'comercial', estruturaBlocos: 'unico' });
+    });
+
+    it('salvar o operacional não apaga o resto da configuração', async () => {
+      // Pela mão de quem manda no contrato. Só o limite diário: ligar um módulo
+      // em `condA1` derrubaria o teste de módulo não contratado, lá embaixo.
+      const plataforma = await http
+        .patch(`/api/admin/tenants/${condA1}`)
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ configJson: { whatsappLimiteDiario: 37 } });
+      expect(plataforma.status).toBe(200);
+
+      const res = await configurar(sindicoA1Token, { configJson: { tipo: 'residencial' } });
+
+      expect(res.status).toBe(200);
+      expect(res.body.configJson.tipo).toBe('residencial');
+      // O merge ignora chave ausente; espalhar o DTO cru zeraria esta.
+      expect(res.body.configJson.whatsappLimiteDiario).toBe(37);
+    });
+
+    it('não liga módulo contratado por conta própria', async () => {
+      expect((await configurar(sindicoA1Token, { configJson: { moduloVagas: true } })).status).toBe(400);
+      expect((await configurar(sindicoA1Token, { configJson: { moduloAvisos: true } })).status).toBe(400);
+    });
+
+    it('não mexe em plano, ativo nem slug', async () => {
+      expect((await configurar(sindicoA1Token, { plano: 'enterprise' })).status).toBe(400);
+      expect((await configurar(sindicoA1Token, { ativo: false })).status).toBe(400);
+      expect((await configurar(sindicoA1Token, { slug: 'outro-slug' })).status).toBe(400);
+    });
+
+    /**
+     * A janela de envio **não passa por aqui**. Ela é editada em `/whatsapp`,
+     * onde a faixa 08:00–21:00 é aplicada. Aceitá-la nesta rota faria dela o
+     * caminho alternativo para o condomínio passar a enviar de madrugada — e
+     * como o campo nem existe no DTO, a recusa não depende de ninguém lembrar
+     * de validar.
+     */
+    it('não aceita a janela de envio por esta rota', async () => {
+      const res = await configurar(sindicoA1Token, {
+        configJson: { horarioEnvioInicio: '05:00', horarioEnvioFim: '23:00' },
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('a administradora não usa a rota do síndico', async () => {
+      // Ela tem `condA1` na carteira e mesmo assim leva 403: o caminho dela é
+      // `/minha-administradora/condominios/:tenantId`.
+      const res = await configurar(adminAToken, { configJson: { tipo: 'misto' } });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('o síndico não configura outro condomínio pelo header', async () => {
+      const res = await http
+        .patch('/api/meu-condominio')
+        .set('Authorization', `Bearer ${sindicoA1Token}`)
+        .set('X-Tenant-Id', condB1)
+        .send({ configJson: { tipo: 'misto' } });
+
+      expect(res.status).toBe(403);
+    });
+  });
+
   // ------------------------------------------- escopo do condomínio na request
 
   describe('escopo por request (X-Tenant-Id)', () => {
