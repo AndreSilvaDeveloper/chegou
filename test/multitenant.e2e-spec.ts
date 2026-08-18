@@ -229,6 +229,89 @@ describe('Multitenant (e2e)', () => {
     });
 
     /**
+     * O passo 4 do wizard é a única porta pela qual a administradora liga um
+     * módulo — e a única em que ela toca na janela de envio antes de o
+     * condomínio existir. As duas metades são testadas juntas de propósito: o
+     * que ela **pode** declarar e o que a faixa anti-bloqueio **não** deixa.
+     */
+    it('cadastra o condomínio já configurado, dentro da faixa anti-bloqueio', async () => {
+      const criar = await http
+        .post('/api/minha-administradora/condominios')
+        .set('Authorization', `Bearer ${adminAToken}`)
+        .send({
+          ...corpoCondominio({
+            nome: `E2E A4 ${sufixo}`,
+            slug: `e2e-a4-${sufixo}`,
+            sindicoNome: 'Síndico A4',
+            sindicoEmail: `sindico-a4-${sufixo}@e2e.test`,
+            sindicoSenha: SENHA,
+          }),
+          configJson: {
+            tipo: 'comercial',
+            estruturaBlocos: 'unico',
+            horarioEnvioInicio: '09:00',
+            horarioEnvioFim: '18:00',
+            moduloVagas: true,
+          },
+        });
+
+      expect(criar.status).toBe(201);
+      criados.tenants.push(criar.body.id);
+      expect(criar.body.configJson).toMatchObject({
+        tipo: 'comercial',
+        estruturaBlocos: 'unico',
+        horarioEnvioInicio: '09:00',
+        horarioEnvioFim: '18:00',
+        moduloVagas: true,
+      });
+      // O que o passo 4 NÃO pergunta continua vindo do padrão — mesclar por
+      // cima, e não substituir, é o que impede o condomínio de nascer sem
+      // ritmo de disparo.
+      expect(criar.body.configJson.whatsappIntervaloSegundos).toBe(90);
+      expect(criar.body.configJson.moduloAvisos).toBe(false);
+    });
+
+    it('não deixa o cadastro abrir a janela de envio fora de 08:00–21:00', async () => {
+      const res = await http
+        .post('/api/minha-administradora/condominios')
+        .set('Authorization', `Bearer ${adminAToken}`)
+        .send({
+          ...corpoCondominio({
+            nome: `E2E A5 ${sufixo}`,
+            slug: `e2e-a5-${sufixo}`,
+            sindicoNome: 'Síndico A5',
+            sindicoEmail: `sindico-a5-${sufixo}@e2e.test`,
+            sindicoSenha: SENHA,
+          }),
+          configJson: { horarioEnvioInicio: '05:00', horarioEnvioFim: '23:00' },
+        });
+
+      // Cadastrar não pode ser o atalho para um condomínio nascer enviando de
+      // madrugada — a mesma trava da edição vale aqui.
+      expect(res.status).toBe(400);
+    });
+
+    it('o cadastro não é caminho para plano, ativo nem outros módulos', async () => {
+      const res = await http
+        .post('/api/minha-administradora/condominios')
+        .set('Authorization', `Bearer ${adminAToken}`)
+        .send({
+          ...corpoCondominio({
+            nome: `E2E A6 ${sufixo}`,
+            slug: `e2e-a6-${sufixo}`,
+            sindicoNome: 'Síndico A6',
+            sindicoEmail: `sindico-a6-${sufixo}@e2e.test`,
+            sindicoSenha: SENHA,
+          }),
+          configJson: { moduloAvisos: true, whatsappLimiteDiario: 5000 },
+        });
+
+      // `ConfigInicialCondominioDto` não declara esses campos, e o
+      // `forbidNonWhitelisted` transforma a ausência em 400.
+      expect(res.status).toBe(400);
+    });
+
+    /**
      * A aba "Assinatura" de um condomínio é a única rota da administradora com
      * `:tenantId` no path — e é justamente por isso que ela é testada aqui: o
      * condomínio vem da URL, mas a carteira sai do usuário logado. Se a

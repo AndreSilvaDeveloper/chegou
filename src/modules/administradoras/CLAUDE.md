@@ -28,7 +28,7 @@ condomínios da carteira escolhendo um por request.
 | `GET /condominios` | A carteira |
 | `GET /resumo` | A carteira **em números**: totais + um bloco por condomínio |
 | `GET /condominios/:tenantId` | Um condomínio da carteira (404 se for de outra) |
-| `POST /condominios` | Cria condomínio na própria carteira, com o primeiro síndico (mesmo `CriarTenantDto`, mesmo wizard de 3 passos) |
+| `POST /condominios` | Cria condomínio na própria carteira, com o primeiro síndico **já configurado** (mesmo `CriarTenantDto`, mesmo wizard de 4 passos) |
 | `PATCH /condominios/:tenantId` | Cadastro **e** configuração operacional do condomínio |
 | `GET /usuarios` | Acessos da própria administradora |
 
@@ -70,8 +70,18 @@ operacional**:
 |---|---|---|
 | `tipo`, `estruturaBlocos` | administradora | Descrevem como o condomínio é |
 | `horarioEnvioInicio` / `Fim` | administradora, **dentro de 08:00–21:00** | Mesma faixa da tela `/whatsapp` |
-| `moduloVagas`, `moduloAvisos` | só superadmin | São o que foi **contratado** |
+| `moduloVagas` | administradora **no cadastro**; depois, só superadmin | Ver a nota abaixo |
+| `moduloAvisos` | só superadmin | É o que foi **contratado** |
 | `plano`, `ativo`, `slug` | só superadmin | Decisão comercial da plataforma |
+
+> **A exceção do `moduloVagas`.** Ele é ligável no **passo 4 do wizard**, quando
+> o condomínio está sendo criado — "este condomínio tem garagem para
+> administrar?" é a resposta que a administradora tem em mãos na hora, e
+> obrigá-la a abrir chamado pelo primeiro condomínio da carteira era o caminho
+> mais rápido para o módulo nunca ser usado. **Depois de criado, ele sai do
+> alcance dela**: `ConfigOperacionalCondominioDto` não o declara, e o
+> `forbidNonWhitelisted` responde 400. Ligar no cadastro é declarar o que o
+> condomínio é; mexer no contrato continua sendo da plataforma.
 
 **`ativo` é o que mais importa manter fora.** A assinatura conta apartamento
 ativo **de condomínio ativo**: dar esse botão a quem paga a fatura seria dar o

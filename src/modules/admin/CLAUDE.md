@@ -15,9 +15,30 @@ plano, `ativo`, `config_json`).
 **O `POST` exige cadastro completo**: nome, documento, e-mail e telefone do
 condomínio, o endereço (CEP, logradouro, número, cidade e UF — complemento e
 bairro seguem livres) e o síndico com telefone. O `slug` **não** é pedido. A
-tela correspondente é o wizard de três passos
+tela correspondente é o wizard de **quatro passos**
 (`web/src/components/condominio/CondominioWizard.tsx`), usado também pela
 administradora.
+
+**O passo 4 é `configJson`, e ele é opcional.** Vem tipado por
+`ConfigInicialCondominioDto` — `tipo`, `estruturaBlocos`, a janela de envio e
+`moduloVagas` — e é **mesclado por cima** de `DEFAULT_TENANT_CONFIG`, nunca no
+lugar dele: o que o passo não pergunta (ritmo de disparo, cota diária,
+`moduloAvisos`) continua saindo do padrão. Sem `configJson`, o condomínio nasce
+como sempre nasceu.
+
+O merge é o `mesclarConfigOperacional` (ver [Condomínio](../condominio/CLAUDE.md)),
+o mesmo da edição — então **a janela de envio é conferida contra a faixa
+anti-bloqueio também no cadastro**. Cadastrar não pode ser o atalho para um
+condomínio nascer enviando de madrugada, e depender de uma segunda cópia da
+regra aqui seria o jeito de descobrir isso tarde.
+
+> **`moduloVagas` no cadastro é a exceção deliberada** à regra de que módulo é
+> contrato. Nas rotas de *edição* ele continua só do superadmin; no cadastro ele
+> entra porque "este condomínio tem garagem para administrar?" é a resposta que
+> quem cadastra tem em mãos. Ligar ali é declarar o que o condomínio é —
+> desligar depois segue sendo da plataforma. `moduloAvisos` **não** entra: não
+> há pergunta correspondente no passo 4, e um interruptor sem pergunta só
+> reabriria a porta que a regra fecha.
 
 > **O endereço entrou tarde aqui, e isso doía.** Até a migration 035 o `PATCH`
 > desta rota só aceitava cidade e UF — então quando a cobrança de um cliente

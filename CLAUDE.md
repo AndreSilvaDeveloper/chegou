@@ -267,6 +267,7 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Carteira em números (unidades, encomendas, WhatsApp, quanto cada um pesa na conta) | — | ✅ | — | — |
 | Um condomínio em números, na tela dele (`/admin/tenants/:id/resumo`) | ✅ | — | — | — |
 | Configurar condomínio da carteira: cadastro, tipo, blocos, janela de envio | ✅ | ✅⁵ | — | — |
+| Declarar tipo, blocos, janela de envio e uso de vagas **ao cadastrar** o condomínio | ✅ | ✅⁷ | — | — |
 | Endereço completo do condomínio (CEP, logradouro, nº, compl., bairro, cidade, UF) | ✅ | ✅ | ✅ | — |
 | Consultar CEP (`GET /cep/:cep`, preenche o endereço) | ✅ | ✅ | ✅ | — |
 | Assinatura própria: quanto paga e as faturas (só leitura) | — | ✅³ | ✅⁴ | — |
@@ -318,6 +319,13 @@ tela dela é `/meus-condominios/:id`; a do superadmin, `/admin/condominios/:id`.
 e o histórico de cobrança dele — negociar preço e vencimento é do superadmin. O
 condomínio vem da URL (`/minha-administradora/condominios/:id/assinatura`), mas
 a carteira sai do usuário logado: condomínio de outra carteira responde 404.
+
+⁷ **Só no cadastro** (passo 4 do `CondominioWizard`). Tipo, blocos e janela de
+envio ela continua editando depois; **`moduloVagas` não** — ele é a exceção
+deliberada à regra de "módulo é contrato", ligável no ato do cadastro porque é a
+resposta que quem cadastra tem em mãos, e fora do alcance dela a partir daí. A
+janela de envio passa pela mesma trava anti-bloqueio da edição (08:00–21:00):
+cadastrar não é atalho para nascer enviando de madrugada.
 
 **A administradora só enxerga isso dentro dos condomínios da carteira dela**, e
 sempre com o condomínio escolhido no header `X-Tenant-Id` — as exceções são as
@@ -723,7 +731,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `DocumentoInput` | `web/src/components/ui/documento-input.tsx` | CPF/CNPJ mascarado enquanto se digita → só dígitos para a API |
 | `CepInput` | `web/src/components/ui/cep-input.tsx` | CEP mascarado `00000-000` → só dígitos para a API |
 | `EnderecoFields` | `web/src/components/condominio/EnderecoFields.tsx` | Endereço completo do condomínio, com preenchimento pelo CEP — as três telas usam este |
-| `CondominioWizard` | `web/src/components/condominio/CondominioWizard.tsx` | Cadastro de condomínio em 3 passos — superadmin e administradora usam o mesmo |
+| `CondominioWizard` | `web/src/components/condominio/CondominioWizard.tsx` | Cadastro de condomínio em 4 passos (o último é a configuração) — superadmin e administradora usam o mesmo |
 | `formatarDocumento()` | `web/src/lib/documento.ts` | CPF/CNPJ legível nas listagens |
 | `SearchSelect` | `web/src/components/ui/search-select.tsx` | Select com busca por digitação (lista grande) |
 | `Combobox` | `web/src/components/ui/combobox.tsx` | Campo com sugestões que **aceita valor fora da lista** (transportadora) |

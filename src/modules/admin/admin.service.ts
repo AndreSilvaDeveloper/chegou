@@ -15,6 +15,7 @@ import { OpenwaService } from '../openwa/openwa.service';
 import { AtualizarTenantDto } from './dto/atualizar-tenant.dto';
 import { CriarTenantDto } from './dto/criar-tenant.dto';
 import { DEFAULT_TENANT_CONFIG } from './dto/config-tenant.dto';
+import { mesclarConfigOperacional } from '../condominio/config-operacional';
 import { TenantConfigService } from '../../common/tenant-config/tenant-config.service';
 import { TenantScopeService } from '../../common/tenant-scope/tenant-scope.service';
 
@@ -106,7 +107,16 @@ export class AdminService {
             estado: dto.estado ?? null,
             plano: 'basico',
             ativo: true,
-            configJson: { ...DEFAULT_TENANT_CONFIG },
+            // O passo 4 do wizard entra POR CIMA dos padrões, nunca no lugar
+            // deles: o que ele não pergunta (ritmo de disparo, cota diária,
+            // `moduloAvisos`) continua vindo do padrão. É o mesmo merge da
+            // edição, então a janela de envio é conferida contra a faixa
+            // anti-bloqueio aqui também — cadastrar não pode ser o atalho para
+            // um condomínio nascer enviando de madrugada.
+            configJson: mesclarConfigOperacional(
+              { ...DEFAULT_TENANT_CONFIG },
+              { ...(dto.configJson ?? {}) },
+            ),
           }),
         );
         await this.userRepo.save(

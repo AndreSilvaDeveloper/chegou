@@ -1,5 +1,6 @@
 import { DocumentoBrasileiro } from '../../../common/documento';
 import { Cep } from '../../../common/cep';
+import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -8,8 +9,10 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import { TelefoneE164 } from '../../../common/telefone';
+import { ConfigInicialCondominioDto } from './config-inicial-condominio.dto';
 
 /**
  * O cadastro de um condomínio novo, em três passos na tela.
@@ -109,4 +112,17 @@ export class CriarTenantDto {
   @TelefoneE164()
   @IsNotEmpty({ message: 'Informe o telefone do síndico' })
   sindicoTelefone!: string;
+
+  // ---- Configurações (passo 4) ----
+  /**
+   * Opcional: sem ele o condomínio nasce com `DEFAULT_TENANT_CONFIG`, como
+   * sempre nasceu. O que vier aqui é **mesclado** por cima dos padrões, e nunca
+   * substitui o objeto inteiro — é o que garante que os campos que o passo 4
+   * não pergunta (ritmo de disparo, cota diária, `moduloAvisos`) continuem
+   * saindo do padrão em vez de nascerem indefinidos.
+   */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ConfigInicialCondominioDto)
+  configJson?: ConfigInicialCondominioDto;
 }

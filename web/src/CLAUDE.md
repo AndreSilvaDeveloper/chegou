@@ -167,19 +167,29 @@ chama `GET /cep/:cep`.
 
 `CondominioWizard` (`components/condominio/CondominioWizard.tsx`) atende
 `SuperAdmin` e `MeusCondominios` — mesmo endpoint por trás (`CriarTenantDto`),
-só muda a prop `endpoint`. Três passos: informações gerais, endereço e o
-primeiro síndico.
+só muda a prop `endpoint`. Quatro passos: informações gerais, endereço, o
+primeiro síndico e as **configurações**.
 
-- **Treze campos de três assuntos não cabem numa coluna só.** No celular, o
-  formulário único virava rolagem sem fim com o erro de validação aparecendo
-  longe do campo que o causou. Cada passo valida o que é dele antes de deixar
-  avançar.
+- **Quatro assuntos não cabem numa coluna só.** No celular, o formulário único
+  virava rolagem sem fim com o erro de validação aparecendo longe do campo que o
+  causou. Cada passo valida o que é dele antes de deixar avançar.
+- **O passo 4 faz o condomínio nascer configurado.** Tipo, estrutura de blocos,
+  horário de recebimento de encomendas (que é a janela de envio do WhatsApp) e
+  se o condomínio usa gestão de vagas. Antes ele nascia sempre residencial, de
+  bloco único, com a janela padrão e sem Vagas — e a primeira coisa que a
+  administradora fazia era abrir a tela de configuração para arrumar isso.
+  São as perguntas que alguém sabe responder **no ato do cadastro**; ritmo de
+  disparo e cota diária não são, e continuam em `/whatsapp`.
+- **A faixa 08:00–21:00 é repetida na tela só para o erro chegar antes do
+  envio.** Quem manda é o servidor (`mesclarConfigOperacional`) — mensagem de
+  madrugada derruba o número do condomínio, e essa regra não pode depender de
+  nenhuma tela.
 - **`pendencia(passo)` devolve o que falta, em texto.** O botão "Continuar"
   nunca fica apagado sem explicação — ele avisa qual campo falta. Formulário em
   etapas com botão morto é o pior desfecho possível: o usuário não tem como
   descobrir o que fazer.
-- **O submit revalida os três passos**, não só o último: dá para chegar ao passo
-  3 e voltar para apagar um campo.
+- **O submit revalida todos os passos**, não só o último: dá para chegar ao
+  último e voltar para apagar um campo.
 - **O slug não está no formulário.** Ele é gerado no servidor a partir do nome.
   Antes era um campo visível nas duas telas, cada uma com a sua cópia da mesma
   função de sugestão — e nenhuma delas podia saber se o slug estava livre.

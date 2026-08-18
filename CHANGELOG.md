@@ -11,6 +11,48 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.37.0 — 2026-08-18
+
+**O condomínio nasce configurado: quarto passo no cadastro.**
+
+Até agora todo condomínio nascia residencial, de bloco único, com a janela de
+envio padrão e sem Vagas — e a primeira coisa que quem cadastrava fazia era
+abrir a tela de configuração para arrumar isso. O `CondominioWizard` ganhou um
+quarto passo com as perguntas que alguém **sabe responder na hora do cadastro**:
+
+| Pergunta | Grava em |
+|---|---|
+| Qual o tipo de condomínio? (residencial / comercial / misto) | `tipo` |
+| Como as unidades são organizadas? (bloco único / múltiplos blocos) | `estruturaBlocos` |
+| Horário de recebimento de encomendas | `horarioEnvioInicio` / `horarioEnvioFim` |
+| O condomínio administra vagas de garagem? | `moduloVagas` |
+
+Vale para os dois perfis que cadastram — superadmin e administradora —, porque o
+wizard é o mesmo componente e o mesmo `CriarTenantDto`.
+
+**"Horário de recebimento de encomendas" é a janela de envio do WhatsApp**, dita
+na língua de quem responde: ninguém na portaria pensa em "janela de disparo",
+mas todo mundo sabe até que horas recebe pacote. Ela passa pela **mesma trava
+anti-bloqueio da edição** (`mesclarConfigOperacional`, 08:00–21:00): cadastrar
+não pode ser o atalho para um condomínio nascer enviando de madrugada, e a
+faixa repetida na tela existe só para o erro aparecer antes do envio.
+
+**`moduloVagas` no cadastro é uma exceção deliberada** à regra de que módulo é
+contrato. Nas rotas de edição ele continua só do superadmin; no cadastro ele
+entra porque "este condomínio tem garagem para administrar?" é a resposta que a
+administradora tem em mãos, e obrigá-la a abrir chamado pelo primeiro condomínio
+da carteira era o caminho mais rápido para o módulo nunca ser usado. Ligar ali é
+declarar o que o condomínio é — **desligar depois segue sendo da plataforma**.
+`moduloAvisos` não entra: não há pergunta correspondente, e interruptor sem
+pergunta só reabriria a porta que a regra fecha.
+
+O `configJson` é **opcional e mesclado por cima** de `DEFAULT_TENANT_CONFIG`,
+nunca no lugar dele: o que o passo 4 não pergunta (ritmo de disparo, cota
+diária, avisos) continua vindo do padrão. `ConfigInicialCondominioDto` declara
+só esses cinco campos, então mandar `plano`, `ativo` ou outro módulo pela rota
+de cadastro responde 400 — três casos novos em `test/multitenant.e2e-spec.ts`
+cobrem isso, a janela fora da faixa e o cadastro configurado que dá certo.
+
 ## 0.36.0 — 2026-08-18
 
 **A carteira da administradora deixou de ser uma lista de nomes.**
