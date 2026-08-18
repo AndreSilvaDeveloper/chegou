@@ -15,18 +15,17 @@ const HORARIO_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
  * cota diária ficam de fora — são afinação anti-bloqueio, têm tela própria
  * (`/whatsapp`) e ninguém tem opinião sobre eles antes de o condomínio existir.
  *
- * **`moduloVagas` é a exceção deliberada à regra de "módulo é contrato".**
- * Em toda rota de *edição* ele é só do superadmin (ver
- * `ConfigOperacionalCondominioDto`): quem paga a fatura não liga o próprio
- * módulo. No cadastro ele entra porque "este condomínio tem garagem para
- * administrar?" é a resposta que a administradora tem em mãos na hora, e
- * obrigá-la a abrir chamado para o primeiro condomínio da carteira era o
- * caminho mais rápido para o módulo nunca ser usado. Ligar ali é declarar o
- * que o condomínio é; **desligar depois continua sendo da plataforma**.
+ * **`moduloVagas` entra porque o cadastro pergunta por ele** ("este condomínio
+ * administra vagas de garagem?"): é a resposta que quem implanta tem em mãos, e
+ * o condomínio já nasce com o módulo certo em vez de exigir uma segunda visita
+ * à tela de configuração. Ele não é mais privilégio do superadmin — a
+ * administradora liga e desliga os dois módulos pela rota da carteira (ver
+ * `ConfigOperacionalCondominioDto`).
  *
- * `moduloAvisos` **não** entra: nada no cadastro pergunta por ele, e um
- * segundo interruptor sem pergunta correspondente só reabriria a porta que a
- * regra fecha.
+ * `moduloAvisos` fica de fora **por falta de pergunta**, não por falta de
+ * permissão: nada no passo 4 pergunta por ele, e campo aceito sem pergunta
+ * correspondente é campo que ninguém sabe que existe. Ele é ligado logo depois,
+ * na tela de configuração.
  */
 export class ConfigInicialCondominioDto {
   @IsOptional()

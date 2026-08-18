@@ -87,10 +87,17 @@ const NAV_ITEMS: NavItem[] = [
   // para a administradora é da carteira — e ela precisa vê-la mesmo sem ter
   // escolhido um condomínio, por isso o `semCondominio`.
   { path: '/assinatura', label: 'Assinatura', icon: Receipt, roles: ['sindico'], group: 'Condomínio', alertaAssinatura: true },
-  // Só o síndico: a administradora configura o condomínio pela carteira, e o
-  // superadmin por `/admin/condominios/:id`.
+  // Duas rotas, um item: cada perfil configura o condomínio pela tela que tem
+  // permissão de salvar. O síndico em `/configuracoes` (`/meu-condominio` na
+  // API); a administradora em `/meus-condominios/:id`, que confere a carteira.
+  // Sem esta segunda linha ela ficava sem caminho para a configuração depois de
+  // entrar no condomínio — tinha de voltar à carteira e clicar em "Configurar".
   { path: '/configuracoes', label: 'Configurações', icon: SlidersHorizontal, roles: ['sindico'], group: 'Condomínio' },
-  { path: '/meus-condominios', label: 'Meus condomínios', icon: Briefcase, roles: ['admin'], group: 'Carteira', semCondominio: true },
+  { path: '/meus-condominios/:tenantId', label: 'Configurações', icon: SlidersHorizontal, roles: ['admin'], group: 'Condomínio' },
+  // `end`: sem ele, a carteira também ficaria marcada em
+  // `/meus-condominios/:id`, e dois itens acesos ao mesmo tempo desfazem a
+  // única coisa que o realce serve para dizer.
+  { path: '/meus-condominios', label: 'Meus condomínios', icon: Briefcase, roles: ['admin'], end: true, group: 'Carteira', semCondominio: true },
   { path: '/assinatura', label: 'Assinatura', icon: Receipt, roles: ['admin'], group: 'Carteira', semCondominio: true, alertaAssinatura: true },
   { path: '/admin', label: 'Condomínios', icon: Building, roles: ['superadmin'], end: true, group: 'Plataforma' },
   { path: '/admin/administradoras', label: 'Administradoras', icon: Briefcase, roles: ['superadmin'], group: 'Plataforma' },
@@ -335,6 +342,14 @@ function LayoutInterno() {
       item.roles.includes(userRole) &&
       (!item.modulo || modulosAtivos[item.modulo] === true) &&
       (!semCondominioEscolhido || item.semCondominio),
+  ).map((item) =>
+    // `:tenantId` é resolvido depois do filtro, nunca antes: o item que o usa
+    // não é `semCondominio`, então quando ele sobrevive à linha acima já existe
+    // condomínio ativo. Montar o path na definição do array não daria — ele é
+    // estático e o condomínio muda durante a sessão.
+    item.path.includes(':tenantId')
+      ? { ...item, path: item.path.replace(':tenantId', condominioAtivo.id ?? '') }
+      : item,
   );
   const groups = filteredNavItems.reduce<Record<string, NavItem[]>>((acc, item) => {
     (acc[item.group] ??= []).push(item);

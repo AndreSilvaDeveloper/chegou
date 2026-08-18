@@ -11,6 +11,38 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.37.1 — 2026-08-18
+
+**A administradora liga Vagas e Avisos, e acha o menu de configuração.**
+
+Dois buracos que apareceram juntos ao usar a visão de administradora de ponta a
+ponta:
+
+**1. Vagas e Avisos eram só do superadmin.** Apareciam de leitura na aba
+Configurações do condomínio da carteira, com o aviso de que a plataforma
+decidia. Na prática quem implanta o condomínio é a administradora — é ela que
+sabe se ele tem garagem para administrar ou mural para publicar —, e cada
+implantação virava um chamado para ligar um interruptor.
+
+O critério que os moveu de lado é **o dinheiro**: ligar um módulo não muda o que
+ela paga, porque a assinatura é por apartamento ativo e não por módulo (ver
+`calcularAssinatura`). `plano` e `ativo` mexem na conta — `ativo` chega a tirar o
+condomínio dela inteiro — e por isso continuam com a plataforma, de leitura, com
+o motivo na tela. **O síndico segue fora dos dois**: ele opera o módulo, não
+decide se o condomínio o usa.
+
+**2. Dentro do condomínio, o menu não tinha "Configurações".** O item era
+`@Roles('sindico')`, então depois de entrar num condomínio a administradora
+ficava sem caminho para a configuração — tinha de voltar à carteira e clicar em
+"Configurar". Agora o `NAV_ITEMS` tem duas linhas com o mesmo rótulo, uma por
+perfil: `/configuracoes` para o síndico e `/meus-condominios/:tenantId` para
+ela, com o `:tenantId` resolvido no `Layout` a partir do condomínio ativo. Cada
+perfil vai para a tela em que consegue salvar.
+
+De quebra, "Meus condomínios" ganhou `end`: sem ele a carteira ficava acesa junto
+com Configurações na tela de detalhe, e dois itens marcados desfazem a única
+coisa que o realce serve para dizer.
+
 ## 0.37.0 — 2026-08-18
 
 **O condomínio nasce configurado: quarto passo no cadastro.**

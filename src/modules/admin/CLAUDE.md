@@ -32,13 +32,14 @@ anti-bloqueio também no cadastro**. Cadastrar não pode ser o atalho para um
 condomínio nascer enviando de madrugada, e depender de uma segunda cópia da
 regra aqui seria o jeito de descobrir isso tarde.
 
-> **`moduloVagas` no cadastro é a exceção deliberada** à regra de que módulo é
-> contrato. Nas rotas de *edição* ele continua só do superadmin; no cadastro ele
-> entra porque "este condomínio tem garagem para administrar?" é a resposta que
-> quem cadastra tem em mãos. Ligar ali é declarar o que o condomínio é —
-> desligar depois segue sendo da plataforma. `moduloAvisos` **não** entra: não
-> há pergunta correspondente no passo 4, e um interruptor sem pergunta só
-> reabriria a porta que a regra fecha.
+> **`moduloVagas` no cadastro** existe porque o passo 4 pergunta por ele: quem
+> implanta o condomínio sabe se ele tem garagem para administrar, e o condomínio
+> nasce certo em vez de exigir uma segunda visita à tela de configuração. Não é
+> privilégio de perfil — a administradora liga e desliga os dois módulos pela
+> rota da carteira (ver [Administradoras](../administradoras/CLAUDE.md)).
+> `moduloAvisos` fica de fora do cadastro **por falta de pergunta**, não de
+> permissão: campo aceito sem pergunta correspondente é campo que ninguém sabe
+> que existe.
 
 > **O endereço entrou tarde aqui, e isso doía.** Até a migration 035 o `PATCH`
 > desta rota só aceitava cidade e UF — então quando a cobrança de um cliente
@@ -120,10 +121,12 @@ assinatura e WhatsApp). As duas últimas abas são os painéis compartilhados
       tela de configurações + invalidação de cache. **Decida também se a
       administradora edita**: se sim, declare em
       `ConfigOperacionalCondominioDto` (módulo Administradoras) e acrescente na
-      tela `MeuCondominio.tsx`; se não, mostre de leitura lá.
+      tela `MeuCondominio.tsx`; se não, mostre de leitura lá (`ModuleReadonly` /
+      `PlataformaDecide`). O critério que separa os dois hoje é **o dinheiro**:
+      o que muda a fatura fica com a plataforma.
 - [ ] Módulo opcional novo → `TenantModule` (decorator), `MODULE_CONFIG_KEY`
       (`tenant-config.service.ts`), `MODULE_KEY` no front e o toggle no
-      `SuperAdminTenant`.
+      `SuperAdminTenant` **e** no `MeuCondominio` — os dois perfis ligam módulo.
 - [ ] Campo novo **obrigatório** no `CriarTenantDto`? Ele quebra os fixtures de
       e2e — acrescente em `test/helpers/condominio.ts`, que é de onde os três
       pontos de criação tiram o corpo. E confira se há onde **editá-lo** depois:

@@ -1,10 +1,11 @@
 # Módulo: Vagas de garagem
 
 Módulo **opcional** (`@RequiresModule('vagas')`): só funciona em condomínio que
-tem `moduloVagas: true` no `config_json`. Quem liga é o superadmin — **ou quem
-cadastra o condomínio, no passo 4 do wizard**, que é a única porta pela qual a
-administradora o alcança (ver [Administradoras](../administradoras/CLAUDE.md));
-depois de criado, mexer nele volta a ser da plataforma. Cobre o
+tem `moduloVagas: true` no `config_json`. Ligam o superadmin (na tela do
+condomínio) e a **administradora** — no passo 4 do wizard, ao cadastrar, ou
+depois na aba Configurações do condomínio da carteira (ver
+[Administradoras](../administradoras/CLAUDE.md)). O síndico não liga: ele opera
+o módulo, não decide se o condomínio o usa. Cobre o
 cadastro das vagas, a locação avulsa e a cobrança mensal.
 
 ## Rotas e perfis

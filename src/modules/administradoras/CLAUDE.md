@@ -70,18 +70,23 @@ operacional**:
 |---|---|---|
 | `tipo`, `estruturaBlocos` | administradora | Descrevem como o condomínio é |
 | `horarioEnvioInicio` / `Fim` | administradora, **dentro de 08:00–21:00** | Mesma faixa da tela `/whatsapp` |
-| `moduloVagas` | administradora **no cadastro**; depois, só superadmin | Ver a nota abaixo |
-| `moduloAvisos` | só superadmin | É o que foi **contratado** |
+| `moduloVagas`, `moduloAvisos` | administradora | Descrevem o que o condomínio usa — ver a nota abaixo |
 | `plano`, `ativo`, `slug` | só superadmin | Decisão comercial da plataforma |
 
-> **A exceção do `moduloVagas`.** Ele é ligável no **passo 4 do wizard**, quando
-> o condomínio está sendo criado — "este condomínio tem garagem para
-> administrar?" é a resposta que a administradora tem em mãos na hora, e
-> obrigá-la a abrir chamado pelo primeiro condomínio da carteira era o caminho
-> mais rápido para o módulo nunca ser usado. **Depois de criado, ele sai do
-> alcance dela**: `ConfigOperacionalCondominioDto` não o declara, e o
-> `forbidNonWhitelisted` responde 400. Ligar no cadastro é declarar o que o
-> condomínio é; mexer no contrato continua sendo da plataforma.
+> **Vagas e Avisos mudaram de lado, e o critério é o dinheiro.** Eles já foram
+> tratados como "módulo contratado", portanto exclusivos do superadmin. Na
+> prática quem implanta o condomínio é a administradora, e é ela quem sabe se
+> ele tem garagem para administrar ou mural para publicar — cada implantação
+> virava um chamado para ligar um interruptor. Ligá-los **não muda o que ela
+> paga**: a assinatura é por apartamento ativo, não por módulo (ver
+> `calcularAssinatura`), então não há preço a proteger aqui. `plano` e `ativo`
+> são o oposto — mexem na conta —, e por isso continuam com a plataforma.
+>
+> Ela liga em dois lugares: no **passo 4 do wizard**, ao cadastrar (só Vagas,
+> que é o que o passo pergunta), e depois na aba Configurações do condomínio.
+> **O síndico continua fora**: `ConfigMeuCondominioDto` não declara os campos, e
+> o `forbidNonWhitelisted` responde 400. Ele opera o módulo; quem decide se o
+> condomínio o usa é quem administra o condomínio.
 
 **`ativo` é o que mais importa manter fora.** A assinatura conta apartamento
 ativo **de condomínio ativo**: dar esse botão a quem paga a fatura seria dar o
@@ -147,7 +152,13 @@ próprios condomínios"), conferindo também que os totais batem com a lista.
   (**Entrar** e **Configurar**) — a exceção que o `rodape` do `ListCard`
   documenta: aqui a ação larga é o motivo da tela existir.
 - `web/src/pages/MeuCondominio.tsx` — configurar um condomínio da carteira
-  (`/meus-condominios/:id`), com as mesmas cinco abas do `SuperAdminTenant`. As
+  (`/meus-condominios/:id`), com as mesmas abas do `SuperAdminTenant`. **É esta
+  a tela que o item "Configurações" do menu abre quando a administradora está
+  dentro de um condomínio**: o `NAV_ITEMS` tem duas linhas com o mesmo rótulo,
+  uma por perfil (`/configuracoes` para o síndico, `/meus-condominios/:tenantId`
+  para ela), e o `:tenantId` é resolvido no `Layout` com o condomínio ativo.
+  Sem essa segunda linha ela entrava no condomínio e ficava sem caminho para a
+  configuração — tinha de voltar à carteira e clicar em "Configurar". As
   peças visuais das duas são as de `components/condominio/condominio-shared.tsx`.
 
 > **Abrir a tela de configuração entra no condomínio.** As abas de Unidades,

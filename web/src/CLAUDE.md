@@ -196,9 +196,12 @@ primeiro síndico e as **configurações**.
 - **A trilha de progresso não usa âmbar.** O sinal é do botão de ação, que fica
   na mesma dobra; quem marca o passo atual é o degrau de tom (regra 24.1).
 
-Na tela da administradora, plano, `ativo` e os módulos aparecem **de leitura**,
-com o motivo. Some-los faria o cliente achar que Vagas não existe e abrir
-chamado; mostrá-los editáveis quebraria a regra (ver módulo Administradoras).
+Na tela da administradora, plano e `ativo` aparecem **de leitura**, com o
+motivo (`PlataformaDecide`): eles mexem na fatura. Os **módulos são editáveis**
+por ela — `ModuleToggle`, o mesmo controle do superadmin —, porque ligar Vagas
+ou Avisos não muda o que ela paga. Esconder qualquer um dos dois grupos faria o
+cliente achar que o recurso não existe e abrir chamado; a diferença entre eles é
+poder salvar, não poder ver.
 
 As duas telas têm **sete abas**, e as duas últimas são painéis inteiros
 compartilhados, na mesma pasta:

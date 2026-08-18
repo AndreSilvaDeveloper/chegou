@@ -1,7 +1,10 @@
 # Módulo: Avisos
 
 Comunicados do condomínio para os moradores, disparados por WhatsApp. Módulo
-**opcional** (`@RequiresModule('avisos')`).
+**opcional** (`@RequiresModule('avisos')`): depende de `moduloAvisos: true` no
+`config_json`, ligado pelo superadmin **ou pela administradora**, na aba
+Configurações do condomínio da carteira. O síndico não liga: ele publica o
+aviso, não decide se o condomínio tem mural.
 
 ## Rotas e perfis
 

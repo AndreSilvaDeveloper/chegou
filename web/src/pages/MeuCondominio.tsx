@@ -18,7 +18,7 @@ import {
   DEFAULT_CONFIG,
   ESTRUTURA_META,
   InfoPill,
-  ModuleReadonly,
+  ModuleToggle,
   OptionCard,
   PlataformaDecide,
   TIPO_META,
@@ -161,14 +161,16 @@ export function MeuCondominio() {
 
   const salvarConfig = (e: FormEvent) => {
     e.preventDefault();
-    // Só o operacional: módulos e plano não saem daqui nem por engano — a rota
-    // recusaria com 400, e mandar seria pedir erro para o usuário ler.
+    // Só o operacional. `plano`, `ativo` e `slug` não saem daqui nem por engano
+    // — a rota recusaria com 400, e mandar seria pedir erro para o usuário ler.
     salvar.mutate({
       configJson: {
         tipo: config.tipo,
         estruturaBlocos: config.estruturaBlocos,
         horarioEnvioInicio: config.horarioEnvioInicio,
         horarioEnvioFim: config.horarioEnvioFim,
+        moduloVagas: config.moduloVagas,
+        moduloAvisos: config.moduloAvisos,
       },
     });
   };
@@ -447,24 +449,26 @@ export function MeuCondominio() {
 
                 <section className="space-y-3">
                   <div>
-                    <h3 className="txt-subtitulo font-semibold text-foreground">Módulos contratados</h3>
+                    <h3 className="txt-subtitulo font-semibold text-foreground">Módulos</h3>
                     <p className="txt-apoio text-muted-foreground">
-                      Fazem parte do contrato do condomínio com o Chegou, por isso são ligados pela
-                      plataforma.
+                      Ligue o que este condomínio usa. Desligar não apaga nada — o módulo só some
+                      do menu de quem trabalha nele.
                     </p>
                   </div>
                   <div className="grid gap-3">
-                    <ModuleReadonly
+                    <ModuleToggle
                       icon={Car}
                       title="Vagas de garagem"
-                      description="Gestão de vagas e locação avulsa."
+                      description="Gestão de vagas, locação avulsa e cobrança mensal."
                       checked={config.moduloVagas}
+                      onChange={(moduloVagas) => setConfig({ ...config, moduloVagas })}
                     />
-                    <ModuleReadonly
+                    <ModuleToggle
                       icon={Bell}
                       title="Mural de avisos"
                       description="Comunicados gerais para os moradores."
                       checked={config.moduloAvisos}
+                      onChange={(moduloAvisos) => setConfig({ ...config, moduloAvisos })}
                     />
                   </div>
                 </section>

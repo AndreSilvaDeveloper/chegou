@@ -1,6 +1,7 @@
 import { DocumentoBrasileiro } from '../../../common/documento';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -17,13 +18,21 @@ const HORARIO_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 /**
  * O que a administradora pode configurar num condomínio da carteira.
  *
- * **Só o operacional**: como o condomínio funciona. Módulos contratados
- * (`moduloVagas`, `moduloAvisos`) ficam de fora de propósito — são decisão
- * comercial da plataforma, e o `forbidNonWhitelisted` do `ValidationPipe`
- * transforma essa ausência em 400 se alguém tentar mandá-los pela rota.
+ * **Só o operacional**: como o condomínio funciona. `plano`, `ativo` e `slug`
+ * continuam de fora — descrevem o *contrato*, não o condomínio —, e o
+ * `forbidNonWhitelisted` do `ValidationPipe` transforma essa ausência em 400.
  *
- * Os modelos de mensagem e o ritmo de envio também não estão aqui: eles têm
- * tela própria (`/whatsapp`), com as faixas anti-bloqueio.
+ * **Vagas e Avisos ficam AQUI, e essa decisão mudou.** Eles já foram tratados
+ * como "módulo contratado", portanto exclusivos do superadmin. Na prática a
+ * administradora é quem implanta o condomínio e quem sabe se ele tem garagem
+ * para administrar ou mural para publicar — e cada implantação virava um
+ * chamado para ligar um interruptor. Ligá-los **não muda o que ela paga**: a
+ * assinatura é por apartamento ativo, não por módulo (ver
+ * `calcularAssinatura`), então aqui não há preço a proteger. `plano` e `ativo`
+ * são o oposto: mexem na conta, e por isso continuam fora.
+ *
+ * Os modelos de mensagem e o ritmo de envio não estão aqui: eles têm tela
+ * própria (`/whatsapp`), com as faixas anti-bloqueio.
  */
 export class ConfigOperacionalCondominioDto {
   @IsOptional()
@@ -41,13 +50,21 @@ export class ConfigOperacionalCondominioDto {
   @IsOptional()
   @Matches(HORARIO_REGEX, { message: 'Horário deve estar no formato HH:mm' })
   horarioEnvioFim?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  moduloVagas?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  moduloAvisos?: boolean;
 }
 
 /**
  * Campos do condomínio que a administradora pode editar.
  *
- * De fora ficam `plano`, `ativo`, `slug`, módulos contratados e a própria
- * carteira: são decisões da plataforma, então continuam só no superadmin.
+ * De fora ficam `plano`, `ativo`, `slug` e a própria carteira: são decisões da
+ * plataforma, então continuam só no superadmin.
  *
  * `ativo` merece o destaque: condomínio inativo sai da conta da assinatura
  * (ela conta apartamento ativo **de condomínio ativo**), então esse botão na

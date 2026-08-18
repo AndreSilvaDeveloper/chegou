@@ -251,7 +251,8 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Condomínios da plataforma (criar/editar/ativar) | ✅ | — | — | — |
 | Administradoras (criar, carteira, acessos) | ✅ | — | — | — |
 | Gestão de qualquer condomínio (`/admin/tenants/:id/...`) | ✅ | — | — | — |
-| Módulos contratados e plano do condomínio | ✅ | — | — | — |
+| Plano do condomínio | ✅ | — | — | — |
+| Ligar/desligar Vagas e Avisos num condomínio | ✅ | ✅⁸ | — | — |
 | Assinatura: tabela de preços, preço especial, gerar e dar baixa em fatura | ✅ | — | — | — |
 | Assinatura: cliente no gateway de pagamento (pendências e sincronizar) | ✅ | — | — | — |
 | Assinatura: emitir e reemitir cobrança da fatura | ✅ | — | — | — |
@@ -308,11 +309,12 @@ ela vê sem escolher condomínio no `X-Tenant-Id`.
 ⁴ Só quando o condomínio é direto. Em condomínio de carteira quem paga é a
 administradora, e a tela do síndico diz isso em vez de mostrar conta vazia.
 
-⁵ **Só o operacional** — o que descreve o condomínio. Plano, ativar/desativar e
-módulos contratados descrevem o *contrato* e continuam só no superadmin.
-`ativo` em especial: condomínio inativo sai da conta da assinatura, então esse
-botão na mão de quem paga a fatura seria o botão de baixar a própria conta. A
-tela dela é `/meus-condominios/:id`; a do superadmin, `/admin/condominios/:id`.
+⁵ **Só o operacional** — o que descreve o condomínio, **inclusive quais módulos
+ele usa** (ver ⁸). Plano e ativar/desativar descrevem o *contrato* e continuam
+só no superadmin. `ativo` em especial: condomínio inativo sai da conta da
+assinatura, então esse botão na mão de quem paga a fatura seria o botão de
+baixar a própria conta. A tela dela é `/meus-condominios/:id`; a do superadmin,
+`/admin/condominios/:id`.
 
 ⁶ **Só leitura, e sem entrar no condomínio.** A administradora abre a aba
 "Assinatura" de um condomínio da carteira para ver quanto ele pesa na conta dela
@@ -320,12 +322,17 @@ e o histórico de cobrança dele — negociar preço e vencimento é do superadm
 condomínio vem da URL (`/minha-administradora/condominios/:id/assinatura`), mas
 a carteira sai do usuário logado: condomínio de outra carteira responde 404.
 
-⁷ **Só no cadastro** (passo 4 do `CondominioWizard`). Tipo, blocos e janela de
-envio ela continua editando depois; **`moduloVagas` não** — ele é a exceção
-deliberada à regra de "módulo é contrato", ligável no ato do cadastro porque é a
-resposta que quem cadastra tem em mãos, e fora do alcance dela a partir daí. A
-janela de envio passa pela mesma trava anti-bloqueio da edição (08:00–21:00):
-cadastrar não é atalho para nascer enviando de madrugada.
+⁷ O passo 4 do `CondominioWizard`, para o condomínio já nascer configurado.
+Tudo o que ele pergunta ela continua editando depois. A janela de envio passa
+pela mesma trava anti-bloqueio da edição (08:00–21:00): cadastrar não é atalho
+para nascer enviando de madrugada.
+
+⁸ **Vagas e Avisos já foram exclusivos do superadmin**, como "módulo
+contratado". Passaram para ela porque é ela quem implanta o condomínio e sabe se
+ele tem garagem para administrar ou mural para publicar — cada implantação virava
+um chamado para ligar um interruptor. O critério da fronteira é o dinheiro:
+**módulo não muda o que ela paga** (a assinatura é por apartamento ativo, não
+por módulo), enquanto `plano` e `ativo` mudam — e por isso esses dois ficaram.
 
 **A administradora só enxerga isso dentro dos condomínios da carteira dela**, e
 sempre com o condomínio escolhido no header `X-Tenant-Id` — as exceções são as

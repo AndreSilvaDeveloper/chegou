@@ -355,10 +355,13 @@ describe('Multitenant (e2e)', () => {
   // ------------------------------- o que a administradora configura no condomínio
 
   /**
-   * A administradora configura o **operacional** dos condomínios dela. O que
-   * está de fora não é detalhe de tela: `ativo` tira o condomínio da conta da
-   * assinatura, e os módulos são o que a plataforma contratou. Se algum deles
-   * passar a ser aceito aqui, é aqui que a suíte grita.
+   * A administradora configura o **operacional** dos condomínios dela — o que
+   * descreve o condomínio, incluindo quais módulos ele usa.
+   *
+   * O que está de fora não é detalhe de tela: `plano` e `ativo` mexem na conta
+   * (a assinatura conta apartamento ativo **de condomínio ativo**), e `slug` é
+   * o nome da sessão dela no gateway de WhatsApp. Se algum deles passar a ser
+   * aceito aqui, é aqui que a suíte grita.
    */
   describe('configuração do condomínio pela administradora', () => {
     const configurar = (token: string, tenantId: string, corpo: object) =>
@@ -405,11 +408,30 @@ describe('Multitenant (e2e)', () => {
       expect(res.body.configJson.whatsappLimiteDiario).toBe(42);
     });
 
-    it('não liga módulo contratado por conta própria', async () => {
-      const res = await configurar(adminAToken, condA2, { configJson: { moduloAvisos: true } });
+    /**
+     * Vagas e Avisos são dela. Já foram exclusivos do superadmin — como
+     * "módulo contratado" —, e a mudança tem um critério: eles **não mexem no
+     * que ela paga** (a assinatura é por apartamento ativo, não por módulo),
+     * enquanto `plano` e `ativo` mexem. O teste seguinte guarda essa fronteira.
+     *
+     * Em `condA2`, nunca em `condA1`: lá embaixo há o teste de módulo não
+     * contratado, que depende de `condA1` continuar sem Vagas.
+     */
+    it('liga e desliga os módulos do condomínio', async () => {
+      const ligou = await configurar(adminAToken, condA2, {
+        configJson: { moduloVagas: true, moduloAvisos: true },
+      });
+      expect(ligou.status).toBe(200);
+      expect(ligou.body.configJson.moduloVagas).toBe(true);
+      expect(ligou.body.configJson.moduloAvisos).toBe(true);
 
-      // 400 do `forbidNonWhitelisted`: o campo nem existe no DTO dela.
-      expect(res.status).toBe(400);
+      const desligou = await configurar(adminAToken, condA2, {
+        configJson: { moduloAvisos: false },
+      });
+      expect(desligou.status).toBe(200);
+      expect(desligou.body.configJson.moduloAvisos).toBe(false);
+      // Desligar um não derruba o outro — o merge continua ignorando ausência.
+      expect(desligou.body.configJson.moduloVagas).toBe(true);
     });
 
     it('não mexe em plano nem em ativo', async () => {
