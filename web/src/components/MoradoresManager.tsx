@@ -469,7 +469,7 @@ export function MoradoresManager({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"> */}
               <div className="space-y-2">
                 <Label htmlFor="telefone">Telefone WhatsApp *</Label>
                 <PhoneInput
@@ -477,18 +477,22 @@ export function MoradoresManager({
                   value={form.telefoneE164}
                   onChange={(e164) => setForm({ ...form, telefoneE164: e164 })}
                 />
-                <p className="txt-apoio text-muted-foreground">É por aqui que ele recebe o aviso da encomenda.</p>
+                <small className="text-muted-foreground">É por aqui que ele recebe o aviso da encomenda.</small>
               </div>
+              
+            {/* </div> */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="documento">Documento (Opcional)</Label>
                 <Input id="documento" placeholder="CPF ou RG" value={form.documento} onChange={e => setForm({...form, documento: e.target.value})} />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail (Opcional)</Label>
-              <Input id="email" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail (Opcional)</Label>
+                <Input id="email" type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+              </div>
             </div>
+            
 
             {/* Sem moldura em volta: são dois ajustes do morador, não um bloco à parte. */}
             <div className="space-y-3">

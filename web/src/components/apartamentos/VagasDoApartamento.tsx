@@ -195,9 +195,7 @@ export function VagasDoApartamento({
       }));
 
   return (
-    <div className="space-y-2">
-      <Label>Vagas de garagem</Label>
-
+    <div className="space-y-2 flex flex-col">
       {linhas.length > 0 && (
         <ul className="space-y-1.5">
           {linhas.map((linha) => {
@@ -234,27 +232,46 @@ export function VagasDoApartamento({
           })}
         </ul>
       )}
-
-      {!aberto ? (
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={abrir}
-            className="w-full sm:w-auto"
-          >
-            <Plus />
-            Vincular vaga
-          </Button>
-          {linhas.length === 0 && (
-            <p className="txt-apoio text-muted-foreground">
-              A vaga fica com o apartamento, não com o morador.
-            </p>
+      
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <Label>Vagas de garagem</Label>
+        </div>
+        <div>
+          {!aberto ? (
+            
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={abrir}
+                className="w-full sm:w-auto"
+              >
+                <Plus />
+                Vincular vaga
+              </Button>
+            </div>
+            
+          ):(
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="-mr-1 text-muted-foreground"
+              aria-label="Fechar"
+              onClick={fechar}
+            >
+              <X />
+            </Button>
           )}
-        </>
-      ) : (
-        <div className="space-y-3 rounded-lg bg-muted p-3">
-          <div className="flex items-center justify-between gap-2">
+        </div>
+      </div>
+      
+      
+
+      {aberto && (<div className="space-y-3 rounded-lg ">
+          {/* <div className="flex items-center justify-between gap-2">
             <p className="txt-subtitulo font-semibold text-foreground">Vincular vaga</p>
             <Button
               type="button"
@@ -266,7 +283,7 @@ export function VagasDoApartamento({
             >
               <X />
             </Button>
-          </div>
+          </div> */}
 
           <Tabs value={modo} onValueChange={(v) => setModo(v as 'existente' | 'nova')}>
             {/* Sem vaga livre a aba "já cadastrada" só teria um select vazio. */}
@@ -311,31 +328,62 @@ export function VagasDoApartamento({
                   placeholder="Número (ex: G-12)"
                   autoFocus
                 />
-                <SimpleSelect
+                <div className="flex items-center gap-2">
+                  <SimpleSelect
                   aria-label="Tipo da vaga"
                   value={nova.tipo}
                   onValueChange={(v) => setNova({ ...nova, tipo: v as TipoVaga })}
                   options={TIPOS.map((t) => ({ value: t, label: TIPO_VAGA_LABEL[t] }))}
                 />
+                <Button
+                  type="button"
+                  onClick={adicionarNova}
+                  loading={salvando}
+                  className="w-9"
+                >
+                  <Plus/>
+                  {/* Adicionar vaga */}
+                </Button>
+                </div>
               </div>
-              <Button
-                type="button"
-                onClick={adicionarNova}
-                loading={salvando}
-                className="w-full sm:w-auto"
-              >
-                Adicionar vaga
-              </Button>
+              
             </TabsContent>
           </Tabs>
 
-          {modoCadastro && (
-            <p className="txt-apoio text-muted-foreground">
+          {/* {modoCadastro && (
+            <small className=" text-muted-foreground">
               As vagas são criadas junto com a unidade quando você salvar.
-            </p>
-          )}
+            </small>
+          )} */}
         </div>
       )}
+
+      <div>
+        {linhas.length === 0 && (
+          <small className="text-muted-foreground">
+            A vaga fica com o apartamento, não com o morador.
+          </small>
+        )}
+      </div>
+        {/* {!aberto ? (
+          <div className="">
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={abrir}
+                className="w-full sm:w-auto"
+              >
+                <Plus />
+                Vincular vaga
+              </Button>
+            </div>
+            
+          </div>
+        ) : (
+          
+        )} */}
     </div>
   );
 }

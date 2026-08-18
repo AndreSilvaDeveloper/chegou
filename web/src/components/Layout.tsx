@@ -200,7 +200,7 @@ function SidebarBody({
                 title={isCollapsed ? item.label : undefined}
                 className={({ isActive }) =>
                   cn(
-                    'relative flex items-center rounded-xl font-medium transition-colors',
+                    'relative flex items-center rounded-full font-medium transition-colors',
                     isCollapsed ? 'h-11 w-11 justify-center' : 'min-h-[44px] gap-3 px-3 py-2.5 txt-corpo',
                     isActive
                       ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
