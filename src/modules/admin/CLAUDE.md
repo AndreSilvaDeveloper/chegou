@@ -33,6 +33,16 @@ Usuários, apartamentos e moradores de um condomínio específico. **É por aqui
 o superadmin enxerga dado de condomínio** — ele não entra pelas rotas normais
 (`/apartamentos` e afins não o listam em `@Roles`).
 
+`GET /admin/tenants/:tenantId/resumo` devolve **o condomínio em números** —
+unidades, moradores, encomendas do mês, o que está parado na portaria, a saúde
+da sessão de WhatsApp e quanto ele pesa na conta de quem paga por ele. É o mesmo
+`ResumoCondominioService` que alimenta a carteira da administradora (ver
+[Condomínio](../condominio/CLAUDE.md)); o que muda é a fonte do valor da
+assinatura: aqui, `contaDoCondominio().participacaoAtual`, porque condomínio de
+carteira não tem conta própria. Na tela ela aparece **acima das abas**: responde
+"este condomínio está sendo usado?", que é a pergunta anterior a qualquer
+configuração.
+
 > **O WhatsApp não mora mais aqui.** O painel consolidado `/admin/whatsapp`
 > deixou de existir: sessão, modelos e ritmo são de **um** condomínio de cada
 > vez, em `/admin/tenants/:tenantId/whatsapp` — controller

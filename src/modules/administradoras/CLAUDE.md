@@ -26,6 +26,7 @@ condomínios da carteira escolhendo um por request.
 |---|---|
 | `GET /` | Dados da própria administradora |
 | `GET /condominios` | A carteira |
+| `GET /resumo` | A carteira **em números**: totais + um bloco por condomínio |
 | `GET /condominios/:tenantId` | Um condomínio da carteira (404 se for de outra) |
 | `POST /condominios` | Cria condomínio na própria carteira, com o primeiro síndico (mesmo `CriarTenantDto`, mesmo wizard de 3 passos) |
 | `PATCH /condominios/:tenantId` | Cadastro **e** configuração operacional do condomínio |
@@ -96,10 +97,45 @@ Salvar `configJson` **invalida o `TenantConfigService`**: `estruturaBlocos`
 decide se o cadastro de unidade exige bloco, e sem invalidar a mudança só valeria
 depois do TTL.
 
+## A carteira em números (`GET /resumo`)
+
+A tela `/meus-condominios` é onde a administradora **decide** em qual condomínio
+entrar — e antes disso ela só via nome, cidade e dois botões. Descobrir se um
+condomínio estava vivo exigia entrar, olhar o dashboard e voltar.
+
+O resumo responde isso de uma vez, e é **uma request para a carteira inteira**:
+
+| Bloco | De onde vem |
+|---|---|
+| Unidades, moradores, cobertura de WhatsApp, encomendas, saúde da sessão | `ResumoCondominioService.resumir()` — consultas agregadas, não uma por condomínio |
+| Quanto cada condomínio pesa na conta | `previaDaAdministradora().resultado.itens` — a mesma prévia que gera a fatura |
+| Totais do topo | somados aqui, sobre a mesma lista que a resposta devolve |
+
+Três decisões:
+
+1. **A resposta traz os condomínios inteiros.** A tela não chama
+   `GET /condominios` junto: duas listas para a mesma coisa é como o card e o
+   número passam a discordar.
+2. **A conta pode faltar sem derrubar a tela.** `previaDaAdministradora` estoura
+   quando não há tabela de preços cadastrada — problema da plataforma, não
+   motivo para a administradora ficar sem ver a operação dela. O `catch` devolve
+   `assinatura: null` e a tela esconde só aquele bloco.
+3. **`assinaturaSubtotal` é `null`, nunca `0`, para condomínio fora do
+   cálculo** (inativo, ou conta não calculada). `R$ 0,00` sugeriria que ele é de
+   graça em vez de dizer que ele saiu do cálculo.
+
+É a rota com mais dado de condomínio por request do sistema, e por isso o
+vazamento aqui não apareceria como 403: apareceria como um card a mais na tela.
+O caso está em `test/multitenant.e2e-spec.ts` ("o resumo da carteira traz só os
+próprios condomínios"), conferindo também que os totais batem com a lista.
+
 ## Frontend
 
 - `web/src/pages/MeusCondominios.tsx` — carteira da administradora; é a tela
-  onde ela escolhe em qual condomínio entrar.
+  onde ela escolhe em qual condomínio entrar. Cada condomínio é um `ListCard`
+  com os números de `condominio-numeros.tsx` e as duas ações no rodapé
+  (**Entrar** e **Configurar**) — a exceção que o `rodape` do `ListCard`
+  documenta: aqui a ação larga é o motivo da tela existir.
 - `web/src/pages/MeuCondominio.tsx` — configurar um condomínio da carteira
   (`/meus-condominios/:id`), com as mesmas cinco abas do `SuperAdminTenant`. As
   peças visuais das duas são as de `components/condominio/condominio-shared.tsx`.
@@ -123,6 +159,9 @@ depois do TTL.
       `TenantScopeService.invalidate(tenantId)`.
 - [ ] Ampliou o que a administradora pode fazer? Atualize a tabela de perfis do
       `CLAUDE.md` raiz e acrescente o caso em `test/multitenant.e2e-spec.ts`.
+- [ ] Número novo no resumo da carteira? Ele nasce no `ResumoCondominioService`
+      (ver [Condomínio](../condominio/CLAUDE.md)), em consulta agregada — nunca
+      uma consulta por condomínio.
 - [ ] Campo novo em `configJson` que ela possa editar? Declare no
       `ConfigOperacionalCondominioDto` — e só se não for decisão comercial.
       Pergunte antes: o critério é "descreve o condomínio" vs. "descreve o

@@ -264,6 +264,8 @@ resumo — ao mudar um decorator, atualize aqui **e** na doc do módulo.
 | Banco de amostras de etiqueta (calibrar a leitura por foto) | ✅ | — | — | — |
 | Ler etiqueta por foto ao registrar encomenda | — | — | ✅ | ✅ |
 | Carteira própria (listar/criar/editar condomínios) | — | ✅ | — | — |
+| Carteira em números (unidades, encomendas, WhatsApp, quanto cada um pesa na conta) | — | ✅ | — | — |
+| Um condomínio em números, na tela dele (`/admin/tenants/:id/resumo`) | ✅ | — | — | — |
 | Configurar condomínio da carteira: cadastro, tipo, blocos, janela de envio | ✅ | ✅⁵ | — | — |
 | Endereço completo do condomínio (CEP, logradouro, nº, compl., bairro, cidade, UF) | ✅ | ✅ | ✅ | — |
 | Consultar CEP (`GET /cep/:cep`, preenche o endereço) | ✅ | ✅ | ✅ | — |
@@ -354,6 +356,7 @@ naquela pasta.
 |---|---|---|
 | Encomendas | [src/modules/encomendas](src/modules/encomendas/CLAUDE.md) | Core: receber, notificar, entregar com código |
 | Etiquetas | [src/modules/etiquetas](src/modules/etiquetas/CLAUDE.md) | Ler a etiqueta do pacote por foto (OCR próprio + parser) |
+| Condomínio | [src/modules/condominio](src/modules/condominio/CLAUDE.md) | O condomínio do síndico e **o condomínio em números**, para quem o vê de fora |
 | Apartamentos | [src/modules/apartamentos](src/modules/apartamentos/CLAUDE.md) | Unidades do condomínio, blocos e importação |
 | Moradores | [src/modules/moradores](src/modules/moradores/CLAUDE.md) | Quem mora e por onde recebe WhatsApp |
 | Vagas | [src/modules/vagas](src/modules/vagas/CLAUDE.md) | Garagem, locação, preços e cobrança (opcional) |
@@ -713,6 +716,8 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `@AdministradoraId()` | `src/common/decorators` | Carteira do usuário logado |
 | `@Roles(...)` / `@RequiresModule(...)` | `src/common/decorators` | Perfis e módulo opcional da rota |
 | `TenantConfigService` | `src/common/tenant-config` | Ler `config_json` do condomínio com cache |
+| `ymdLocal()` / `inicioDoDia()` / `inicioDoMes()` | `src/common/fuso-brasil.ts` | Fronteiras de dia e mês no fuso do condomínio — **todo** recorte por data sai daqui |
+| `ResumoCondominioService` | `src/modules/condominio` | O condomínio em números (unidades, encomendas, WhatsApp), agregado para vários de uma vez |
 | `FormDialog` | `web/src/components/ui/form-dialog.tsx` | Casca de formulário em diálogo (rolagem, empilhamento, salvando) |
 | `PhoneInput` | `web/src/components/ui/phone-input.tsx` | Telefone mascarado `(32) 99999-9999` → E.164 |
 | `DocumentoInput` | `web/src/components/ui/documento-input.tsx` | CPF/CNPJ mascarado enquanto se digita → só dígitos para a API |
@@ -744,6 +749,7 @@ e é assim que a divergência volta. Detalhe e checklist: [web/src](web/src/CLAU
 | `EmptyState` / `StatCard` / `ConfirmDialog` / `SimpleSelect` | `web/src/components/ui/` | Estado vazio, indicador, confirmação e select |
 | `OptionCard` / `ModuleToggle` / `ModuleReadonly` / `InfoPill` | `web/src/components/condominio/condominio-shared.tsx` | Telas de configurar condomínio (superadmin e administradora) |
 | `AssinaturaCondominioPanel` / `WhatsappCondominioPanel` | `web/src/components/condominio/` | Abas "Assinatura" e "WhatsApp" de um condomínio, nas telas do superadmin e da administradora |
+| `camposDoResumo()` / `NumerosDoCondominio` | `web/src/components/condominio/condominio-numeros.tsx` | O condomínio em números na tela — card na carteira, faixa de indicadores no superadmin |
 | `useAuthMe` / `useCondominioAtivo` / `useModuleEnabled` | `web/src/hooks/use-tenant-config.ts` | Usuário, condomínio ativo e módulos contratados |
 
 Se você está prestes a copiar um trecho de outro arquivo, considere extrair a

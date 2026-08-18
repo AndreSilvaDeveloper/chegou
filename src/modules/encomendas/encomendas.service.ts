@@ -9,6 +9,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, Repository } from 'typeorm';
 import { Apartamento, Encomenda, EncomendaStatus, Morador, Tenant, WhatsappMessage } from '../../database/entities';
 import { TipoNotificacao } from '../../database/entities/notificacao.entity';
+import {
+  chaveDoDia,
+  inicioDoDia,
+  inicioDoMes,
+  mesAnterior,
+  mesSeguinte,
+  somarDias,
+  ymdLocal,
+} from '../../common/fuso-brasil';
 import { NotificationService } from '../notificacoes/notification.service';
 import {
   buildEncomendaVars,
@@ -427,24 +436,6 @@ export class EncomendasService {
   private static readonly WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   private static readonly MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-  /** Y/M/D no fuso America/Sao_Paulo. */
-  private localYmd(d: Date): { y: number; m: number; d: number } {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(d);
-    const g = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? '0');
-    return { y: g('year'), m: g('month'), d: g('day') };
-  }
-
-  private addDays(y: number, m: number, d: number, delta: number): { y: number; m: number; d: number } {
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    dt.setUTCDate(dt.getUTCDate() + delta);
-    return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
-  }
-
   /** Série de volume (recebidas/retiradas/pendentes) agrupada por dia ou mês, no fuso local. */
   private async serieVolume(
     tenantId: string,
@@ -481,25 +472,20 @@ export class EncomendasService {
 
   async dashboard(tenantId: string) {
     const pad2 = (n: number) => String(n).padStart(2, '0');
-    const dayStart = (yy: number, mm: number, dd: number) => `${yy}-${pad2(mm)}-${pad2(dd)} 00:00:00-03:00`;
-    const monthStart = (yy: number, mm: number) => `${yy}-${pad2(mm)}-01 00:00:00-03:00`;
-    const dayKey = (yy: number, mm: number, dd: number) => `${yy}-${pad2(mm)}-${pad2(dd)}`;
-
-    const { y, m, d } = this.localYmd(new Date());
+    const hoje = ymdLocal();
+    const { y, m } = hoje;
 
     // Limites de mês (atual e anterior) e do dia de hoje.
-    const mesIni = monthStart(y, m);
-    const prox = m === 12 ? { y: y + 1, m: 1 } : { y, m: m + 1 };
-    const mesFim = monthStart(prox.y, prox.m);
-    const ant = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
-    const mesAntIni = monthStart(ant.y, ant.m);
+    const mesIni = inicioDoMes(y, m);
+    const prox = mesSeguinte(y, m);
+    const mesFim = inicioDoMes(prox.y, prox.m);
+    const ant = mesAnterior(y, m);
+    const mesAntIni = inicioDoMes(ant.y, ant.m);
 
-    const hojeIni = dayStart(y, m, d);
-    const amanha = this.addDays(y, m, d, 1);
-    const hojeFim = dayStart(amanha.y, amanha.m, amanha.d);
+    const hojeIni = inicioDoDia(hoje);
+    const hojeFim = inicioDoDia(somarDias(hoje, 1));
 
-    const t30 = this.addDays(y, m, d, -30);
-    const tempoDesde = dayStart(t30.y, t30.m, t30.d);
+    const tempoDesde = inicioDoDia(somarDias(hoje, -30));
 
     const [cardsRow]: { total_mes: number; total_mes_anterior: number; aguardando: number; retirados_hoje: number }[] =
       await this.repo.manager.query(
@@ -524,15 +510,15 @@ export class EncomendasService {
     const variacao = totalMesAnterior > 0 ? Math.round(((totalMes - totalMesAnterior) / totalMesAnterior) * 100) : null;
 
     // Semana atual (segunda a domingo).
-    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=Dom
-    const monday = this.addDays(y, m, d, dow === 0 ? -6 : -(dow - 1));
+    const dow = new Date(Date.UTC(y, m - 1, hoje.d)).getUTCDay(); // 0=Dom
+    const monday = somarDias(hoje, dow === 0 ? -6 : -(dow - 1));
     const weekBuckets: { key: string; label: string }[] = [];
     for (let i = 0; i < 7; i++) {
-      const day = this.addDays(monday.y, monday.m, monday.d, i);
+      const day = somarDias(monday, i);
       const wd = new Date(Date.UTC(day.y, day.m - 1, day.d)).getUTCDay();
-      weekBuckets.push({ key: dayKey(day.y, day.m, day.d), label: EncomendasService.WEEKDAYS[wd] });
+      weekBuckets.push({ key: chaveDoDia(day), label: EncomendasService.WEEKDAYS[wd] });
     }
-    const semana = await this.serieVolume(tenantId, 'day', dayStart(monday.y, monday.m, monday.d), weekBuckets);
+    const semana = await this.serieVolume(tenantId, 'day', inicioDoDia(monday), weekBuckets);
 
     // Últimos 4 meses (incluindo o atual).
     const monthBuckets: { key: string; label: string }[] = [];

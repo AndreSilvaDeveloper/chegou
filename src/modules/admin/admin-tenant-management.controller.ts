@@ -22,6 +22,8 @@ import { MoradoresService } from '../moradores/moradores.service';
 import { AtualizarUsuarioDto } from '../usuarios/dto/atualizar-usuario.dto';
 import { CriarUsuarioDto } from '../usuarios/dto/criar-usuario.dto';
 import { UsuariosService } from '../usuarios/usuarios.service';
+import { ResumoCondominioService } from '../condominio/resumo-condominio.service';
+import { AssinaturaFaturasService } from '../assinaturas/assinatura-faturas.service';
 import { AdminService } from './admin.service';
 
 /**
@@ -44,10 +46,35 @@ export class AdminTenantManagementController {
     private readonly usuarios: UsuariosService,
     private readonly moradores: MoradoresService,
     private readonly apartamentos: ApartamentosService,
+    private readonly resumo: ResumoCondominioService,
+    private readonly faturas: AssinaturaFaturasService,
   ) {}
 
   private async ensureTenant(tenantId: string): Promise<void> {
     await this.admin.assertTenantExists(tenantId);
+  }
+
+  /**
+   * O condomínio em números — o mesmo bloco que a administradora vê na carteira.
+   *
+   * Aqui a assinatura vem da participação atual (`contaDoCondominio`) porque um
+   * condomínio de carteira não tem conta própria: o que importa é quanto ele
+   * pesa na fatura de quem paga por ele.
+   */
+  @Get('resumo')
+  async resumoDoCondominio(@Param('tenantId', ParseUUIDPipe) tenantId: string) {
+    await this.ensureTenant(tenantId);
+    const [resumo, conta] = await Promise.all([
+      this.resumo.resumirUm(tenantId),
+      this.faturas.contaDoCondominio(tenantId),
+    ]);
+    return {
+      ...resumo,
+      assinatura: {
+        responsavel: conta.responsavel,
+        participacaoAtual: conta.participacaoAtual,
+      },
+    };
   }
 
   // ---------------- usuários ----------------

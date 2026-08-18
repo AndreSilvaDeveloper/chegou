@@ -1128,3 +1128,78 @@ export interface LeituraEtiqueta {
    */
   camposFracos: CampoEtiqueta[];
 }
+
+// ---------------------------------------------------------------------------
+// O condomínio em números — `GET /minha-administradora/resumo` e
+// `GET /admin/tenants/:id/resumo`. As duas telas leem a mesma forma.
+// ---------------------------------------------------------------------------
+
+export interface ResumoWhatsappCondominio {
+  /** Último status conhecido da sessão OpenWA; `null` = nunca conectou. */
+  status: string | null;
+  conectado: boolean;
+  numero: string | null;
+  enviadas7d: number;
+  falhas7d: number;
+}
+
+export interface ResumoCondominio {
+  tenantId: string;
+  apartamentos: number;
+  moradores: number;
+  /** Moradores ativos com telefone **e** que aceitam receber — o alcance real. */
+  moradoresComWhatsapp: number;
+  encomendasMes: number;
+  encomendasMesAnterior: number;
+  aguardando: number;
+  /** Média de horas entre receber e entregar (30 dias). `null` = nada retirado. */
+  tempoMedioHoras: number | null;
+  whatsapp: ResumoWhatsappCondominio;
+}
+
+export interface CondominioNaCarteira {
+  tenant: Tenant;
+  resumo: ResumoCondominio;
+  /** Quanto ele soma hoje na fatura da carteira. `null` = fora do cálculo. */
+  assinaturaSubtotal: number | null;
+}
+
+export interface TotaisDaCarteira {
+  condominios: number;
+  condominiosAtivos: number;
+  apartamentos: number;
+  moradores: number;
+  moradoresComWhatsapp: number;
+  encomendasMes: number;
+  encomendasMesAnterior: number;
+  aguardando: number;
+  whatsappConectados: number;
+}
+
+export interface AssinaturaDaCarteira {
+  valorMensal: number;
+  apartamentosCobrados: number;
+  aviso: AvisoVencimento | null;
+}
+
+export interface ResumoDaCarteira {
+  administradora: Administradora;
+  totais: TotaisDaCarteira;
+  /** `null` quando a conta não pôde ser calculada (sem tabela de preços). */
+  assinatura: AssinaturaDaCarteira | null;
+  condominios: CondominioNaCarteira[];
+}
+
+/** Quanto um condomínio soma hoje na conta de quem paga por ele. */
+export interface ParticipacaoAtual {
+  apartamentos: number;
+  subtotal: number;
+}
+
+/** `GET /admin/tenants/:id/resumo` — o mesmo resumo, na tela do superadmin. */
+export interface ResumoCondominioDetalhe extends ResumoCondominio {
+  assinatura: {
+    responsavel: ResponsavelPeloCondominio;
+    participacaoAtual: ParticipacaoAtual | null;
+  };
+}

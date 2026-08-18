@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState, ComponentType } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import { Tenant, TenantConfig } from '../api/types';
+import { ResumoCondominioDetalhe, Tenant, TenantConfig } from '../api/types';
 import {
   DEFAULT_CONFIG,
   InfoPill,
@@ -18,6 +18,7 @@ import {
   type EnderecoForm,
 } from '@/components/condominio/EnderecoFields';
 import { AssinaturaCondominioPanel } from '@/components/condominio/AssinaturaCondominioPanel';
+import { NumerosDoCondominio } from '@/components/condominio/condominio-numeros';
 import { WhatsappCondominioPanel } from '@/components/condominio/WhatsappCondominioPanel';
 import { ApartamentosManager } from '../components/ApartamentosManager';
 import { MoradoresManager } from '../components/MoradoresManager';
@@ -31,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Building2, Store, Blend, Home, Layers, Loader2, MapPin, CreditCard,
@@ -54,6 +56,16 @@ export function SuperAdminTenant() {
   const base = `/admin/tenants/${id}`;
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tab, setTab] = useState<Tab>('dados');
+  /**
+   * O condomínio em números — o mesmo bloco da carteira da administradora.
+   *
+   * Vem separado do `load()` de propósito: é leitura, e uma falha aqui (ou uma
+   * demora) não pode impedir o superadmin de editar o cadastro.
+   *
+   * `undefined` é "ainda buscando" e `null` é "não deu" — a distinção existe
+   * para a falha esconder o bloco em vez de deixar o esqueleto para sempre.
+   */
+  const [resumo, setResumo] = useState<ResumoCondominioDetalhe | null | undefined>(undefined);
 
   const [form, setForm] = useState({
     nome: '', slug: '', documento: '', emailContato: '', telefoneContato: '',
@@ -77,6 +89,14 @@ export function SuperAdminTenant() {
     }).catch(() => toast.error('Condomínio não encontrado'));
 
   useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    setResumo(undefined);
+    api
+      .get<ResumoCondominioDetalhe>(`/admin/tenants/${id}/resumo`)
+      .then(setResumo)
+      .catch(() => setResumo(null));
+  }, [id]);
 
   const salvar = async (e: FormEvent) => {
     e.preventDefault();
@@ -194,6 +214,19 @@ export function SuperAdminTenant() {
           </div>
         </div>
       </Card>
+
+      {/* O condomínio em números, acima das abas: ele responde "este condomínio
+          está sendo usado?", que é a pergunta anterior a qualquer configuração. */}
+      {resumo && (
+        <NumerosDoCondominio resumo={resumo} participacao={resumo.assinatura.participacaoAtual} />
+      )}
+      {resumo === undefined && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-[116px] rounded-surface" />
+          ))}
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="space-y-6">

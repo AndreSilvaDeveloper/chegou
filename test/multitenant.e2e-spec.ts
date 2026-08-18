@@ -170,6 +170,29 @@ describe('Multitenant (e2e)', () => {
       expect(ids).not.toContain(condB1);
     });
 
+    /**
+     * O resumo devolve a carteira **inteira** numa resposta só — é a rota com
+     * mais dado de condomínio por request do sistema. Um vazamento aqui não
+     * apareceria como 403: apareceria como um card a mais na tela, com o nome e
+     * os números de um condomínio de outra administradora.
+     */
+    it('o resumo da carteira traz só os próprios condomínios', async () => {
+      const res = await http
+        .get('/api/minha-administradora/resumo')
+        .set('Authorization', `Bearer ${adminAToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.administradora.id).toBe(administradoraA);
+
+      const ids = res.body.condominios.map((c: { tenant: { id: string } }) => c.tenant.id);
+      expect(ids).toEqual(expect.arrayContaining([condA1, condA2]));
+      expect(ids).not.toContain(condB1);
+
+      // Os totais contam a mesma coisa que a lista — um total maior que a lista
+      // seria dado de fora da carteira entrando na soma.
+      expect(res.body.totais.condominios).toBe(ids.length);
+    });
+
     it('não alcança condomínio de outra carteira nem sabendo o id', async () => {
       const res = await http
         .get(`/api/minha-administradora/condominios/${condB1}`)

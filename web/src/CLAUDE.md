@@ -122,6 +122,27 @@ Com `PAYMENT_API_BASE_URL` vazio a aba diz que a cobrança está desligada, em v
 de listar todo mundo como erro. A lista continua útil: ela mostra o que
 precisaria de conserto no cadastro **antes** de ligar.
 
+### A carteira da administradora mostra números, não só nomes
+
+`/meus-condominios` é onde a administradora **decide** em qual condomínio
+entrar. Ela lê uma rota só (`GET /minha-administradora/resumo`), que devolve os
+totais da carteira **e** cada condomínio já com os números dele — deliberadamente
+não há um segundo `GET /condominios` na tela: duas listas para a mesma coisa é
+como o card e o número passam a discordar.
+
+Cada condomínio é um `ListCard` com os campos de
+`components/condominio/condominio-numeros.tsx`, e as duas ações (**Entrar** e
+**Configurar**) ficam no `rodape`. É a exceção declarada da regra "ação de
+registro vai em botão de ícone": ali a ação larga não é um atalho de edição, é o
+motivo da tela existir — e a autonomia da administradora não pode ficar atrás de
+um ícone sem rótulo.
+
+O mesmo arquivo entrega `NumerosDoCondominio`, a faixa de indicadores que o
+superadmin vê acima das abas em `/admin/condominios/:id`. Rótulo, tradução do
+status do WhatsApp e formatação de tempo moram **num lugar só**, pelo mesmo
+motivo que o estado da encomenda: mesmo dado com dois textos é como as telas
+divergem.
+
 ### Uma tela, dois poderes
 
 `SuperAdminTenant` e `MeuCondominio` configuram o mesmo condomínio. O que muda é

@@ -25,6 +25,20 @@ export class MinhaAdministradoraController {
     return this.service.listarCondominios(administradoraId);
   }
 
+  /**
+   * A carteira em números: totais no topo, um bloco por condomínio.
+   *
+   * Fica antes de `condominios/:tenantId` no arquivo por clareza, não por
+   * necessidade — os caminhos não colidem (`resumo` não é filho de
+   * `condominios`). A tela `/meus-condominios` usa **só** esta rota: o resumo
+   * já traz cada condomínio inteiro, e duas chamadas para a mesma lista é como
+   * o card e o número passam a discordar.
+   */
+  @Get('resumo')
+  resumo(@AdministradoraId() administradoraId: string) {
+    return this.service.resumoDaCarteira(administradoraId);
+  }
+
   @Get('condominios/:tenantId')
   obterCondominio(
     @AdministradoraId() administradoraId: string,

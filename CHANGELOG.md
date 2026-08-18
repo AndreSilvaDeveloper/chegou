@@ -11,6 +11,50 @@ escreve aqui o que mudou, no mesmo commit.
 
 ---
 
+## 0.36.0 — 2026-08-18
+
+**A carteira da administradora deixou de ser uma lista de nomes.**
+
+`/meus-condominios` é a tela onde a administradora **decide** em qual condomínio
+entrar — e até agora ela só mostrava nome, cidade e dois botões. Para descobrir
+se um condomínio estava sendo usado era preciso entrar nele, olhar o dashboard e
+voltar. Agora a tela abre com os totais da carteira e, em cada condomínio:
+
+| O quê | Responde |
+|---|---|
+| Unidades e moradores (+ % com WhatsApp) | Este condomínio chegou a ser implantado? |
+| Encomendas no mês, com variação vs. o mês anterior | Ele está **vivo**? |
+| Aguardando retirada e tempo médio | A portaria está dando conta? |
+| Estado da sessão de WhatsApp e envios em 7 dias | O canal está de pé? |
+| Quanto ele soma na conta da carteira | Quanto este cliente vale para mim? |
+
+As duas ações continuam explícitas no pé de cada card — **Entrar** e
+**Configurar**. É a autonomia da administradora, e escondê-las atrás de um ícone
+deixaria a tela mais limpa e menos útil.
+
+**Uma request para a carteira inteira.** O `ResumoCondominioService`
+(`src/modules/condominio`) agrega cada família de número numa consulta com
+`GROUP BY tenant_id` — nunca uma consulta por condomínio, que numa carteira de
+trinta viraria trinta idas ao banco. O status do WhatsApp sai da coluna
+`tenants.whatsapp_status`, não do gateway: perguntar ao OpenWA seria uma chamada
+HTTP por condomínio.
+
+**O superadmin ganhou o mesmo bloco**, acima das abas de
+`/admin/condominios/:id` (`GET /admin/tenants/:id/resumo`). Mesmo serviço,
+mesmos rótulos, mesma tradução do status — o que muda é a fonte do valor da
+assinatura, que ali é a participação do condomínio na conta de quem paga por
+ele.
+
+Também nesta versão:
+
+- **`src/common/fuso-brasil.ts`**: as fronteiras de dia e de mês no fuso do
+  condomínio saíram de dentro do `EncomendasService` (onde eram privadas) para
+  um arquivo só. Era de onde viriam dois números diferentes para "este mês".
+- **`src/modules/condominio/CLAUDE.md`**: o módulo estava sem doc.
+- Caso novo em `test/multitenant.e2e-spec.ts`: o resumo é a rota com mais dado
+  de condomínio por request, e um vazamento nela não apareceria como 403 —
+  apareceria como um card a mais na tela.
+
 ## 0.35.0 — 2026-08-17
 
 **Coordenadas do condomínio, para o mapa da plataforma.**

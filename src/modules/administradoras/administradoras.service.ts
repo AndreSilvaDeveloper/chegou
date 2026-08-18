@@ -17,6 +17,13 @@ import { AdminService } from '../admin/admin.service';
 import { CriarTenantDto } from '../admin/dto/criar-tenant.dto';
 import { mesclarConfigOperacional } from '../condominio/config-operacional';
 import {
+  ResumoCondominio,
+  ResumoCondominioService,
+  resumoVazio,
+} from '../condominio/resumo-condominio.service';
+import { AssinaturaFaturasService } from '../assinaturas/assinatura-faturas.service';
+import { AvisoVencimento } from '../assinaturas/aviso-vencimento';
+import {
   AtualizarAdministradoraDto,
   CriarAdministradoraDto,
   CriarUsuarioAdminDto,
@@ -28,6 +35,46 @@ const PG_UNIQUE_VIOLATION = '23505';
 export interface AdministradoraComResumo extends Administradora {
   qtdCondominios: number;
   qtdUsuarios: number;
+}
+
+/** Um condomínio da carteira com os números dele. */
+export interface CondominioNaCarteira {
+  tenant: Tenant;
+  resumo: ResumoCondominio;
+  /**
+   * Quanto ele soma **hoje** na fatura da carteira. `null` quando a conta não
+   * pôde ser calculada (sem tabela de preços) ou quando o condomínio está
+   * inativo — inativo não entra na conta, e mostrar R$ 0,00 sugeriria que ele
+   * é de graça, e não que ele saiu do cálculo.
+   */
+  assinaturaSubtotal: number | null;
+}
+
+/** Os totais da carteira — a linha de indicadores no topo da tela. */
+export interface TotaisDaCarteira {
+  condominios: number;
+  condominiosAtivos: number;
+  apartamentos: number;
+  moradores: number;
+  moradoresComWhatsapp: number;
+  encomendasMes: number;
+  encomendasMesAnterior: number;
+  aguardando: number;
+  whatsappConectados: number;
+}
+
+/** A conta da carteira, resumida — o detalhe fica em `/minha-administradora/assinatura`. */
+export interface AssinaturaDaCarteira {
+  valorMensal: number;
+  apartamentosCobrados: number;
+  aviso: AvisoVencimento | null;
+}
+
+export interface ResumoDaCarteira {
+  administradora: Administradora;
+  totais: TotaisDaCarteira;
+  assinatura: AssinaturaDaCarteira | null;
+  condominios: CondominioNaCarteira[];
 }
 
 /**
@@ -48,6 +95,8 @@ export class AdministradorasService {
     private readonly tenantScope: TenantScopeService,
     private readonly tenantConfig: TenantConfigService,
     private readonly geo: FilaGeocodificacaoService,
+    private readonly resumoCondominio: ResumoCondominioService,
+    private readonly faturas: AssinaturaFaturasService,
   ) {}
 
   // ------------------------------------------------------------ superadmin
@@ -170,6 +219,91 @@ export class AdministradorasService {
       where: { administradoraId },
       order: { ativo: 'DESC', nome: 'ASC' },
     });
+  }
+
+  /**
+   * A carteira inteira em números, numa resposta só.
+   *
+   * É o que a tela `/meus-condominios` mostra: o topo com os totais e um card
+   * por condomínio com unidades, moradores, encomendas e saúde do WhatsApp. Ela
+   * **não** faz uma chamada por condomínio — o `ResumoCondominioService` agrega
+   * todos de uma vez, e a assinatura sai de uma prévia só, que já vem quebrada
+   * por condomínio (`resultado.itens`).
+   *
+   * A conta pode faltar sem que a tela quebre: `previaDaAdministradora` estoura
+   * quando não há tabela de preços cadastrada, e isso é problema da plataforma,
+   * não motivo para a administradora ficar sem ver a operação dela.
+   */
+  async resumoDaCarteira(administradoraId: string): Promise<ResumoDaCarteira> {
+    const administradora = await this.assertExiste(administradoraId);
+    const tenants = await this.listarCondominios(administradoraId);
+
+    const [resumos, conta] = await Promise.all([
+      this.resumoCondominio.resumir(tenants.map((t) => t.id)),
+      this.contaDaCarteira(administradoraId),
+    ]);
+
+    const subtotais = new Map(
+      (conta?.itens ?? []).map((i) => [i.tenantId, i.subtotal] as const),
+    );
+
+    const condominios: CondominioNaCarteira[] = tenants.map((tenant) => ({
+      tenant,
+      resumo: resumos.get(tenant.id) ?? resumoVazio(tenant.id),
+      assinaturaSubtotal: subtotais.get(tenant.id) ?? null,
+    }));
+
+    const somar = (pegar: (c: CondominioNaCarteira) => number) =>
+      condominios.reduce((total, c) => total + pegar(c), 0);
+
+    return {
+      administradora,
+      totais: {
+        condominios: condominios.length,
+        condominiosAtivos: condominios.filter((c) => c.tenant.ativo).length,
+        apartamentos: somar((c) => c.resumo.apartamentos),
+        moradores: somar((c) => c.resumo.moradores),
+        moradoresComWhatsapp: somar((c) => c.resumo.moradoresComWhatsapp),
+        encomendasMes: somar((c) => c.resumo.encomendasMes),
+        encomendasMesAnterior: somar((c) => c.resumo.encomendasMesAnterior),
+        aguardando: somar((c) => c.resumo.aguardando),
+        whatsappConectados: condominios.filter((c) => c.resumo.whatsapp.conectado).length,
+      },
+      assinatura: conta
+        ? {
+            valorMensal: conta.valorMensal,
+            apartamentosCobrados: conta.apartamentosCobrados,
+            aviso: conta.aviso,
+          }
+        : null,
+      condominios,
+    };
+  }
+
+  /** A conta da carteira, ou `null` quando ela não pôde ser calculada. */
+  private async contaDaCarteira(administradoraId: string): Promise<{
+    valorMensal: number;
+    apartamentosCobrados: number;
+    aviso: AvisoVencimento | null;
+    itens: { tenantId: string; subtotal: number }[];
+  } | null> {
+    try {
+      const minha = await this.faturas.minhaContaDaAdministradora(administradoraId);
+      if (!minha.conta) return null;
+      return {
+        valorMensal: minha.conta.resultado.valor,
+        apartamentosCobrados: minha.conta.resultado.quantidadeApartamentos,
+        aviso: minha.aviso,
+        itens: minha.conta.resultado.itens.map((i) => ({
+          tenantId: i.tenantId,
+          subtotal: i.subtotal,
+        })),
+      };
+    } catch {
+      // Sem tabela de preços cadastrada a prévia estoura. A operação da
+      // carteira não depende disso — a tela só esconde o bloco de assinatura.
+      return null;
+    }
   }
 
   /** Condomínio da carteira — 404 quando é de outra, para não vazar existência. */
